@@ -7,6 +7,43 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 1.4.0 — 2026-09-12
+
+New: log-first interpretation of client and management logs (`13`), built from real
+client and production management logs cross-checked against the software's behaviour.
+
+- **Line anatomy** shared by client and management: RFC 3339 local time with UTC offset
+  (offset can change inside one client file; containers print `Z`; dashboard event
+  times are UTC), four-letter levels, optional `[context/requestID/accountID/peerID]`
+  bracket, a source-location field to ignore, and truncated key prefixes in messages.
+- **A one-minute profiling recipe** with a sanitiser that collapses identifiers so
+  identical events group together, plus an anchor-and-window read with the noise
+  families filtered out.
+- **Client**: file layout including the macOS system-extension logs that ride along in
+  the bundle and the launchd `err.log` that is mostly benign TLS-handshake noise; the
+  healthy daemon start order; the healthy connect order with the `connection
+  established … direct=/relayed=/ice=` verdict line; the network-change restart cycle
+  and why its `context canceled` errors are expected; message families for management,
+  signal, peers, DNS and the AI-security stack; a noise list; what `debug`/`trace` add.
+- **Management**: where it logs and how lines are attributed; the healthy start order
+  from OIDC discovery to `running HTTP server and gRPC server`; steady-state families
+  (`NOOP`, `Peer has no userID`, `FILTER_DIAG` as the direct answer to "why is the
+  filter not applying", tenant resolution, token revocation, ephemeral cleanup, relay
+  credential issuance); `WARN`/`ERRO` families including the fact that only non-success
+  API responses are logged; what `debug`/`trace` add (REST access log only at trace).
+- **Signal**: start lines and the two steady-state warnings, and their pairing with the
+  client's `wrongly addressed message`.
+- **Correlation**: WireGuard public key as the primary join (prefix-truncated on the
+  client), overlay IP/FQDN, server-only `requestID`, UTC conversion, the ~30 s dashboard
+  lag, AIDR identifiers via debug-level `Buffered event` lines, and a step-by-step
+  procedure.
+- **Six worked readings** from real logs: laptop reconnect cycles, DNS loss during a
+  network change, duplicate identity (`wrongly addressed` + `already registered`),
+  posture-gated connectivity, a local port conflict, and stale-client login noise on the
+  server.
+- Escalation (`12`) now notes the system-extension logs and how to grep `err.log` for a
+  panic; client (`07`) and server (`03`) troubleshooting route log-first questions to `13`.
+
 ## 1.3.0 — 2026-09-12
 
 Signal and relay (STUN/TURN) get a dedicated diagnosis section (`03` §4a).

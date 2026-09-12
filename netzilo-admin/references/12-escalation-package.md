@@ -85,7 +85,7 @@ What "every file in the log directory" means per platform:
 | Platform | Log directory | Consequence |
 |---|---|---|
 | **Linux** | `/var/log/netzilo/` | also contains the service's stdout/stderr logs, because the installer points them here — good, include them |
-| **macOS** | `/var/log/netzilo/` | the launchd logs `/var/log/Netzilo.out.log` and `/var/log/Netzilo.err.log` are **outside** this directory and are **not** in the bundle. Panics can land there — collect them separately |
+| **macOS** | `/var/log/netzilo/` | the launchd logs `/var/log/Netzilo.out.log` and `/var/log/Netzilo.err.log` are **outside** this directory and are **not** in the bundle. Panics can land there — collect them separately (`err.log` is normally thousands of benign `TLS handshake error` lines; grep it for `panic` or `goroutine`). The two system-extension logs `netzilofilter.log` and `netzilosecurity.log` **are** in the directory and ride along in the bundle |
 | **Windows** | `%PROGRAMDATA%\Netzilo\` | this is also the **configuration** directory, so the bundle sweeps in `config.json` (contains the WireGuard **private key**), `token.dat`, `pat.dat`, and `netzilo-ca-key.pem` (the TLS-inspection **CA private key**). These must be removed — see §6 |
 
 Also: the tray menu's **Support → Collect Data** produces a bundle with **no

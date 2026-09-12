@@ -13,7 +13,9 @@ netzilo status -d
 tail -n 200 /var/log/netzilo/client.log        # Windows: %PROGRAMDATA%\Netzilo\client.log
 ```
 
-For anything non-trivial collect a bundle: `sudo netzilo debug bundle -A` (anonymized), or
+If you are handed a log rather than a symptom, start with `13-log-interpretation.md`
+(profile the templates, find the last healthy sequence, rule out the noise families) and
+come back here for the fix. For anything non-trivial collect a bundle: `sudo netzilo debug bundle -A` (anonymized), or
 for intermittent issues `sudo netzilo debug for 5m -A`. The bundle zips the whole log
 folder plus `status.txt` — on Windows that folder also holds `config.json` and
 `token.dat`, so keep the bundle private.

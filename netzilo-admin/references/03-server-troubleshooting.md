@@ -14,6 +14,10 @@ running them, and do not open the configuration files that hold secrets
 cannot be granted, send the customer the copy-paste blocks in
 `12-escalation-package.md` §8 and work from their output.
 
+To read a management or signal log without a known symptom — healthy start-up order,
+steady-state families such as `NOOP` and `FILTER_DIAG`, which `WARN`/`ERRO` lines are
+benign, what `debug`/`trace` add — use `13-log-interpretation.md` §5.
+
 Standard first pass (on the server):
 
 ```bash

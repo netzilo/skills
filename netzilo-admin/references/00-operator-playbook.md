@@ -76,6 +76,7 @@ and Azure Marketplace image (`/opt/netzilo/run`), or Netzilo Cloud (nothing to i
 | "What does flag X do / where is the config / log / how do I read `netzilo status`" | `06-client-cli-reference.md` |
 | "Device won't connect / relayed / DNS broken / route missing / SSH / TLS errors from AI apps / daemon not reachable" | `07-client-troubleshooting.md` |
 | "Device A cannot reach host X" (peer, LAN/VPC host behind a routing peer, or Internet via exit node) | `11-connectivity-diagnosis.md` — the end-to-end procedure across A, the routing peer, policies, routes, firewalls and DNS |
+| "Here is a log — what went wrong?" (client, management, signal) | `13-log-interpretation.md` — profile the log, find the last healthy sequence, rule out noise families, correlate client and server on the peer key |
 | Runbook exhausted, problem persists — hand it to Netzilo | `12-escalation-package.md` — when escalation is justified, what to collect, redaction, and the package the customer sends |
 | "Policies / groups / posture checks / routes / exit nodes / DNS servers / setup keys / peers / activity / reports / integrations / plans" | `08-network-administration.md` |
 | "Automate with the API / export-import / bulk changes / tokens / IaC" | `09-api-and-automation.md` |
