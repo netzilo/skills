@@ -41,6 +41,8 @@ client and production management logs cross-checked against the software's behav
   network change, duplicate identity (`wrongly addressed` + `already registered`),
   posture-gated connectivity, a local port conflict, and stale-client login noise on the
   server.
+- Routing description shortened below 500 characters so the trigger list survives
+  harnesses that truncate it in the skill catalogue; wording and triggers unchanged.
 - Escalation (`12`) now notes the system-extension logs and how to grep `err.log` for a
   panic; client (`07`) and server (`03`) troubleshooting route log-first questions to `13`.
 

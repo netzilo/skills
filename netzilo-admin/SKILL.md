@@ -1,6 +1,6 @@
 ---
 name: netzilo-admin
-description: "Operate Netzilo end to end so the customer needs zero human support from Netzilo. Covers self-hosted server install (on-prem, AWS, Azure) and day-2 ops, identity/SSO, client install and fleet deployment on every OS, network policy (access control, routes, DNS, posture checks), AI security (AIDR: Edge Tools/Scanners/Filters, coding-agent hooks, SDK), the public REST API, and end-to-end connectivity diagnosis. Use whenever the user asks to install, configure, upgrade, troubleshoot, or diagnose any part of Netzilo Server or the Netzilo client, or asks about Netzilo policies, DNS, routes, posture checks, users, SSO, AI governance, or API automation."
+description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
   version: 1.4.0
