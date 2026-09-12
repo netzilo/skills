@@ -170,3 +170,22 @@ Events: `user.peer.add`, `setupkey.peer.add`, `user.peer.delete`, `peer.rename`,
 `peer.group.add/delete`, `peer.ssh.enable/disable`, `peer.login.expiration.enable/disable`,
 `peer.login.expire`, `peer.approve`, `setupkey.add/update/revoke/overuse/deleted`,
 `setupkey.group.add/delete`.
+
+## 7. Limits that reject a change
+
+| Setting | Accepted range | Message when out of range |
+|---|---|---|
+| Peer login expiration | one hour to 180 days | `peer login expiration can't be larger than 180 days`, or a message naming the one-hour floor |
+| Setup key lifetime | 1 to 365 days | `expiresIn should be between 1 day and 365 days` |
+
+**Login expiration cannot be changed on a setup-key peer.** Attempting it returns
+`this peer hasn't been added with the SSO login, therefore the login expiration can't be
+updated`. This is by design: setup-key peers have no user to re-authenticate. The
+dashboard says the same thing in a tooltip on the disabled control. If a customer needs
+periodic re-authentication on such a device, it must be re-enrolled through single
+sign-on instead.
+
+**Deleting a network deletes every route inside it.** The delete action on a network row
+removes all of that network's routing-peer routes at once, not just one. The confirmation
+says so. Deleting a single route uses the action on the inner row instead. See
+`22-network-routes-and-exit-nodes.md`.

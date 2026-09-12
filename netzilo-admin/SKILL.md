@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 1.4.0
+  version: 1.5.0
   released: "2026-09-12"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 1.4.0, released 2026-09-12.** Confirm it is current before
+**This copy is version 1.5.0, released 2026-09-12.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -64,7 +64,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **1.4.0** above.
+Compare its `version:` with **1.5.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -73,7 +73,7 @@ Compare its `version:` with **1.4.0** above.
   they are working on*. If a change affects the task at hand, ask them to update before
   you proceed; otherwise note it and carry on.
 - **Cannot fetch** (no network or no fetch tool) — say that plainly, state that you are
-  working from 1.4.0 released 2026-09-12, and flag it as a caveat if that date is more
+  working from 1.5.0 released 2026-09-12, and flag it as a caveat if that date is more
   than about three months old. Never guess that you are current.
 
 All skills in the repository and their versions: `https://raw.githubusercontent.com/netzilo/skills/main/manifest.json`.
@@ -183,6 +183,11 @@ Server delivery paths: on-prem one-liner, AWS/Azure Marketplace image, or Netzil
 | Device won't connect, relayed, DNS, routes, SSH, daemon unreachable | `references/07-client-troubleshooting.md` |
 | "Device A can't reach host X" (peer, routed LAN/VPC, or exit node) | `references/11-connectivity-diagnosis.md` — the full procedure |
 | "Here is a log — what went wrong?" (client, management, signal) | `references/13-log-interpretation.md` — line anatomy, healthy sequences, message families, noise vs signal, correlation, worked readings |
+| New customer, or rolling out to a new team — what order to do it in | `references/16-onboarding-and-rollout.md` — phased plan with an exit test per phase, and the first-week mistakes |
+| "What does Netzilo collect?" — security review, data protection, works council | `references/14-data-handling-and-privacy.md` — every field collected, what AI events carry, what can be disabled |
+| Compromised device or credential, departing employee, locked out by a change | `references/15-incident-response-and-recovery.md` — containment order, what each action really revokes, lockout recovery |
+| Blocked by a plan, a quota or billing; "upgrade" prompts; a lapsed subscription | `references/31-plans-limits-and-billing.md` — every limit and its exact message |
+| The admin needs something to give their employees | `references/17-end-user-guide.md` — a page to publish, plus what an employee's complaint really means |
 | Runbook exhausted and it still fails — escalate to Netzilo | `references/12-escalation-package.md` — build the redacted support package the customer sends |
 | Network → Policies (access control) | `references/20-policies-access-control.md` |
 | Endpoint → Posture Checks | `references/21-posture-checks.md` |

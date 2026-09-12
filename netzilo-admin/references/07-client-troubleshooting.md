@@ -239,3 +239,32 @@ Remember to `sudo netzilo service start` afterwards (foreground Ctrl-C logs the 
 If the runbook is exhausted and the problem persists, build a support package with
 `12-escalation-package.md` rather than sending loose files — the client debug bundle
 needs inspection and redaction before it leaves the device.
+
+## 13. Environment problems that look like product faults
+
+Four causes produce symptoms indistinguishable from a broken client. Rule them out before
+deeper diagnosis, because none of them appears as a useful error message.
+
+**Another VPN is running.** A second VPN client competing for the default route is the
+most common. The client ignores a fixed list of virtual interfaces so it does not mistake
+another VPN's adapter for its own, but that does not resolve contention over the default
+route. Compare the routing table against the interfaces present: if another VPN holds the
+default route or a more specific route to the same destination, that is the cause.
+Disconnect the other client and retest. Where both must coexist, scope them to
+non-overlapping destinations.
+
+**The clock is wrong.** A device whose time is off cannot complete certificate validation
+or sign-in, and the resulting errors point at TLS rather than at the clock. Check the
+system time and that automatic time synchronisation is on before investigating
+certificates.
+
+**A captive portal has not been completed.** Hotel, airport and guest networks intercept
+traffic until their sign-in page is completed. The symptom is identical to an unreachable
+control plane. Open a browser, complete the portal, then reconnect.
+
+**A proxy or inspection appliance sits in the path.** Corporate middleboxes that
+terminate TLS will break the client's own connections. Confirm whether the customer runs
+one, and exempt the control-plane hostnames.
+
+None of these are product faults, and all four are fixed by the user in under a minute
+once identified. `17-end-user-guide.md` §2 carries them in language for employees.

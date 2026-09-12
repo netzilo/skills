@@ -300,3 +300,33 @@ Log prefixes to search for on a device: `MITM:`, `Gateway static rules updated`,
   per-user graphs).
 - API: `GET /api/events/paginated?code=tool.blocked&…`, `GET /api/peers/{id}/aidr-snapshot`.
 - Stream everything to S3/Min.io for SIEM (Integrations → Event Streaming).
+
+## 11. Constraints to disclose early
+
+**Excluding a domain from inspection is not self-service.** Applications that pin
+certificates or require mutual authentication break under inspection, and the list of
+domains passed through uninspected is maintained centrally by Netzilo, not per tenant.
+There is no dashboard or API field for it. The self-service options are to remove the
+application from the filter's agent list, which loses visibility for that application
+entirely, or to request the addition. Say this plainly rather than searching for a
+setting that does not exist.
+
+**Certificate trust varies by runtime, not by operating system.** Installing the
+inspection authority in the system store covers most applications. Runtimes that ship
+their own trust store do not read it: Python, Java and Firefox each need their own step,
+covered in `07-client-troubleshooting.md`. Applications written in Go normally follow the
+system store and need nothing extra, which is worth stating because it is the first thing
+people ask about after the other three.
+
+**Provider coverage is broader than the named list.** Traffic is matched first by
+recognised hostname and then, failing that, by the shape of the request body, so many
+services with an OpenAI-compatible interface are parsed even when they are not named
+anywhere. The way to answer "is this provider supported" is to run the tool once and look
+for its activity in the dashboard, not to consult a list.
+
+**Reading the behaviour graph.** Node colour encodes node type and is consistent across
+every graph view. Clustered nodes carry a count badge and appear when several nodes of
+the same type share the same parent. A node ringed in grey is the action that triggered
+the rule, which is separate from the kill-chain stage colours. Time-window controls and
+node and edge type filters sit in the graph toolbar. Tell an admin this before their
+first look at a graph; without it the picture is not interpretable.

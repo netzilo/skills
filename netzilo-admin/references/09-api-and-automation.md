@@ -209,3 +209,60 @@ comma-separated peer IDs that just connected.
   `maximum number of personal peers reached` (>99 peers); Enterprise/MSP have no limits.
 - The API is labelled Beta in the docs; test destructive scripts against a small group
   first.
+
+## 7. How the API reports failure
+
+Status codes are not what most clients expect, and several distinct failures collapse
+into one message. Script against this, not against convention.
+
+| Code | Meaning |
+|---|---|
+| 401 | Authentication failed. The body always says `token invalid` |
+| 403 | Authenticated but not permitted: wrong role, or a plan gate |
+| 404 | Object or tenant does not exist |
+| 409 | Conflict: the name is taken, or a plan limit was reached |
+| 412 | A precondition failed, such as a uniqueness rule or a missing geolocation database |
+| 422 | **Field validation failed.** Note this is 422, not 400 |
+| 400 | A malformed request, including an oversized upload |
+| 500 | An internal error, and also see the group-deletion trap below |
+
+**Every authentication failure looks identical.** An expired token, a mistyped token and
+a malformed header all return `token invalid`. The API cannot tell you which. Two
+messages are distinct and worth recognising: `no valid authentication provided` means the
+authorization header was missing or unreadable, and a message about the user having no
+access or being blocked means the account is blocked rather than the token being wrong.
+On Cloud, where there are no server logs to consult, re-issue the token rather than
+trying to diagnose further.
+
+**Deleting a group returns 500 when the group is still in use.** The server knows exactly
+what references it and says so in its own log, but that reason is not sent to the caller.
+Treat a 500 from a group deletion as "still referenced" rather than as a server fault,
+and check policies, routes, DNS nameserver groups, setup keys, users, profiles and
+filters for the group's identifier. Disabled DNS-management groups and identity-provider
+validator groups also block deletion and are the two people forget.
+
+**Tokens are scoped by role only.** A personal access token carries everything its
+owner's role allows. There is no per-endpoint scoping, so least privilege means choosing
+the role, not the token. Expiry is between one and 365 days and nothing warns you before
+it lapses.
+
+**There is no API version to pin to.** The prefix carries no version number.
+
+**There is no idempotency mechanism.** A retried create can produce duplicates. Only
+group and nameserver-group names are unique, so scripts that retry must check before
+creating.
+
+**Silent limits to design around**
+
+- Only the paginated events endpoint paginates. Every other list returns everything.
+- A `limit` outside one to a thousand is ignored silently and the default of 25 is used.
+  A bad value under-fetches instead of erroring.
+- A search term longer than 500 characters is silently truncated.
+- Scanner replay payloads above 512 KB are rejected.
+- Tenant logo uploads above 500 KB return 400 with a message naming the limit.
+- Devices batch their own events; the server caps a batch and says so.
+
+**Endpoints worth knowing that are easy to miss:** activity events can be created as well
+as read, which lets external tooling write into the audit trail. Any path under the
+internal prefix is reserved for the platform, uses a different credential, and is not for
+customer use.

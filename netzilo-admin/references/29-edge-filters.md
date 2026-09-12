@@ -1,7 +1,10 @@
 # Admin Skill — Edge Filters (binding AI policy to devices)
 
 **Dashboard:** Edge → **Filters** (`/ai-edge/filters`). **API:** `/api/edge/filters`.
-**Licence:** Enterprise.
+**Licence:** any plan can create and use Filters. Only **premium (global catalogue)
+scanner rules bound inside a filter** require Enterprise; the server rejects those with
+`Enterprise subscription required to use premium scanner rule <id>`. Custom scanners you
+author yourself carry no plan restriction.
 
 A filter is the object that makes AI governance happen on a device. Without a matching,
 enabled filter a device records nothing and enforces nothing. Header text: "Use this

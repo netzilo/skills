@@ -152,3 +152,38 @@ Events: `user.invite`, `user.join`, `user.role.update`, `user.block/unblock`,
 `user.delete`, `user.group.add/delete`, `service.user.create/delete`,
 `personal.access.token.create/delete`, `group.add/update/delete`,
 `account.setting.*`, `transferred.owner.role`, `tenant.updated`, `subscription.updated`.
+
+## 8. Rules that refuse a change, and why
+
+These are deliberate protections, not faults. An admin who does not know them files a
+ticket; an admin who does moves on.
+
+| Attempt | Result | Why |
+|---|---|---|
+| Delete your own account | `self deletion is not allowed` | Prevents locking the account out |
+| Delete the Owner | `unable to delete a user with owner role` | Transfer ownership first |
+| Block the Owner | Refused | The Owner is always reachable |
+| Block or unblock yourself | `admins can't block or unblock themselves` | Same reason |
+| Change your own role | `admins can't change their role` | Prevents self-escalation; another admin must do it |
+| Grant or remove the Owner role | Only the Owner may | Ownership transfers are owner-initiated |
+| Invite someone directly as Owner | Refused | Create then transfer |
+| Create a token for another person | Refused | Tokens exist only on your own profile or on an Agent |
+
+The role selector on a user's page is simply disabled in these cases, with no explanation
+on screen. When an admin reports that they "cannot change a role", check this table
+before looking for a fault.
+
+**Service users count toward the Free plan's user limit.** Creating an Agent on a Free
+account consumes one of the five seats, even though Agents are excluded from marketplace
+billing counts. See `31-plans-limits-and-billing.md`.
+
+**A group cannot be deleted while anything references it.** Policies, routes, DNS
+nameserver groups, setup keys, users, profiles and filters all count, and so do two that
+are easy to miss: groups used by disabled DNS management, and groups bound to an
+identity-provider validator. Through the API this surfaces as an unhelpful 500, so check
+references rather than assuming a server fault (`09-api-and-automation.md` §7). The
+dashboard disables the delete control instead and explains it in a tooltip. The `All`
+group cannot be deleted at all.
+
+**Plan and device counts reconcile once a day.** A plan change can take up to
+twenty-four hours to be reflected in every gate.

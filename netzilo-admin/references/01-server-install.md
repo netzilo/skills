@@ -30,9 +30,12 @@ Inputs every path needs:
 | Admin password | Wrapper/CFN/ARM enforce: ≥12 chars with upper, lower, digit, symbol. |
 | TLS mode | `letsencrypt` (default) or `provided` (fullchain + key). |
 
-Sizing: min 2 vCPU / 4 GB / 40 GB; recommended 2 vCPU / 8 GB. Firewall inbound:
-22 (admin CIDR), 80, 443, 3478 tcp+udp, 5349 tcp+udp; cloud templates also open
-49152–65535/udp for TURN relay allocations.
+Sizing: min 2 vCPU / 4 GB / 40 GB; recommended 2 vCPU / 8 GB.
+
+**On the minimum.** The published product documentation quotes a higher floor than the numbers above, which reflect what the marketplace images actually run on. Below the published minimum a server will start and work for a small pilot, but sizing questions during a support case will be judged against the published figure. For anything beyond a pilot, provision to the published minimum and treat the lower numbers as a lab floor, not a target.
+
+Firewall inbound: 22 (admin CIDR), 80, 443, 3478 tcp+udp, 5349 tcp+udp; cloud templates
+also open 49152–65535/udp for TURN relay allocations.
 
 The installer needs outbound HTTPS to `ghcr.io` (Netzilo images), Docker Hub (caddy,
 coturn, postgres, redis), `pkg.netzilo.com` (installer download) and Let's Encrypt.

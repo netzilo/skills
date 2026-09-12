@@ -7,6 +7,76 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 1.5.0 — 2026-09-12
+
+Gap-closing release. The skill set was audited against the product surface — dashboard,
+management API, client platforms, entitlements, deployment topologies, AI security and the
+published documentation — and the gaps that would still have forced a support call are now
+covered. Five new files, eight extended, two corrections.
+
+**Corrections (these produced wrong answers before)**
+
+- Edge Filters are **not** an Enterprise feature. Any plan can create and use them; only
+  premium catalogue scanner rules bound inside a filter require Enterprise. The previous
+  blanket claim would have told a paying customer to upgrade for no reason (`29`).
+- The routing description is now within the 500-character limit some hosts apply to the
+  skill catalogue, so the trigger list survives instead of being cut mid-sentence.
+- Server sizing now reconciles the numbers the marketplace images run on with the higher
+  published minimum, instead of quoting only the lower figure (`01`).
+
+**New**
+
+- `14-data-handling-and-privacy.md` — every device attribute reported to the server,
+  including the two that surprise reviewers, and exactly what AI security events carry:
+  normal prompts stay on the device, but a rule that fires sends the content that
+  triggered it. Server usage statistics and how to switch them off. Prepared answers for
+  a security review.
+- `15-incident-response-and-recovery.md` — containment order for a compromised device or
+  credential, a table of what each revocation actually stops (deleting a setup key does
+  not disconnect devices already enrolled with it), the departing-employee sequence, and
+  recovery from self-inflicted lockouts including a login-group restriction that locks out
+  the admin who set it.
+- `16-onboarding-and-rollout.md` — day 0 to production in eight phases, each with an exit
+  test, plus the first-week mistakes ranked by frequency. Covers the first-run onboarding
+  form and the dashboard status widget, so a red indicator later is not a surprise.
+- `17-end-user-guide.md` — a page the admin can publish for employees, the four checks a
+  user should make before raising a ticket, and a table translating what a user reports
+  into what is actually wrong.
+- `31-plans-limits-and-billing.md` — every plan gate and hard limit with its exact
+  message, the traps (service users consume a Free seat; filters are not gated), what a
+  blocked downgrade means, what actually happens when a subscription lapses, and how plans
+  are set on self-hosted.
+
+**Extended**
+
+- API (`09`): the status-code table, including that field validation returns 422 rather
+  than 400; every authentication failure collapsing to one message; group deletion
+  returning an unhelpful 500 when the group is still referenced; tokens being role-scoped
+  only; no versioning and no idempotency; and the silent limits that under-fetch instead
+  of erroring.
+- Operations (`02`): no high availability for the server and no Kubernetes path, stated
+  plainly; uncapped relay bandwidth; clients need not be upgraded with the server; database
+  engine migration; keeping the geolocation database current; and the wildcard certificate
+  failures that are expected noise rather than an incident.
+- Client deployment (`05`): macOS needs three approvals and pre-approving extensions does
+  not cover the third; the installer package versus the executable installer for managed
+  deployment; the separate Linux tray application; no managed configuration for mobile;
+  hardened Kubernetes needing an exemption; and the outbound allow-list for hosted
+  customers.
+- Client troubleshooting (`07`): a competing VPN, a wrong clock, an unfinished captive
+  portal and an intercepting proxy — four environment causes that look like product faults.
+- Users (`25`): the guard rails that refuse a change by design, why a role selector is
+  disabled with no on-screen explanation, and everything that blocks a group deletion.
+- Peers (`24`): accepted ranges for login expiration and setup-key lifetime, why login
+  expiration cannot be set on a setup-key peer, and that deleting a network deletes every
+  route inside it.
+- Scanners (`28`): there is no version history and no rollback, so fetch and keep a rule
+  before editing; premium rule sensitivity is fixed and cannot be tuned; performance is
+  not instrumented, so do not quote a number.
+- AI security (`10`): excluding a domain from inspection is not self-service; certificate
+  trust varies by runtime; provider coverage is broader than the named list; and how to
+  read the behaviour graph, whose colours and clustering were previously unexplained.
+
 ## 1.4.0 — 2026-09-12
 
 New: log-first interpretation of client and management logs (`13`), built from real

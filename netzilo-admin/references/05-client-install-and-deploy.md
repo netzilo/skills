@@ -338,3 +338,50 @@ management URL — check `grep ManagementURL /etc/netzilo/config.json`.
   CA untrusted and TLS inspection non-functional until `sudo netzilo service restart`.
 - Starts the local loopback services listed in §0. Port conflicts on 41336–41339 must be
   resolved with `--web-server-port`, `--mcp-gateway-port`, `--socks5-port`.
+
+## 11. Platform details that cause first-install tickets
+
+**macOS needs three approvals, not one.** A network extension, a separate endpoint
+security extension, and Full Disk Access for the security monitor. Approving only the
+first leaves the tunnel working while the inspection and security features silently do
+nothing, which is then reported as "the AI features don't work". Under device management,
+pre-approving the two extensions does not cover Full Disk Access; that needs its own
+privacy preferences profile.
+
+**Windows ships an installer package as well as the executable installer.** Use the
+package form wherever the deployment tool requires one, which includes group-policy
+software installation and the usual application-wrapping workflows. The executable form
+takes a silent switch and suits scripted pushes. Choosing the wrong one is the usual
+cause of a deployment that never starts.
+
+**Linux has an optional tray application** distributed separately from the command-line
+client. On desktop environments that do not show legacy tray icons, notably stock GNOME,
+it needs an indicator extension before the icon appears. A missing icon is a desktop
+environment issue, not a client fault.
+
+**Enterprise-managed configuration for mobile is not available.** The management server
+address cannot be pre-seeded through mobile device management; users set it in the app.
+Do not promise a zero-touch mobile rollout.
+
+**On hardened Kubernetes, routing peers need an exemption.** A routing peer needs
+elevated network capabilities, which clusters enforcing restricted pod security or a
+default security context constraint will refuse outright. The pod is rejected rather than
+misbehaving. Arrange the exemption before deploying.
+
+**Security tooling on Linux can block the client silently.** Where mandatory access
+control is enforcing, denials appear in the host's audit log rather than in the client's
+own log. No policy ships with the product. Check the audit log when a routing peer fails
+to apply firewall rules or create its interface with no explanation.
+
+## 12. What Cloud customers must allow outbound
+
+Customers of the hosted service often need to tell their own network team what to permit.
+They need outbound access on the standard secure web port to the Netzilo dashboard and
+management hostnames, and outbound access for relay traffic on the relay ports so that
+devices behind restrictive networks can still connect.
+
+Two practical points. Allow the hostnames rather than addresses wherever the customer's
+equipment supports it, because addresses can change. And if the customer's network
+performs interception, exempt these hostnames, because the client validates the
+certificate itself and interception will break the connection in a way that looks like an
+outage.

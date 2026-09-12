@@ -5,7 +5,7 @@
   "skills": [
     {
       "name": "netzilo-admin",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "released": "2026-09-12",
       "path": "netzilo-admin",
       "summary": "Operate Netzilo end to end: server install and day-2 operations, identity and SSO, client deployment, network policy, AI security (AIDR), REST API automation, connectivity diagnosis, and support escalation.",

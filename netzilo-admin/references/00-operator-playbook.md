@@ -77,6 +77,11 @@ and Azure Marketplace image (`/opt/netzilo/run`), or Netzilo Cloud (nothing to i
 | "Device won't connect / relayed / DNS broken / route missing / SSH / TLS errors from AI apps / daemon not reachable" | `07-client-troubleshooting.md` |
 | "Device A cannot reach host X" (peer, LAN/VPC host behind a routing peer, or Internet via exit node) | `11-connectivity-diagnosis.md` — the end-to-end procedure across A, the routing peer, policies, routes, firewalls and DNS |
 | "Here is a log — what went wrong?" (client, management, signal) | `13-log-interpretation.md` — profile the log, find the last healthy sequence, rule out noise families, correlate client and server on the peer key |
+| "We're new — where do we start?" / rollout planning | `16-onboarding-and-rollout.md` — phase by phase, with an exit test each |
+| "What data does this collect?" / security review / DPO questions | `14-data-handling-and-privacy.md` |
+| "A laptop was stolen" / "revoke this now" / "we locked ourselves out" | `15-incident-response-and-recovery.md` |
+| "It says upgrade" / limit reached / subscription lapsed | `31-plans-limits-and-billing.md` |
+| "What do we tell our staff?" | `17-end-user-guide.md` |
 | Runbook exhausted, problem persists — hand it to Netzilo | `12-escalation-package.md` — when escalation is justified, what to collect, redaction, and the package the customer sends |
 | "Policies / groups / posture checks / routes / exit nodes / DNS servers / setup keys / peers / activity / reports / integrations / plans" | `08-network-administration.md` |
 | "Automate with the API / export-import / bulk changes / tokens / IaC" | `09-api-and-automation.md` |

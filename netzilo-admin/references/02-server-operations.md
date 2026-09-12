@@ -592,3 +592,80 @@ docker exec postgres pg_dump -U postgres -Fc zitadel > zitadel.dump   # backup I
 
 Never: re-run the installer on a live server; change the domain in place; `down --volumes`
 without a verified backup and explicit customer consent.
+
+## 16. Answers to the architecture questions customers ask
+
+**There is no high availability for the server.** Every delivery path builds a single
+host running one database, one identity provider instance with one master key, and one
+relay. There is no supported multi-node, clustered or load-balanced configuration.
+Resilience comes from backup and restore to a new host, not from live failover. Say this
+directly: the question is asked in most enterprise reviews and a vague answer invites a
+follow-up. Routing-peer high availability is a different feature and is well supported.
+
+**Kubernetes is not a customer deployment target.** The three shipped paths are the
+on-premises installer, the AWS image and the Azure image. There is no published chart.
+Clients can of course run in Kubernetes; the server cannot.
+
+**Relay bandwidth is not capped.** The relay ships without per-session or per-user
+bandwidth limits, so throughput is bounded only by the host's network and processor.
+There is no setting to tune. Size the host for the expected relayed load.
+
+**Clients do not have to be upgraded with the server.** There is no enforced protocol
+version gate between client and server. The only thing that blocks an older client is a
+minimum-version posture check the customer configured themselves.
+
+**On marketplace images every container image is pinned to a digest**, including the
+database, cache, proxy and relay, not only the Netzilo images. Seeing a digest instead of
+a tag is expected and is not a sign of tampering. Pulling does not upgrade a
+digest-pinned image; the reference has to be changed.
+
+**Marketplace-metered deployments need outbound access to their marketplace metering
+endpoint** in addition to the general outbound list. In an egress-restricted network,
+metering fails quietly and retries hourly. The product keeps working; billing records do
+not accumulate. Add the endpoint to the allow list.
+
+## 17. Migrating the database engine
+
+Moving between the embedded file store, the single-file database and an external
+PostgreSQL server is a supported operation with its own command, not something to do by
+copying files.
+
+Approach it in this order:
+
+1. **Back up first**, both the data directory and the volumes. The migration is not
+   reversible by simply pointing the configuration back.
+2. **Stop accepting changes.** Run it in a maintenance window; a migration under load can
+   leave the source and destination inconsistent.
+3. **Use the management binary's own migration command** inside the container to move
+   between the embedded store and the single-file database. It supports both directions,
+   which is your rollback.
+4. **Moving to external PostgreSQL** is a data-transfer step followed by pointing the
+   connection string at the new server. Constraint violations during transfer come from
+   orphaned rows in the source and must be cleaned before the transfer, not after.
+5. **Verify before removing the old store**: sign in, list peers, confirm counts match,
+   and make one change that writes to the database.
+
+Keep the old store until the new one has run for a full day.
+
+## 18. Keeping the geolocation database current
+
+Geolocation posture checks and the location shown on peers rely on a database that is not
+updated automatically. It is refreshed roughly twice a week upstream, and a server that
+never updates it will gradually misplace addresses.
+
+The refresh is a download, a copy into the running container, and a restart. On a server
+with no outbound access, download on a connected machine and transfer the files. The
+initial-setup symptom, where the database is missing entirely and geolocation endpoints
+return a precondition failure, is covered in `03-server-troubleshooting.md`.
+
+## 19. Certificate noise that is not a fault
+
+On a default installation using automatic certificates, the proxy also attempts a
+certificate for the wildcard form of the domain. That attempt cannot succeed with the
+validation method in use, so the logs carry repeated failures for the wildcard name.
+
+This is expected and harmless. The certificate for the actual domain is issued
+separately and works. Do not treat these entries as a certificate incident, and do not
+start deleting certificate state because of them. They matter only if the customer
+genuinely needs a wildcard certificate, which requires supplying one rather than having
+it issued automatically.

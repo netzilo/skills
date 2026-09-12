@@ -162,3 +162,29 @@ Body: `{"name":"…","description":"…","severity":"high","context":["tool_inpu
 | `scan` rules slow down the agent | AI classifier latency | narrow the `detection` upstream; use `on_timeout: report` |
 
 Events: `scanner.created/updated/deleted`, `tool.blocked`, `tool.detected`, `semantic.event`.
+
+## 8. Limits to state before a customer discovers them
+
+**There is no version history and no rollback.** Editing a rule replaces it. The previous
+content is not retained anywhere, and the activity record notes that a change happened
+without storing what it was. The version field on a scanner is free text that you
+maintain yourself; nothing sits behind it.
+
+The consequence is a working practice, not a setting: **fetch and save a rule before
+every edit.** Keep the saved copies in the customer's own version control. That file is
+the only way back to a working rule.
+
+**Premium rule sensitivity cannot be tuned.** Catalogue rules that use model-based
+detection run at a fixed confidence threshold built into the client. It is not exposed in
+the rule, the dashboard or the API. If such a rule produces false positives, the levers
+are to unbind it from the filter covering the affected group, or to write a custom rule
+with narrower matching. Editing the premium rule is refused. Do not promise a sensitivity
+setting.
+
+**Per-group exemption is done with filters, not with rules.** A rule has no group field.
+To exempt a population, give them a filter that does not bind that rule.
+
+**Performance is not instrumented for customers.** There is no published overhead figure
+and no per-rule timing exposed in the product. When users report that AI tools feel slow,
+narrow the rules and move expensive ones to report mode, and say plainly that no
+measurement is available rather than quoting a number.
