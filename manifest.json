@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/netzilo/skills",
+  "updated": "2026-09-12",
+  "raw_base": "https://raw.githubusercontent.com/netzilo/skills/main",
+  "skills": [
+    {
+      "name": "netzilo-admin",
+      "version": "1.3.0",
+      "released": "2026-09-12",
+      "path": "netzilo-admin",
+      "summary": "Operate Netzilo end to end: server install and day-2 operations, identity and SSO, client deployment, network policy, AI security (AIDR), REST API automation, connectivity diagnosis, and support escalation.",
+      "version_url": "https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION",
+      "changelog_url": "https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/CHANGELOG.md"
+    }
+  ]
+}
