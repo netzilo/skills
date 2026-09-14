@@ -8,7 +8,7 @@
 A scanner is a YAML rule evaluated by the client on AI traffic (LLM prompts/responses,
 MCP tool calls, HTTP, semantic events, process/file activity). Scanners do nothing until
 bound to devices through a **Filter** (`29-edge-filters.md`). For deep rule authoring
-load `aidr-rules.md`; this skill is the administrator's view: catalog, lifecycle,
+load `32-detection-rule-authoring.md`; this skill is the administrator's view: catalog, lifecycle,
 testing, and diagnosis.
 
 **Public rule library:** Netzilo maintains an open Sigma+AIDR corpus at

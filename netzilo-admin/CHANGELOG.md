@@ -7,6 +7,33 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.0.0 — 2026-09-14
+
+**Breaking: three reference files were renamed.** Their contents are unchanged; only the
+file names moved, so the whole set now runs `00` through `32` with no unnumbered strays.
+Anything that links to the old names must be updated.
+
+| Was | Now |
+|---|---|
+| `install-hosted-server.md` | `18-server-install-gated.md` |
+| `hosted-server-readme.md` | `19-server-install-handout.md` |
+| `aidr-rules.md` | `32-detection-rule-authoring.md` |
+
+Every reference inside the skill set was updated with them: the index, the operator
+playbook, the server install file, the AI security file, the scanners file, and the
+contents table, where the three rows now sit in numeric order with descriptions that say
+what each file is for. Older changelog entries keep the old names, because that is what
+the files were called at the time.
+
+Why the numbering matters: the three were the only files without a numeric prefix, so
+they sorted away from the runbooks they belong with and read as strays. The install pair
+now sits directly after the core operator band it extends, and rule authoring sits after
+the per-page administration band it supports.
+
+This is a major version because the repository's versioning policy reserves it for a
+restructure that changes where files live, which a rename is. Nothing about how the skill
+loads has changed, and no procedure was altered.
+
 ## 1.5.0 — 2026-09-12
 
 Gap-closing release. The skill set was audited against the product surface — dashboard,
@@ -23,6 +50,11 @@ covered. Five new files, eight extended, two corrections.
   skill catalogue, so the trigger list survives instead of being cut mid-sentence.
 - Server sizing now reconciles the numbers the marketplace images run on with the higher
   published minimum, instead of quoting only the lower figure (`01`).
+- The skill's own file listing was missing six files, so `13` through `17` and `31` were
+  present on disk but absent from the contents table. All files are now listed.
+- Two headings carried internal framing rather than a customer-facing title: the
+  gate-driven install runbook was titled after a filename, and the rule-authoring
+  reference was titled as a system prompt. Both now say what the document is.
 
 **New**
 

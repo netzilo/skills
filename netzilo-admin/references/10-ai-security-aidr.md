@@ -220,7 +220,7 @@ keylogging, screenshot, extension allow/block, encryption). No auto-update: user
 
 For authoring beyond the basics below (multi-event Starlark scripts over the behaviour
 graph, false-positive discipline, the complete field, modifier, action and builtin
-reference), load `aidr-rules.md` — it is the dedicated rule-author skill. This section
+reference), load `32-detection-rule-authoring.md` — it is the dedicated rule-author skill. This section
 covers what an administrator needs to deploy, test and troubleshoot rules.
 
 Format is Sigma with Netzilo extensions (the AI rule generator and the public corpus

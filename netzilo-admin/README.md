@@ -49,6 +49,13 @@ the product, and a table routing every task to the right file in `references/`.
 | `10-ai-security-aidr.md` | AIDR architecture, rollout runbook, client mechanics, coding-agent hooks, SDK, browser extension & Enterprise Browser, Edge Tools/MCP, rule authoring/testing, troubleshooting |
 | `11-connectivity-diagnosis.md` | end-to-end "host X unreachable" procedure: classify target, verify both ends, resolve policy via API, validate routes, inspect the routing peer (forwarding, Netzilo firewall chains, NAT, tcpdump, cloud security groups), DNS, server checks, report template |
 | `12-escalation-package.md` | when escalation is justified (and when it isn't), severity classification, evidence collection for server/client/config/events, secrets that must never be collected, a tested redaction + verification pass, the summary/environment/timeline documents, packaging and sending |
+| `13-log-interpretation.md` | reading client, management and signal logs: line anatomy and timestamp traps, a one-minute profiling recipe, healthy start/connect/network-change sequences, message families, noise to rule out, what debug and trace add, client-to-server correlation, worked readings |
+| `14-data-handling-and-privacy.md` | every device attribute reported to the server, exactly what AI security events carry, session recordings, server usage statistics and how to disable them, and the answers a security review asks for |
+| `15-incident-response-and-recovery.md` | containment order for a compromised device or credential, what each revocation action actually stops, departing-employee sequence, suspicious AI activity, and recovery from self-inflicted lockouts |
+| `16-onboarding-and-rollout.md` | day 0 to production in eight phases with an exit test for each, what the admin sees on first sign-in, and the first-week mistakes ranked by frequency |
+| `17-end-user-guide.md` | a page the admin can publish for employees, the checks a user should make before raising a ticket, and a table translating what a user reports into what is actually wrong |
+| `18-server-install-gated.md` | the on-premises install driven as numbered gates, each with a scripted check that must pass before the next one starts; use it when an install has to be proven step by step rather than run in one pass |
+| `19-server-install-handout.md` | the install instructions written for the customer to follow themselves, to hand over rather than to work from |
 | `20-policies-access-control.md` | Policies: model, every field, direction semantics, JSON editor, least-privilege migration, rule resolution and diagnosis |
 | `21-posture-checks.md` | every check type and platform, attaching to policies/profiles/filters, API body, design guidance, diagnosis |
 | `22-network-routes-and-exit-nodes.md` | routes, HA, masquerade, domain routes, exit nodes, policy groups, what the routing peer installs, diagnosis |
@@ -60,9 +67,8 @@ the product, and a table routing every task to the right file in `references/`.
 | `28-edge-scanners.md` | premium vs account scanners, YAML fields, AI generation, Replay testing, lifecycle, diagnosis |
 | `29-edge-filters.md` | binding groups/OS/agents/tools/scanners/posture, design patterns, "filter not applying" checklist |
 | `30-activity-reports-and-integrations.md` | events and codes by category, AI Smart Search, CSV/API export, reports, dashboard home, integrations (S3/Min.io, TURN, AI providers) |
-| `install-hosted-server.md` | gate-driven on-prem install runbook (scripted verification) |
-| `hosted-server-readme.md` | customer-facing install README |
-| `aidr-rules.md` | rule-authoring persona for the AI-security behaviour engine |
+| `31-plans-limits-and-billing.md` | every plan gate and hard limit with its exact message, downgrade blockers, what happens when a subscription lapses, and how plans are set on self-hosted |
+| `32-detection-rule-authoring.md` | writing and testing detection rules for the AI security engine: the rule format, every field and action, the behaviour graph, the scripting reference, and worked rules |
 
 These runbooks describe the current Netzilo release. Where older public documentation
 differs (hostnames, ports, rule syntax), the values here take precedence.

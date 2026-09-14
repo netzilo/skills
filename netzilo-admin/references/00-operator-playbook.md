@@ -68,7 +68,7 @@ and Azure Marketplace image (`/opt/netzilo/run`), or Netzilo Cloud (nothing to i
 
 | Customer says… | Go to |
 |---|---|
-| "Install / set up the server", AWS/Azure marketplace, external database, air-gapped, provided certificate | `01-server-install.md` (+ `install-hosted-server.md` for the scripted gate flow, `hosted-server-readme.md` to hand to the customer) |
+| "Install / set up the server", AWS/Azure marketplace, external database, air-gapped, provided certificate | `01-server-install.md` (+ `18-server-install-gated.md` for the scripted gate flow, `19-server-install-handout.md` to hand to the customer) |
 | "Upgrade / back up / restore / rotate cert / change domain / disk full / logs / metering / decommission" | `02-server-operations.md` |
 | "Dashboard down / cert warning / container restarting / can't log in / clients can't connect to server / slow" | `03-server-troubleshooting.md` |
 | "Add users / invite mail not arriving / reset password / MFA / lockout / SSO with Entra/Okta/Google / SMTP / roles / service users" | `04-identity-and-sso.md` |
@@ -86,7 +86,7 @@ and Azure Marketplace image (`/opt/netzilo/run`), or Netzilo Cloud (nothing to i
 | "Policies / groups / posture checks / routes / exit nodes / DNS servers / setup keys / peers / activity / reports / integrations / plans" | `08-network-administration.md` |
 | "Automate with the API / export-import / bulk changes / tokens / IaC" | `09-api-and-automation.md` |
 | "Govern AI agents / MCP / Claude Code hooks / SDK / browser extension / Enterprise Browser / Edge filters / test detection rules" | `10-ai-security-aidr.md` |
-| "Write a detection rule for threat X" (Sigma rule or Starlark behaviour script) | `aidr-rules.md` (rule-author persona, full field/action/Starlark reference), then `10-ai-security-aidr.md` §8 to deploy and replay it |
+| "Write a detection rule for threat X" (Sigma rule or Starlark behaviour script) | `32-detection-rule-authoring.md` (rule-author persona, full field/action/Starlark reference), then `10-ai-security-aidr.md` §8 to deploy and replay it |
 
 Per-configuration deep dives (field-by-field reference, procedures, API, and "why is
 it not applying" diagnosis) — load the one matching the dashboard page in question:

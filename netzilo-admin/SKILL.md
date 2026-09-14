@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 1.5.0
-  released: "2026-09-12"
+  version: 2.0.0
+  released: "2026-09-14"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 1.5.0, released 2026-09-12.** Confirm it is current before
+**This copy is version 2.0.0, released 2026-09-14.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -64,7 +64,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **1.5.0** above.
+Compare its `version:` with **2.0.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -73,7 +73,7 @@ Compare its `version:` with **1.5.0** above.
   they are working on*. If a change affects the task at hand, ask them to update before
   you proceed; otherwise note it and carry on.
 - **Cannot fetch** (no network or no fetch tool) — say that plainly, state that you are
-  working from 1.5.0 released 2026-09-12, and flag it as a caveat if that date is more
+  working from 2.0.0 released 2026-09-14, and flag it as a caveat if that date is more
   than about three months old. Never guess that you are current.
 
 All skills in the repository and their versions: `https://raw.githubusercontent.com/netzilo/skills/main/manifest.json`.
@@ -174,7 +174,7 @@ Server delivery paths: on-prem one-liner, AWS/Azure Marketplace image, or Netzil
 | Task | Reference file |
 |---|---|
 | Read this first, every session | `references/00-operator-playbook.md` (canonical facts, known product gaps, intake checklist) |
-| Install the server: on-prem, AWS, Azure, external DB, air-gapped, provided TLS | `references/01-server-install.md`, `references/install-hosted-server.md` (scripted gates), `references/hosted-server-readme.md` (hand to the customer) |
+| Install the server: on-prem, AWS, Azure, external DB, air-gapped, provided TLS | `references/01-server-install.md`, `references/18-server-install-gated.md` (scripted gates), `references/19-server-install-handout.md` (hand to the customer) |
 | Upgrade / backup / restore / rotate cert / domain / disk / logs / metering / decommission | `references/02-server-operations.md` |
 | Server down, cert warning, container restarting, can't log in, slow | `references/03-server-troubleshooting.md` |
 | Users, invites, SSO (Entra/Okta/Google/SAML), MFA, lockout, SMTP, roles | `references/04-identity-and-sso.md` |
@@ -202,7 +202,7 @@ Server delivery paths: on-prem one-liner, AWS/Azure Marketplace image, or Netzil
 | Activity → Events/Reports, Dashboard, Integrations | `references/30-activity-reports-and-integrations.md` |
 | Automate with the public REST API, export/import, bulk changes | `references/09-api-and-automation.md` |
 | Govern AI agents/MCP/coding-agent hooks/SDK/browser extension | `references/10-ai-security-aidr.md` |
-| Write or test a detection rule (Sigma/Starlark) | `references/aidr-rules.md`, then `references/10-ai-security-aidr.md` §8 |
+| Write or test a detection rule (Sigma/Starlark) | `references/32-detection-rule-authoring.md`, then `references/10-ai-security-aidr.md` §8 |
 
 Cloud customers skip the server-install and identity-provider-console files; everything
 else applies with `https://go.netzilo.com` / `https://srv.netzilo.com`.

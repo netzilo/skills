@@ -1,4 +1,4 @@
-# AGENT.md — Install, Diagnose & Test Netzilo Server (Custom / On-Prem)
+# Netzilo Server — Gate-Driven Install and Verification (Custom / On-Prem)
 
 **Audience:** an AI agent instructed to install the custom (bring-your-own-server)
 Netzilo Server on a Linux host and prove it works end to end.

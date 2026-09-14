@@ -9,7 +9,7 @@ loading, self-signed/provided TLS) and the legacy docker-compose path.
 **Contract:** follow the gates. Never invent input values — prompt the customer for each
 required value, echo the full set back (password masked) and get an explicit "yes" before
 running anything. Report success only when every gate passes. For the on-prem one-liner
-flow with full gate scripts, `install-hosted-server.md` (same folder) is the detailed
+flow with full gate scripts, `18-server-install-gated.md` (same folder) is the detailed
 companion; this document adds the cloud paths and the advanced variants.
 
 ---
