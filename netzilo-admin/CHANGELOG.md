@@ -7,6 +7,47 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.1.0 — 2026-09-14
+
+Server upgrades rewritten as a complete safe procedure (`02` §4). The previous section
+gave the pull-and-recreate commands but not the steps that keep an upgrade from losing
+data or taking down components that were not being updated.
+
+- **What an upgrade can and cannot avoid.** The server is one host, so the component being
+  replaced stops for the seconds the swap takes; what is achievable is no data loss, no
+  dropped tunnels and no effect on untouched components. A table of where every piece of
+  state lives shows why container recreation cannot lose it, and names the three
+  operations that can. A second table gives the user-visible effect of restarting each
+  component, so management and identity-provider restarts get scheduled and dashboard and
+  signal do not.
+- **Pre-flight, every time**: confirm health before changing anything, record the digest
+  of every running image as the rollback anchor, back up, check disk, and understand that
+  a pull reporting "up to date" on the moving tag is a correct result.
+- **Update one component**: pull and recreate only the named service with `--no-deps`,
+  the log line that means each component is up, and the check that proves it. Management
+  migrates its schema automatically and that cannot be switched off. The identity
+  provider's migrations are forward-only. Management and dashboard are updated together,
+  management first, because nothing checks that their versions match.
+- **Update the whole stack** in the order identity provider, management, dashboard,
+  signal, verifying between. A bare pull-and-recreate on an on-premises host is now
+  explicitly forbidden: it also moves the proxy, relay and cache to upstream latest.
+- **Pin what you verified** to its digest so the next pull cannot move it, and how to
+  move deliberately later. Marketplace images, already digest-pinned, follow the same
+  edit, pull, verify, re-pin cycle.
+- **Third-party images**: pin proxy, relay and cache on first upgrade; the cache is
+  rebuilt from the database on every start so its volume is disposable; the database tag
+  names its major version and is never bumped as an upgrade step.
+- **Rollback per component** from the recorded digest without network access, with the
+  two cases that need more: a management schema migration the old version cannot read
+  requires the pre-upgrade dump and the old image together, and an identity provider that
+  started cleanly on the new image is left there.
+- Clean-up, and the list of things an upgrade does not do, including that re-running the
+  installer is not an upgrade.
+- The customer handout (`19`) told the customer to pull and recreate everything with no
+  backup; it now gives the per-component loop and the two commands that erase a server.
+  The failed-upgrade section (`03` §8) and the migration-failure row now point at the
+  recorded-digest rollback rather than at a tag.
+
 ## 2.0.0 — 2026-09-14
 
 **Breaking: three reference files were renamed.** Their contents are unchanged; only the

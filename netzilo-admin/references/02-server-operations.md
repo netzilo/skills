@@ -165,49 +165,253 @@ HTTPS request (usually fine; matters if you are near Let's Encrypt rate limits �
 
 ## 4. Upgrading
 
-### 4.1 On-prem installer hosts (images tagged `:latest`)
+**Read this whole section before pulling anything.** An upgrade is the one routine
+operation that can lose data or cause an outage on a healthy server, and both are
+avoidable. The rules that keep it safe are short: back up first, record what is running,
+change one component at a time, verify before the next, and never let third-party images
+float.
+
+### 4.0 What an upgrade can and cannot avoid
+
+The server is a single host. The component being replaced stops for the seconds it takes
+Docker to swap the container and for the new version to start. Zero downtime for that one
+component is not achievable; what **is** achievable is no data loss, no dropped tunnels,
+and no impact on components you did not touch.
+
+**Data is safe by construction, provided you never remove volumes.** Every piece of
+state lives in a named volume or a bind-mounted file, and neither `docker compose up -d`
+nor `docker compose down` touches them.
+
+| State | Where it lives | Survives container recreate |
+|---|---|---|
+| Netzilo database (internal mode) | named volume `netzilo_db_data` | yes |
+| Management data | named volume `netzilo_management` | yes |
+| Identity provider certificates | named volume `netzilo_zitadel_certs` | yes |
+| Cache | named volume `netzilo_redis_data` | yes, and disposable (§4.6) |
+| `management.json`, `Caddyfile`, `turnserver.conf`, `machinekey/` | files next to the compose file | yes |
+
+The three things that **do** destroy data: `docker compose down -v` or `docker volume rm`,
+re-running the installer (§10), and a database restore over a newer schema. Nothing in
+this section does any of them.
+
+**What users experience while each component restarts.** Restart only what you are
+upgrading; everything else keeps running untouched.
+
+| Component restarting | Effect while it is down | Effect on tunnels |
+|---|---|---|
+| management | Dashboard and API unavailable; no policy or peer updates delivered | none; established tunnels keep passing traffic |
+| signal | New peer-to-peer connections cannot be negotiated | none for connections already up |
+| dashboard | Web UI unavailable | none |
+| zitadel | Logins fail; existing sessions continue until their tokens expire | none |
+| coturn | Relayed sessions drop and re-establish once it is back | only relayed peers, briefly |
+| redis | Management waits for the cache to report healthy, then rebuilds it from the database | none |
+| db | Everything that depends on it waits | none |
+
+Schedule management and zitadel restarts for a quiet period. Dashboard and signal can be
+done any time.
+
+### 4.1 Pre-flight, every time
+
+Skip none of these. Each one exists because omitting it has caused a support case.
+
+**1. Find the compose file and confirm the stack is healthy before you change it.** An
+upgrade never fixes a stack that is already broken; it hides the cause.
 
 ```bash
-cd /opt/netzilo
-sudo docker compose pull
-sudo docker compose up -d
-sudo docker compose ps
+if [ -f /opt/netzilo/run/docker-compose.yml ]; then C=/opt/netzilo/run; else C=/opt/netzilo; fi
+cd "$C" && sudo docker compose ps
 ```
 
-`pull` fetches the current `:latest` of `net-management`, `net-signal`,
-`net-dashboard`, `zitadel-build`, plus `caddy`, `coturn`, `redis`. Management applies
-its own DB migrations on start; Zitadel applies its own on `start`. Then run the §2.1
-gates and confirm a client can still log in (`netzilo status` on any peer shows
-`Management: Connected`).
+Every service `Up`, database and cache `healthy`. Then run the §2.1 gates. If anything
+fails, stop and fix it first (`03-server-troubleshooting.md`).
 
-### 4.2 AWS AMI / Azure image hosts (images pinned by digest)
+**2. Record exactly what is running.** This is your rollback anchor. Tags such as
+`latest` move; a digest does not.
 
-The baked `docker-compose.yml` references images as `<image>@sha256:<digest>`.
-**`docker compose pull` will not upgrade anything** — it re-pulls the same digest.
-To upgrade:
+```bash
+STAMP=$(date -u +%Y%m%dT%H%MZ)
+for s in management signal dashboard zitadel caddy coturn redis db; do
+  id=$(sudo docker compose images -q "$s" 2>/dev/null)
+  [ -n "$id" ] && printf "%-10s %s\n" "$s" "$(sudo docker image inspect --format '{{index .RepoDigests 0}}' "$id")"
+done | sudo tee "/opt/netzilo/pre-upgrade-$STAMP.txt"
+```
 
-1. Back up first (§6).
-2. Edit `/opt/netzilo/run/docker-compose.yml`: replace each Netzilo image reference
-   (`image: ghcr.io/netzilo/net-management@sha256:…`) with the target tag, e.g.
-   `image: ghcr.io/netzilo/net-management:latest` (or a specific version tag supplied by
-   Netzilo). Do the same for `net-signal`,
-   `net-dashboard`, `zitadel-build`. Leave `postgres:16` alone.
-3. `cd /opt/netzilo/run && sudo docker compose pull && sudo docker compose up -d`.
-4. Run the §2.1 gates.
+Keep that file. Rollback (§4.7) is "put these lines back".
 
-Note the digest you replaced (keep a copy of the old compose file) so you can roll back.
+**3. Back up.** Follow §6 in full: both databases, the management volume, and the
+configuration files. On an external database, use the external variant in §6; the
+migrations that a new management version runs at start happen on that database too, so it
+needs the same backup and its account must be allowed to change the schema.
 
-### 4.3 Rollback
+**4. Check disk space.** New images are pulled alongside the old ones.
 
-Rollback = restore the previous `image:` lines (tag or digest) and `docker compose up -d`.
-There is no schema-downgrade tooling; if the new management version migrated the DB and
-the old version cannot read it, restore the Postgres dump taken before the upgrade (§7).
-Previously pulled images remain in the local daemon (`sudo docker image ls`).
+```bash
+df -h /var/lib/docker
+```
 
-### 4.4 Upgrading Postgres major version
+Under a few gigabytes free, prune unused images first (§4.8), or the pull fails halfway.
 
-Not scripted. The stack pins `postgres:16`; do not change the tag to a newer major
-without a `pg_dumpall` → new cluster → restore cycle (§6/§7).
+**5. Know what `latest` means here.** On an on-premises install the four Netzilo images
+are referenced by the moving tag `latest`, which advances only when Netzilo publishes a
+new build. A pull that reports the image is already up to date means there is nothing
+newer. That is a correct result, not a failure. On marketplace images every image is
+pinned to a digest and a pull changes nothing until you edit the reference (§4.5).
+
+### 4.2 Update one component
+
+This is the procedure to use when asked to update management, the dashboard, signal or
+the identity provider. Pull and recreate only the named service; leave everything else
+alone.
+
+```bash
+S=management                      # or: signal | dashboard | zitadel
+sudo docker compose pull "$S"
+sudo docker compose up -d --no-deps "$S"
+sudo docker compose logs -f --since 2m "$S"
+```
+
+`--no-deps` prevents Compose from touching the services this one depends on. Watch the log
+until the start line appears, then verify.
+
+| Component | Log line that means it is up | Verify |
+|---|---|---|
+| management | `management server version <v>` then `running HTTP server and gRPC server on the same port` | `curl -sS -o /dev/null -w '%{http_code}\n' https://<domain>/api/users` returns `401`; a client shows `Management: Connected` |
+| zitadel | takes noticeably longer than the others; it runs its setup steps on every start | `curl -sS -o /dev/null -w '%{http_code}\n' https://<domain>/debug/ready` returns `200`; sign in to the dashboard |
+| signal | `running signal server` | `docker compose ps signal` is `Up`; a client shows `Signal: Connected` |
+| dashboard | container `Up` | `curl -sS -o /dev/null -w '%{http_code}\n' https://<domain>/` returns `200` and the page title is Netzilo |
+
+**Management applies its schema migration during that start.** It is automatic and cannot
+be switched off. A failure appears in the log as `auto migrate:` followed by the reason,
+and the container will restart in a loop. Do not retry the pull; go to §4.7.
+
+**The identity provider's migrations are forward-only.** Once zitadel has started cleanly
+on a newer image, do not put the older image back. Roll back other components if needed
+and leave zitadel where it is.
+
+**Management and the dashboard should be updated together, in that order.** There is no
+version check between them, so a mismatch fails silently as odd dashboard behaviour rather
+than as an error. Update management, verify, then update the dashboard from the same
+publish.
+
+### 4.3 Update the whole Netzilo stack
+
+Same procedure, one component at a time, in this order, verifying after each:
+
+1. zitadel
+2. management
+3. dashboard
+4. signal
+
+The identity provider goes first because everything authenticates through it. Signal goes
+last because it is independent and its restart is the least visible.
+
+```bash
+for S in zitadel management dashboard signal; do
+  sudo docker compose pull "$S" && sudo docker compose up -d --no-deps "$S"
+  echo "== $S recreated; verify before continuing =="; read -r
+done
+```
+
+**Do not run a bare `docker compose pull` followed by `docker compose up -d` on an
+on-premises host.** It also pulls the proxy, the relay and the cache at their upstream
+`latest` tags and recreates any of them whose image moved. A major-version change in any
+of those is an outage you did not intend. Pin them first (§4.6), or always name the
+services you mean.
+
+### 4.4 Pin what you verified
+
+Once a component is verified, pin it to the digest now running so the next pull cannot
+move it unintentionally, and so the compose file itself documents the known-good state.
+
+```bash
+S=management; IMG=ghcr.io/netzilo/net-management     # signal: net-signal, dashboard: net-dashboard, zitadel: zitadel-build
+NEW=$(sudo docker image inspect --format '{{index .RepoDigests 0}}' "$(sudo docker compose images -q $S)")
+BAK="docker-compose.yml.$(date -u +%Y%m%dT%H%MZ).bak"; sudo cp docker-compose.yml "$BAK"
+sudo sed -E "s#^([[:space:]]*image:[[:space:]]*)${IMG//./\\.}[@:].*#\1$NEW#" "$BAK" | sudo tee docker-compose.yml >/dev/null
+grep -n "$IMG" docker-compose.yml
+```
+
+`docker compose up -d` afterwards changes nothing, because the running container already
+has that image. To move again later, set the reference back to the tag Netzilo names, or
+to `latest`, and repeat §4.2. Keep pre-upgrade files and the pinned compose file together;
+between them they describe every state the server has been in.
+
+### 4.5 Marketplace images (AWS, Azure)
+
+Every image in the baked compose file is pinned to a digest, including the database,
+cache, proxy and relay. Pulling changes nothing until you change a reference.
+
+1. Pre-flight (§4.1), including the digest record and the backup.
+2. Edit the reference for the component you are updating from `<image>@sha256:…` to the
+   tag Netzilo names for the release, or to `latest`.
+3. Pull and recreate that one service (§4.2), verify, then pin it again (§4.4).
+
+Leave the third-party image references exactly as they are.
+
+### 4.6 Third-party images: proxy, relay, cache, database
+
+These are not part of a Netzilo release and a Netzilo update should not move them.
+
+- **On an on-premises install they float at upstream `latest`.** Before the first upgrade
+  you perform, pin all three using §4.4 with the image names `caddy`, `coturn/coturn` and
+  `redis`. From then on they move only when you decide.
+- **The cache is disposable.** Management rebuilds it from the database at every start,
+  logging `starting cache warmup` and `cache warmup completed`. If a cache image change
+  ever leaves the cache container unable to start on its existing data, stopping it,
+  removing the `netzilo_redis_data` volume and starting it again loses nothing.
+- **The database tag names its major version.** Never change it to a newer major as an
+  upgrade step. A major version move is a dump, a new cluster and a restore (§6, §7), done
+  as its own maintenance.
+- **A proxy or relay major version can change configuration syntax.** The files they read
+  are bind-mounted and not regenerated, so an incompatible version fails at start with a
+  configuration error in its log. Roll the image back (§4.7); do not edit the
+  configuration to chase a version you did not intend to run.
+
+### 4.7 Rollback
+
+Rollback is per component and uses the digest you recorded in §4.1.
+
+```bash
+S=management; IMG=ghcr.io/netzilo/net-management
+OLD=$(grep "^$S " /opt/netzilo/pre-upgrade-<STAMP>.txt | awk '{print $2}')
+BAK="docker-compose.yml.$(date -u +%Y%m%dT%H%MZ).bak"; sudo cp docker-compose.yml "$BAK"
+sudo sed -E "s#^([[:space:]]*image:[[:space:]]*)${IMG//./\\.}[@:].*#\1$OLD#" "$BAK" | sudo tee docker-compose.yml >/dev/null
+sudo docker compose up -d --no-deps "$S"
+```
+
+The previous image is still on the host, so this needs no network.
+
+Two cases need more than that:
+
+- **Management migrated the schema and the old version cannot read it.** Restore the
+  database dump taken in pre-flight (§7.1) **and** the old image together. Restoring the
+  image alone leaves it crash-looping on `auto migrate:`; restoring the dump alone leaves
+  the new image re-applying the migration.
+- **Zitadel started cleanly on the new image.** Leave it. Its migrations are forward-only
+  and putting the old image back is what breaks logins.
+
+The full failure walk-through is `03-server-troubleshooting.md` §8.
+
+### 4.8 Clean up
+
+Only after the rollback window has passed and you would not want the old image back:
+
+```bash
+sudo docker image prune -f
+```
+
+This removes images no container references. The digests in your pre-upgrade file remain
+pullable from the registry if ever needed.
+
+### 4.9 Things an upgrade does not do
+
+- It does not change `management.json`, the `Caddyfile`, `turnserver.conf` or the
+  identity provider's keys. They are files on the host and the new version reads them as
+  they are. If a version needs a setting that is missing, it says so in its log at start.
+- It does not require clients to be upgraded. There is no protocol version gate; clients
+  keep working across a server upgrade (§16).
+- It does not renew or reissue certificates, change the domain, or alter the plan.
+- It is **not** achieved by re-running the installer. That wipes the server (§10).
 
 ---
 

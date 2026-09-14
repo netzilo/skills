@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.0.0
+  version: 2.1.0
   released: "2026-09-14"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 2.0.0, released 2026-09-14.** Confirm it is current before
+**This copy is version 2.1.0, released 2026-09-14.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -64,7 +64,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.0.0** above.
+Compare its `version:` with **2.1.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -73,7 +73,7 @@ Compare its `version:` with **2.0.0** above.
   they are working on*. If a change affects the task at hand, ask them to update before
   you proceed; otherwise note it and carry on.
 - **Cannot fetch** (no network or no fetch tool) — say that plainly, state that you are
-  working from 2.0.0 released 2026-09-14, and flag it as a caveat if that date is more
+  working from 2.1.0 released 2026-09-14, and flag it as a caveat if that date is more
   than about three months old. Never guess that you are current.
 
 All skills in the repository and their versions: `https://raw.githubusercontent.com/netzilo/skills/main/manifest.json`.

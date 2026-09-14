@@ -64,7 +64,7 @@ and rotate per `02-server-operations.md` §8.2.
 | `management` | `failed retrieving a new idp manager with err: … configuration is incomplete, X is missing` | `management.json` `IdpManagerConfig` broken | restore from backup (`config.tgz`); fields required: ClientID, ClientSecret, TokenEndpoint, ManagementEndpoint, GrantType |
 | `management` | `failed fetching OIDC configuration from endpoint https://<domain>/.well-known/openid-configuration` | Zitadel not up yet, or Caddy not resolving the domain internally | wait for Zitadel; check `extra_hosts` in compose maps `<domain>` to the host IP / `172.20.0.1`; `docker exec management getent hosts <domain>` |
 | `management` | `failed creating datadir` | volume permission | `docker volume inspect netzilo_management`; permissions on `/var/lib/docker` |
-| `management` | `auto migrate: …` | schema migration failed (upgrade) | note exact error; roll back image tag (`02-server-operations.md` §4.3); restore DB dump if the new schema is partially applied |
+| `management` | `auto migrate: …` | schema migration failed (upgrade) | note exact error; roll management back to the recorded digest (`02-server-operations.md` §4.7); if the new schema is partially applied, restore the pre-upgrade dump together with the old image |
 | `management` | `TrustedPeers are configured to default value '0.0.0.0/0', '::/0'. This allows connection IP spoofing.` | informational warning | ignore (single-host deployments) |
 | `management` | `could not initialize geo location service: … we proceed without geo support` | GeoLite2 DB missing (no internet at first start) | geo posture checks unavailable until the DB downloads; retry with internet or copy `GeoLite2-City.mmdb` + `geonames.db` into the `netzilo_management` volume and restart |
 | `zitadel` | `masterkey must be 32 bytes, but is N` / `No master key provided` | `ZITADEL_MASTERKEY` edited/lost in `zitadel.env` | restore the original value from backup — there is no recovery without it |
@@ -295,9 +295,10 @@ Coturn advertises the host's addresses; a changed private IP requires no config 
 ## 8. Upgrade went wrong
 
 1. `docker compose ps` — which container is failing; read its log (§2).
-2. Roll back: restore the previous `image:` lines in `docker-compose.yml`
-   (marketplace images) or pin the previous tag instead of `:latest` (on-prem), then
-   `docker compose up -d`.
+2. Roll back that one component to the digest recorded before the upgrade
+   (`02-server-operations.md` §4.7). If no record was made, `docker image ls` still shows
+   the previous image on the host; pin its digest. Recreate only that service with
+   `docker compose up -d --no-deps <service>` so nothing else restarts.
 3. If management applied an incompatible migration, restore the pre-upgrade dump
    (`02-server-operations.md` §7.1) **and** the old image together.
 4. Zitadel migrations are forward-only; do not downgrade Zitadel after it started

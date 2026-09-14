@@ -162,11 +162,22 @@ sudo docker compose up -d       # start it again
 
 **Update to the latest version:**
 
+Back up first (see "Back up" above). Then update one Netzilo component at a time and
+check it before the next. Name the service; do not pull everything at once, because that
+also moves the proxy, relay and cache to whatever their upstream latest happens to be.
+
 ```bash
 cd /opt/netzilo
-sudo docker compose pull        # fetch the newest images
-sudo docker compose up -d       # apply them
+for s in zitadel management dashboard signal; do
+  sudo docker compose pull "$s"
+  sudo docker compose up -d --no-deps "$s"
+  sudo docker compose ps "$s"            # wait for Up, then open the dashboard
+done
 ```
+
+Your data is in named volumes and in files next to this compose file; updating containers
+does not touch it. Never add `-v` to `docker compose down`, and never re-run the installer
+to update: both erase the server.
 
 ---
 
