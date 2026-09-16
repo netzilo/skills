@@ -7,6 +7,42 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.2.0 — 2026-09-16
+
+Two changes to how the operator begins, applied across the index, the playbook, the API
+file and every file that tells the operator where a command runs.
+
+**Access is a requirement, not a preference.** The engagement now opens with three
+ordered, required steps: establish which management server the customer uses and prove
+it answers, obtain an **admin** service-account token for that server, and verify the
+token against that server including confirming the tenant with the customer. The
+previous model asked for a token only "for anything beyond a single click", recommended
+starting with a read-only User-role token, and fell back to walking the customer through
+the dashboard. That model could not work: groups, posture checks, DNS, events, reports,
+the tenant, integrations and Edge are admin-only in the API, so a User-role token cannot
+perform even read-only diagnosis for most of the product. The fallback is now stated
+honestly as advising rather than supporting, with an explicit rule not to describe
+anything as verified that was not read through the API or observed on the customer's
+systems. The Cloud distinction between the dashboard host and the API host is called out
+as the most common first mistake.
+
+**The operator's own Netzilo client is a tool, not evidence.** The machine an operator
+works from may run a client enrolled in someone else's network. The set never said so.
+It now does, once in the index and once in the playbook, with the consequences spelled
+out: every client command in every file runs on the customer's device, routing peer or
+server; a local client showing connected proves nothing about the customer's server;
+reachability is tested with `curl` against the customer's URL, not through the
+operator's tunnel. The one legitimate deeper use is documented as a deliberate,
+consented step: enrol as a test peer in the customer's network with their setup key,
+knowing it disconnects the operator from whatever the client was on, and undo it
+afterwards. The connectivity procedure now states that "A" is the customer's device, the
+client troubleshooting opener says the three starting commands run on the affected
+device and not the operator's machine, and the CLI reference carries the same note. The
+escalation package, the one place an operator most plausibly runs a bundle command
+locally, now opens its collection section by stating that everything in it comes from
+the customer's systems and that a bundle from the operator's own device would send the
+analyst down the wrong path.
+
 ## 2.1.0 — 2026-09-14
 
 Server upgrades rewritten as a complete safe procedure (`02` §4). The previous section

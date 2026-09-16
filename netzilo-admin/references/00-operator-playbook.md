@@ -112,63 +112,90 @@ runs the servers and IdP); everything else applies with `https://go.netzilo.com`
 
 ---
 
-## 4. Intake checklist (ask before acting)
+## 4. Intake checklist (in this order)
 
-- **Is this skill copy current?** Check once per session before the first substantive
-  task (`SKILL.md` → "Check you are current"). A stale runbook is the one failure mode
-  that makes every other answer unreliable.
+The first three items are requirements. Do not start diagnosing until they are done.
 
-- Cloud or self-hosted? If self-hosted: domain, delivery path (on-prem / AWS / Azure),
-  layout (`/opt/netzilo` vs `/opt/netzilo/run`), and **shell access to the server** —
-  request SSH (or AWS Session Manager) whenever the task touches server logs, container
-  state, certificates, upgrades or backups. See `SKILL.md` → "Self-hosted: ask for SSH
-  to the server too".
+1. **Is this skill copy current?** Check once per session (`SKILL.md` → "Check you are
+   current"). A stale runbook is the one failure mode that makes every other answer
+   unreliable.
+2. **Which management server?** Cloud (`https://srv.netzilo.com/api`) or the customer's
+   own domain. Probe it: an unauthenticated `GET /api/users` returning `401` proves a
+   management server answers there. Anything else and the engagement starts in `03`.
+3. **An admin service-account token for that server**, verified (§4.1). Without it you
+   can advise but not support; say so rather than pretending otherwise.
+
+Then the scope questions:
+
+- Self-hosted: delivery path (on-prem / AWS / Azure), layout (`/opt/netzilo` vs
+  `/opt/netzilo/run`), and **shell access to the server** whenever the task touches server
+  logs, container state, certificates, upgrades or backups (`SKILL.md` → "Self-hosted: ask
+  for SSH to the server too").
 - Who is affected: one device, one user, everyone? Since when? What changed?
-- Device facts: OS/arch, `netzilo version`, `netzilo status -d` (anonymized `-dA` if
-  it will be shared).
-- Dashboard facts: peer's groups, policies covering them, posture checks, relevant
-  Activity events.
-- **An API token** (see §4.1) — request it in the first message unless the task is a
-  single dashboard click.
+- Device facts **from the affected device, never from your own machine**: OS and
+  architecture, `netzilo version`, `netzilo status -d` (anonymised `-dA` if it will be
+  shared). See §4.2.
+- Dashboard facts, read through the API: the peer's groups, the policies covering them,
+  posture checks, relevant activity events.
 - Consent boundaries: what am I allowed to change without asking again?
 
-### 4.1 Ask for an API token (preferred access path)
+### 4.1 Establish the server and obtain an admin token (required)
 
-Working through the REST API beats guiding the customer through dashboard screens: you
-read the actual configuration rather than a screenshot, you change exactly one thing,
-you verify it in the same breath, and the diff is reproducible. Ask for the token early.
+Working through the API is the only way to read the actual configuration rather than a
+description of it, change exactly one thing, and verify it in the same breath.
 
 What to ask the customer to do:
 
-1. Dashboard → **Team → Agents → Create Agent**. Name it for the engagement, e.g.
+1. Dashboard → **Team → Agents → Create Agent**. Name it for the engagement, for example
    `support-automation`.
-2. Role: **User** for read-only diagnosis, **Admin** only once changes are agreed.
+2. Role: **Admin**. This is not optional. Groups, posture checks, DNS, events, reports,
+   the tenant, integrations and everything under Edge are admin-only in the API; a
+   User-role token cannot read them and therefore cannot diagnose most problems.
 3. Open the agent → **Access Tokens → Create Access Token** → name it, set a short
    expiry (7–30 days; 1–365 allowed) → copy. It is displayed once.
 4. Tell them plainly: this token grants API access to the Netzilo account, so it is a
    credential; they can delete it whenever they want.
 
-Then verify before doing anything else:
+Then verify, against the URL established in step 2 of the checklist:
 
 ```bash
-export NZ_URL=https://<domain>/api          # cloud: https://srv.netzilo.com/api
+export NZ_URL=https://<api-host>/api        # cloud: https://srv.netzilo.com/api
 export NZ_TOKEN=nzl_...
 nz() { curl -sS -H "Authorization: Token $NZ_TOKEN" -H 'Accept: application/json' -H 'Content-Type: application/json' "$NZ_URL$1" "${@:2}"; }
-nz /accounts | jq '.[0].id'                 # 200 + an account id ⇒ token works
-nz /users | jq '.[] | select(.is_current) | {role,is_service_user}'   # confirms the role you were given
+nz /users | jq '.[] | select(.is_current) | {role,is_service_user}'   # expect "admin", true
+nz /accounts | jq '.[0] | {id,domain}'                                # customer confirms this is their tenant
 ```
 
-`401`/`token invalid` → mistyped or expired. `only users with admin power can perform
-this operation` on a write → you hold a read-only token; ask for an admin one rather
-than working around it.
+`401` / `token invalid` → mistyped, expired, or a token for a different server. A role
+other than `admin` → the agent was created with the wrong role; ask for it to be fixed
+rather than working around it. A token belongs to one server and, on Cloud, one tenant;
+read the account back and have the customer confirm it before changing anything.
 
 Handling rules: keep it in an environment variable for the session only; never write it
 into a file, a script, or an escalation package; never ask for a password, SSO
 credentials, or the identity-provider master key instead. When the work is done, remind
 the customer to delete the token and the agent.
 
-If the customer declines a token, fall back to guiding them through the dashboard — every
-configuration skill documents both paths.
+**If the customer declines**, you are limited to explaining, interpreting what they
+paste, and handing them instructions to run. Every configuration file documents the
+dashboard path for that purpose. Do not describe anything as verified that you did not
+read through the API or observe on their systems.
+
+### 4.2 Your own Netzilo client
+
+The machine you work from may run a Netzilo client. It is enrolled in whatever network
+its operator enrolled it in, which is not the customer's unless the customer enrolled it.
+It is a tool you may use; it is never evidence about the customer's environment.
+
+- Every client command in these references runs on the customer's affected device,
+  routing peer or server. "On A" never means your own machine.
+- Your own client showing connected proves nothing about the customer's server. Test
+  their server with `curl` against their URL, not with your tunnel.
+- With the customer's consent you can become a test peer in their network: they give you
+  a setup key, you run `netzilo up --management-url https://<their-api-host> --setup-key
+  <key>`, and you can then test reachability from inside. This disconnects your client
+  from whatever it was on before. Afterwards `netzilo down`, and ask them to delete the
+  peer and the key.
 
 ---
 

@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.1.0
-  released: "2026-09-14"
+  version: 2.2.0
+  released: "2026-09-16"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 2.1.0, released 2026-09-14.** Confirm it is current before
+**This copy is version 2.2.0, released 2026-09-16.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -64,7 +64,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.1.0** above.
+Compare its `version:` with **2.2.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -73,7 +73,7 @@ Compare its `version:` with **2.1.0** above.
   they are working on*. If a change affects the task at hand, ask them to update before
   you proceed; otherwise note it and carry on.
 - **Cannot fetch** (no network or no fetch tool) — say that plainly, state that you are
-  working from 2.1.0 released 2026-09-14, and flag it as a caveat if that date is more
+  working from 2.2.0 released 2026-09-16, and flag it as a caveat if that date is more
   than about three months old. Never guess that you are current.
 
 All skills in the repository and their versions: `https://raw.githubusercontent.com/netzilo/skills/main/manifest.json`.
@@ -87,67 +87,136 @@ All skills in the repository and their versions: `https://raw.githubusercontent.
 | Claude API / Agent SDK | create a new skill version from the updated folder and point the agent at it |
 | Plugin marketplace | `/plugin marketplace update` then reinstall the plugin |
 
-## Get working access first
+## First things first: the server, then access
 
-For anything beyond a single click, **ask the customer for an API token and work through
-the REST API.** It lets you read the real configuration instead of relying on
-screenshots, make changes atomically, verify them immediately, and show exactly what you
-did. Dashboard navigation is the fallback for one-off changes and for anything the
-customer prefers to do themselves.
+Nothing in this skill set works from screenshots or memory. Real support means reading
+the customer's actual configuration and verifying every change, and that needs two
+things before anything else: the address of **their** management server, and an
+**admin service-account token** for it. Establish both at the start of every engagement,
+in this order. They are requirements, not preferences.
 
-Ask for it like this, at the start of the engagement:
+### 1. Establish the management URL
 
-> To administer this for you I need a Netzilo API token. In the dashboard go to
-> **Team → Agents → Create Agent** (name it e.g. `support-automation`, role **User** for
-> read-only diagnosis or **Admin** if I should make changes), open the agent, then
-> **Access Tokens → Create Access Token** with a short expiry (7–30 days). Paste the
-> token here — it is shown only once. It grants API access to your Netzilo account, so
-> treat it like a password; you can delete it at any time and I will remind you to when
+The customer's server is the one they log into. There is no other way to know it.
+
+| Deployment | Dashboard | API base |
+|---|---|---|
+| Netzilo Cloud | `https://go.netzilo.com` | `https://srv.netzilo.com/api` |
+| Self-hosted | `https://<their-domain>` | `https://<their-domain>/api` |
+
+Ask which they use. On Cloud the API host differs from the dashboard host; pointing the
+API at the dashboard address is the most common first mistake. Then prove the address
+answers as a management server before asking for anything else:
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' https://<api-host>/api/users
+```
+
+`401` means a management server is there and wants a token. Anything else means the
+address is wrong or the server is down, and the engagement starts in
+`references/03-server-troubleshooting.md` instead.
+
+### 2. Get an admin service-account token
+
+Ask for it like this:
+
+> To support you I need an API token for your Netzilo account. In the dashboard go to
+> **Team → Agents → Create Agent**, name it for this engagement (for example
+> `support-automation`), and give it the **Admin** role. Open the agent, then
+> **Access Tokens → Create Access Token** with a short expiry, seven to thirty days.
+> Paste the token here. It is shown only once. It grants API access to your account, so
+> treat it like a password. You can delete it at any time and I will remind you to when
 > we finish.
 
-Rules for handling it:
+**Admin is required, not a convenience.** Groups, policies' posture checks, DNS, activity
+events, reports, the tenant, integrations and everything under Edge are admin-only in the
+API. A User-role token cannot read them, so it cannot even diagnose most problems, let
+alone fix them. A service account rather than a person's own token is required because
+it survives staff changes, is attributable in the activity log, and can be revoked on
+its own.
 
-- Prefer a **service user (Agent)**, not a person's own token — it survives staff
-  changes, is attributable in the Activity log, and can be revoked on its own.
-- **Start read-only** (role User) for diagnosis; ask for an admin-role token only when a
-  change has been agreed.
-- Never ask for a password, SSO credentials, or the identity-provider master key.
-- Keep the token in an environment variable for the session; do not write it into files,
-  scripts, or an escalation package.
-- At the end, tell the customer to delete the token (and the Agent, if it was created
-  for this task): Team → Agents → the agent → Access Tokens → delete.
+Never ask for a password, single sign-on credentials, or the identity provider master
+key. Keep the token in an environment variable for the session only; never write it into
+a file, a script, or an escalation package. At the end, tell the customer to delete the
+token and the agent.
 
-Full reference, endpoint catalogue, and recipes: `references/09-api-and-automation.md`.
+### 3. Verify the token against that URL
+
+```bash
+export NZ_URL=https://<api-host>/api NZ_TOKEN=nzl_...
+nz() { curl -sS -H "Authorization: Token $NZ_TOKEN" -H 'Accept: application/json' -H 'Content-Type: application/json' "$NZ_URL$1" "${@:2}"; }
+nz /users | jq '.[] | select(.is_current) | {role, is_service_user}'   # expect role "admin", is_service_user true
+nz /accounts | jq '.[0] | {id, domain}'                                # confirm with the customer this is their tenant
+```
+
+A token for one server does not work on another, and on Cloud a token belongs to one
+tenant. Read the account back and have the customer confirm it is theirs before you
+change anything. `token invalid` means mistyped, expired, or the wrong server. A role
+other than `admin` means the agent was created with the wrong role; ask for it to be
+corrected rather than working around it.
+
+### Without these you can advise, not support
+
+If the customer will not or cannot provide the URL and an admin token, say plainly what
+that means: you can explain how Netzilo works, interpret logs and output they paste, and
+give them instructions to run themselves, but you cannot verify anything and must not
+claim to have. Every configuration file documents the dashboard path so the customer can
+act on your instructions; that is a handover of instructions, not support you performed.
+
+Full API reference, endpoint catalogue and recipes: `references/09-api-and-automation.md`.
 
 ### Self-hosted: ask for SSH to the server too
 
 The API shows configuration; it does not show why a container is unhealthy, what the
 management server logged, or whether a certificate was issued. **For a self-hosted
 deployment, ask for shell access to the server whenever the task touches server logs,
-container state, upgrades, certificates, backups, or an install.** Asking is normal —
-do not work blind or guess from screenshots.
+container state, upgrades, certificates, backups, or an install.** Asking is normal.
 
 > This is running on your own server, so to diagnose it properly I need shell access to
-> that host — SSH, or AWS Systems Manager Session Manager if it is an AWS deployment.
-> I will start read-only: container status and logs. I will tell you before running
-> anything that changes state, and I will not touch the configuration files that hold
-> your keys.
+> that host: SSH, or AWS Systems Manager Session Manager on an AWS deployment. I will
+> start with read-only commands, container status and logs. I will tell you before
+> running anything that changes state, and I will not touch the configuration files that
+> hold your keys.
 
 How to behave once you have it:
 
-- **Read-only first**: `docker compose ps`, `docker compose logs`, health checks, disk
-  and memory. Announce any state-changing command before you run it and get a "yes".
+- **Read-only commands first**: `docker compose ps`, `docker compose logs`, health
+  checks, disk and memory. Announce any state-changing command before you run it and get
+  a "yes".
 - **Never open or copy** `management.json`, `zitadel.env`, `dashboard.env`, `.env`,
-  `CREDENTIALS`, `certs/` or `machinekey/` unless a procedure requires a specific value —
-  they hold the master key, database passwords and identity-provider secrets.
+  `CREDENTIALS`, `certs/` or `machinekey/` unless a procedure requires a specific value.
+  They hold the master key, database passwords and identity-provider secrets.
 - **Cloud alternatives when SSH is closed**: AWS `aws ssm start-session --target <id>`
   needs no inbound port; Azure has Serial Console and Bastion.
-- **If access is refused or impossible**, do not stall — send the customer the
-  copy-paste collection blocks in `references/12-escalation-package.md` §8 and work from
-  what comes back.
+- **If access is refused or impossible**, do not stall. Send the customer the copy-paste
+  collection blocks in `references/12-escalation-package.md` §8 and work from what comes
+  back.
 
-Netzilo Cloud has no customer-accessible server; the API and client-side evidence are
-all there is.
+Netzilo Cloud has no customer-accessible server; the API and client-side evidence are all
+there is.
+
+### The Netzilo client on your own machine is a tool, not evidence
+
+The machine you work from may have a Netzilo client installed. If it does, it is
+enrolled in **someone's** network, and unless the customer enrolled it, that network is
+not theirs. Its status, its peers and its connection state say nothing about the
+customer's problem.
+
+- Every client command in these references runs on the **customer's affected device**, or
+  on the customer's routing peer or server. When a file says "on A" or "on the affected
+  device", that is never your own machine by default.
+- Do not run `netzilo status` locally and read the result as the customer's state. Do not
+  conclude the customer's management server is fine because your own client shows
+  connected. Do not collect a debug bundle from your own machine and present it as theirs.
+- Legitimate uses of your own client: as a reference for what healthy output looks like,
+  and, **only with the customer's consent**, as a test peer inside their network. To do
+  that, they give you a setup key, you enrol with `netzilo up --management-url
+  https://<their-api-host> --setup-key <key>`, and your device becomes a real peer in their
+  network that can test reachability to a host from inside. That disconnects you from
+  whatever your client was connected to before. When finished, `netzilo down` and ask the
+  customer to delete the peer and the key.
+- To test whether the customer's server is reachable from the outside, use `curl` against
+  their URL as in step 1, not your client's connection.
 
 ## What Netzilo is
 

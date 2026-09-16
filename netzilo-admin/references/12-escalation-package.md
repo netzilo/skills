@@ -96,6 +96,12 @@ the status snapshot is included.
 
 ## 4. Collect
 
+Everything in this section is collected **from the customer's systems**: their affected
+device, their routing peer, their server. If the machine you work from has its own Netzilo
+client, nothing from it belongs in the package. A bundle from your own device describes
+your own enrolment and would send the analyst down the wrong path. When you cannot run a
+command on the customer's system yourself, §8 gives them the blocks to run.
+
 Create one directory, fill what you can, and record what you could not.
 
 ```bash
@@ -120,6 +126,8 @@ Without these the analyst cannot locate the event in the logs.
 ```
 
 ### 4.2 Client
+
+On the **affected device**. Never on your own machine.
 
 Reproduce with verbose logging in the **same daemon lifetime** — the log level is held
 in memory and is lost on restart:

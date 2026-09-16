@@ -10,28 +10,30 @@ JSON. CORS is open.
 
 ---
 
-## 0. Get a token from the customer first
+## 0. The server and an admin token come first
 
-The REST API is the preferred way to administer a Netzilo account: you see the real
-configuration, change one thing at a time, and verify immediately. Unless the task is a
-single dashboard click, open the engagement by asking for a token.
+The REST API is how you read the customer's real configuration, change one thing at a
+time, and verify immediately. It is not optional: without it you can only advise.
 
-Ask the customer to create a **service user**, not to hand over their own credentials:
-Dashboard → **Team → Agents → Create Agent** (role **User** for read-only diagnosis,
-**Admin** once changes are agreed) → open it → **Access Tokens → Create Access Token**
-with a 7–30 day expiry. The token is shown once. Say explicitly that it grants API
-access to their account and can be deleted at any time.
-
-Verify it before acting, and confirm which role you were actually given:
+1. **Establish which server.** Cloud is `https://srv.netzilo.com/api`; self-hosted is
+   `https://<their-domain>/api`. Prove it with an unauthenticated `GET /api/users`, which
+   returns `401` from a live management server.
+2. **Ask for an admin service account**, not a person's credentials: Dashboard →
+   **Team → Agents → Create Agent**, role **Admin** → open it → **Access Tokens → Create
+   Access Token**, 7–30 day expiry. Shown once. Admin is required because the admin-only
+   paths listed in §1 include everything needed to diagnose: groups, posture checks, DNS,
+   events, reports, Edge.
+3. **Verify against that server** and confirm the tenant with the customer:
 
 ```bash
-nz /accounts | jq '.[0].id'
-nz /users | jq '.[] | select(.is_current) | {role, is_service_user}'
+nz /users | jq '.[] | select(.is_current) | {role, is_service_user}'   # "admin", true
+nz /accounts | jq '.[0] | {id, domain}'
 ```
 
-Keep it in an environment variable for the session; never write it to a file, a script,
-or an escalation package. When finished, remind the customer to delete the token and the
-agent. Never ask for a password, SSO credentials, or the identity-provider master key.
+Keep the token in an environment variable for the session; never write it to a file, a
+script, or an escalation package. When finished, remind the customer to delete the token
+and the agent. Never ask for a password, SSO credentials, or the identity-provider master
+key.
 
 ---
 

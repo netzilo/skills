@@ -5,7 +5,8 @@ the symptom; each entry gives the evidence to collect, the cause, and the fix. E
 strings are quoted exactly as the client prints them. Never ask the customer to reinstall as a
 first step — most problems are configuration, network, or identity.
 
-Always start with the same three commands (run on the affected device):
+Always start with the same three commands, run on the **affected device**, not on the
+machine you are working from. A client on your own machine reports your own enrolment.
 
 ```bash
 netzilo version

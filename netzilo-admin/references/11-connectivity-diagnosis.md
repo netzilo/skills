@@ -6,7 +6,7 @@ procedure; `07-client-troubleshooting.md` and `08-network-administration.md` hol
 per-component detail it points to. Work top to bottom; stop at the first failing check
 and fix it before continuing.
 
-You will need: shell access to device **A** (source), the dashboard or an API token
+You will need: shell access to device **A** (source), the admin API token established in `SKILL.md`
 (`09-api-and-automation.md` §1), and — when X is behind a route — shell access to the
 routing peer **R**. Ask for the exact target: IP or name, port/protocol, and what "fails"
 means (timeout, refused, DNS error, TLS error).
@@ -37,6 +37,10 @@ problem is on A: no route (§4) or a conflicting local route (`ip route show tab
 ---
 
 ## 1. Is the Netzilo layer up on both ends?
+
+**A is the customer's device.** Every command in this file runs on their device, their
+routing peer or their server, through them or through access they granted. Your own
+machine's client is not A unless the customer enrolled it as a test peer (`SKILL.md`).
 
 On A (`netzilo status -d`):
 

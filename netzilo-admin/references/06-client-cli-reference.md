@@ -5,6 +5,10 @@ file path, or status field for the Netzilo client (`netzilo`, version line 4.4.x
 Flags not listed here do not exist in this build (in particular there is **no**
 `profile`, `lazy-connection`, `block-lan`, `block-inbound`, or `mtu` flag).
 
+Where these run: on the device being diagnosed or deployed. If the machine you work
+from has its own Netzilo client, its output describes that machine's enrolment, not the
+customer's (`SKILL.md` → "The Netzilo client on your own machine is a tool, not evidence").
+
 Elevation: on Linux/macOS the daemon socket is world-writable, so most commands work
 unprivileged; `service`, `ssh`, and foreground `up -F` require root. On Windows run an
 elevated terminal for `service`, `ssh`, and `up -F`.
