@@ -54,7 +54,7 @@ and nothing sensitive ends up in your notes.
 
 ```bash
 F=client.log   # or: docker compose logs --no-color --since 24h management > mgmt.log
-SAN='s/^[0-9T:.+Z-]+ //; s/\[[^]]*\] //; s/[A-Za-z0-9_\/.-]+\.go:[0-9]+: /<source>: /; s/[0-9]{1,3}(\.[0-9]{1,3}){3}(:[0-9]+)?/<ip>/g; s/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/<uuid>/g; s/[A-Za-z0-9+\/=_-]{40,}/<key>/g; s/\b[a-z0-9]{20}\b/<id>/g; s/[^ ]+@[^ ]+/<email>/g; s/[0-9]+/N/g'
+SAN='s/^[0-9T:.+Z-]+ //; s/\[[^]]*\] //; s/[A-Za-z0-9_\/.-]+\.go:[0-9]+: /<source>: /; s/[0-9]{1,3}(\.[0-9]{1,3}){3}(:[0-9]+)?/<ip>/g; s/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/<uuid>/g; s/[A-Za-z0-9+\/=_-]{40,}/<key>/g; s/(^|[^a-z0-9])[a-z0-9]{20}([^a-z0-9]|$)/\1<id>\2/g; s/[^ ]+@[^ ]+/<email>/g; s/[0-9]+/N/g'
 
 # span and volume
 wc -l "$F"; head -1 "$F" | cut -c1-60; tail -1 "$F" | cut -c1-60

@@ -7,6 +7,14 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.2.1 — 2026-09-16
+
+Portability fix in the log-profiling recipe (`13` §3). The step that collapses
+twenty-character identifiers used a word-boundary construct that GNU `sed` accepts and
+BSD `sed` silently ignores, so on macOS those identifiers were neither grouped nor kept
+out of the operator's notes. The step now uses a POSIX boundary and behaves the same on
+both. No other recipe in the set used the construct.
+
 ## 2.2.0 — 2026-09-16
 
 Two changes to how the operator begins, applied across the index, the playbook, the API
