@@ -173,7 +173,27 @@ subsystem — each needs the daemon restarted unless noted:
 | Goroutine/heap dumps | `NB_DEBUG=1`, then fetch from `127.0.0.1:6060` |
 | AI behaviour graph | `NB_LAB_MODE=true`, then `http://localhost:41336/debug/api/graph` |
 
-### 4.3 Server (self-hosted)
+### 4.3 Server — the management log (self-hosted only)
+
+**Cloud customers: skip this section entirely.** On Netzilo Cloud the server logs are ours,
+already retained, and Level 3 reads them directly. Asking a Cloud customer for server logs
+delays the case and gets you nothing we do not already have. Say in the summary that the
+deployment is Cloud, give the account and the time window, and move on.
+
+**Self-hosted: the management log is not optional.** Almost every escalation that needs
+code-level analysis is decided by joining a client log line to the server line that
+answered it. A package with client logs and no management log usually comes straight back
+as a data request, which costs the customer another day.
+
+Two different things, often confused, and the analysis needs the first:
+
+| | What it is | Where |
+|---|---|---|
+| **Management log** | what the server itself wrote while handling the request — the decisions, the errors, the stack traces | the `management` container's stdout, §4.3 below |
+| **Events** | the audit feed of what *changed*: who edited a policy, who added a peer | the API, §4.4 |
+
+Events tell you what the configuration became. The management log tells you why a request
+was refused. They are not substitutes.
 
 Ask for SSH to the server if you do not already have it — collecting these logs yourself
 is faster and less error-prone than talking the customer through it, and you can widen
@@ -188,13 +208,36 @@ C=$( [ -f /opt/netzilo/run/docker-compose.yml ] && echo /opt/netzilo/run || echo
 cd "$C"
 sudo docker compose ps      > "$OLDPWD/server/compose-ps.txt"
 sudo docker compose images  > "$OLDPWD/server/compose-images.txt"
-for s in management zitadel caddy signal coturn dashboard db redis; do
-  sudo docker compose logs --no-color --timestamps --since 24h "$s" > "$OLDPWD/server/logs-$s.txt" 2>&1
+
+# The window that matters: from an hour before the first occurrence to an hour
+# after the last. An hour either side is not padding — it catches the startup,
+# the token refresh or the sync that set the failure up.
+SINCE='2026-09-17T07:00:00Z'   # incident start minus 1h, UTC
+UNTIL='2026-09-17T10:00:00Z'   # incident end   plus 1h, UTC
+sudo docker compose logs --no-color --timestamps --since "$SINCE" --until "$UNTIL" management \
+  > "$OLDPWD/server/management.log" 2>&1
+
+# The rest of the stack, same window — smaller, and they explain the management
+# log when the fault is upstream of it.
+for s in zitadel caddy signal coturn dashboard db redis; do
+  sudo docker compose logs --no-color --timestamps --since "$SINCE" --until "$UNTIL" "$s" \
+    > "$OLDPWD/server/logs-$s.txt" 2>&1
 done
 ```
 
-Narrow `--since` to the incident window when the logs are large, and say in the summary
-which window you captured. For a reproducible fault, raise management verbosity first by
+Name the management log `server/management.log` exactly. It is the file the analysis is
+built on and it should not have to be hunted for among seven others.
+
+**Say which window you captured, in UTC, in the summary.** A log that does not cover the
+incident is worse than no log: it reads as evidence of absence and sends the analysis the
+wrong way. If the incident is older than what the server retains, say that explicitly
+rather than sending the nearest window you could get.
+
+Check before you send that the log actually covers it:
+
+```bash
+head -1 server/management.log; tail -1 server/management.log
+``` For a reproducible fault, raise management verbosity first by
 setting `--log-level debug` in the management `command:` in `docker-compose.yml`, then
 `docker compose up -d --force-recreate management`, reproduce, collect, and restore the
 original value afterwards.
@@ -377,16 +420,24 @@ The analyst starts here. Put it in `00-SUMMARY.md` and paste it into the e-mail 
  e.g. "policy X allows TCP 5432 between the peers' groups (config/policies.json),
  both peers Connected with fresh handshakes (client/status-detail.txt),
  no peer.access.blocked events (events/events.json), and the routing peer forwards
- the SYN but no reply returns (server/logs-management.txt 09:14:22+02:00)">
+ the SYN but no reply returns (server/management.log 09:14:22+02:00)">
 
 ## Correlation keys
 - peer WireGuard public key: <key>
 - peer Netzilo IP / FQDN: 100.64.0.23 / laptop-jane.netzilo.network
 - occurrence timestamps: 2026-09-10 09:14:22 +02:00 (client), 09:14:22 +02:00 (server)
+- server log window captured: 2026-09-10 08:00–11:00 UTC
 - AIDR correlation_id (if applicable): <id>
 
 ## Already ruled out
 <what you tested and the result — each line saves the analyst a cycle>
+
+## Server-side logs
+<For self-hosted: "server/management.log covers 2026-09-17 07:00–10:00 UTC; the incident
+occurred 08:14 UTC". If the window could not be covered, say why — retention, log rotation,
+access refused — rather than leaving it out.
+For Cloud: "Netzilo Cloud, account <id> — server logs not collected; available to Level 3."
+>
 
 ## Logging state
 <log level used, whether the bundle is anonymized, which time window the server logs cover>
@@ -410,15 +461,78 @@ find "$PKG" -type f | sort > "$PKG/MANIFEST.txt"
 tar czf "$PKG.tar.gz" "$PKG"; ls -lh "$PKG.tar.gz"
 ```
 
-Show the customer `MANIFEST.txt` and the credential-sweep result, then ask for explicit
-approval to send.
+Show the customer `MANIFEST.txt` and the credential-sweep result, then **ask for explicit
+approval to send**. That approval is about the customer's data leaving their machine, and
+it is required whichever route below you take.
 
-- **To:** support@netzilo.com
-- **Subject:** `[S2] <deployment> — <one-line problem>`
-- **Body:** `00-SUMMARY.md` inline.
-- **Attachment:** the archive; if it exceeds their mail limit, a time-limited link from
-  their own file-share.
-- **Never in the body:** tokens, setup keys, passwords, private keys.
+Escalation goes to Level 3 over its API, not to a mailbox. Level 3 is an agent with
+source access: it reads the code at the exact commit your versions resolve to, traces the
+path your evidence implicates, and answers in language you can relay. It needs two things:
+
+| | |
+|---|---|
+| the endpoint | the gate, `https://l3.netzilo.com` unless this deployment says otherwise |
+| the token | this deployment's own Netzilo Cloud service-account token |
+
+Either can be set at install or changed later under **Settings → Plugins → Level 3
+escalation**, and the two arrive under different names depending on which: the Settings
+page publishes `DSH_L3_PAT` and `DSH_L3_URL`, a launch environment sets `L3_PAT` and
+`L3_URL`, and the launch environment wins where both exist. Resolve them once, before
+anything else in this section:
+
+```bash
+L3_PAT="${L3_PAT:-${DSH_L3_PAT:-}}"
+L3_URL="${L3_URL:-${DSH_L3_URL:-https://l3.netzilo.com}}"
+```
+
+The token is verified against Netzilo Cloud on every call, so access is granted and
+revoked there, per deployment. If it resolves empty, say so plainly — point the customer
+at that Settings page — and stop. There is no fallback address to send a package to.
+
+**A question with no package** — the common case, and the one to prefer. Send the summary
+inline; `user` is the case id, which is what ties follow-ups to the same case:
+
+```bash
+jq -n --arg case "$CASE" --arg body "$(cat "$PKG/00-SUMMARY.md")" '{
+  model: "netzilo/l3", user: $case, stream: false,
+  messages: [{ role: "user", content: $body }]
+}' > /tmp/escalation.json
+
+curl -sS --fail-with-body -X POST "$L3_URL/v1/chat/completions" \
+  -H "Authorization: Token $L3_PAT" -H 'Content-Type: application/json' \
+  -d @/tmp/escalation.json | jq -r '.choices[0].message.content'
+```
+
+A code-level case runs for minutes, not seconds — that is the analysis, not a hang. Do not
+set a client timeout below ten minutes, and do not retry a call that is still running: a
+second call starts a second analysis and the first one's work is lost.
+
+**When the package itself has to go** — completions carries no files, so use the
+conversation API instead, with the same token. Upload, then send the message that refers
+to it:
+
+```bash
+CONV=$(curl -sS -X POST "$L3_URL/v1/conversations" \
+  -H "Authorization: Token $L3_PAT" -H 'Content-Type: application/json' -d '{}' | jq -r .id)
+
+ATT=$(curl -sS -X POST "$L3_URL/v1/conversations/$CONV/attachments" \
+  -H "Authorization: Token $L3_PAT" -H "x-filename: $(basename "$PKG.tar.gz")" \
+  -H 'Content-Type: application/octet-stream' --data-binary @"$PKG.tar.gz" | jq -r .id)
+
+curl -sS -N -X POST "$L3_URL/v1/conversations/$CONV/messages" \
+  -H "Authorization: Token $L3_PAT" -H 'Content-Type: application/json' \
+  -d "$(jq -n --arg t "$(cat "$PKG/00-SUMMARY.md")" --arg a "$ATT" \
+        '{text: $t, attachmentIds: [$a]}')"
+```
+
+That returns a stream: `status` lines while the agent works, `delta` lines carrying the
+answer, `done` at the end. The archive is handed to the agent as a file it opens and
+searches, so a package of any size costs the few lines that matter rather than being
+pasted into a conversation.
+
+**Never** put a token, setup key, password or private key in the text of either call.
+The credential sweep in §6 is what makes that true of the package; the summary is yours
+to check by eye.
 
 If a server is down and the customer wants it restored before root cause, say so
 explicitly in the summary and take a backup (`02` §6) first, so the failure state is
@@ -429,7 +543,14 @@ preserved for analysis.
 ## 11. While it is open
 
 - Apply any workaround that reduces impact and record it in the timeline.
-- New symptom or clue: short follow-up on the same subject, not a rebuilt package.
-- If you find the cause yourself, tell support and close it.
+- **A follow-up is the same case, not a new one.** Reuse the same `user` value (the case
+  id) or the same conversation id. On `/v1/chat/completions` the thread is yours to keep:
+  send the previous messages along with the new one, as any OpenAI-compatible client
+  does, or the agent starts from nothing. On the conversation API the gate keeps the
+  thread for you and replays it — post to the same conversation and it has the history.
+- New symptom or clue: a follow-up on the open case, not a rebuilt package.
+- If you find the cause yourself, say so on the case and close it.
 - When it is fixed, verify against the gate that originally failed — not against the
   absence of complaints.
+- Level 3 files its own bug reports. You will get a case id and an answer to relay; you
+  will not get an issue link, and the customer never does.
