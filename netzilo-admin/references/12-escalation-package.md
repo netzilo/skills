@@ -475,15 +475,20 @@ path your evidence implicates, and answers in language you can relay. It needs t
 | the token | this deployment's own Netzilo Cloud service-account token |
 
 Either can be set at install or changed later under **Settings → Plugins → Level 3
-escalation**, and the two arrive under different names depending on which: the Settings
-page publishes `DSH_L3_PAT` and `DSH_L3_URL`, a launch environment sets `L3_PAT` and
-`L3_URL`, and the launch environment wins where both exist. Resolve them once, before
-anything else in this section:
+escalation**. Read `DSH_L3_PAT` and `DSH_L3_URL` and nothing else: the harness has
+already decided between the two sources — what Settings holds, else what the launch
+environment supplied, else the default — and published the answer under those names.
 
 ```bash
-L3_PAT="${L3_PAT:-${DSH_L3_PAT:-}}"
-L3_URL="${L3_URL:-${DSH_L3_URL:-https://l3.netzilo.com}}"
+L3_PAT="${DSH_L3_PAT:-${L3_PAT:-}}"
+L3_URL="${DSH_L3_URL:-${L3_URL:-https://l3.netzilo.com}}"
 ```
+
+The raw `L3_PAT` and `L3_URL` are there only for a harness too old to publish the managed
+pair. **Do not prefer them.** Reading them first is the same bug twice over: a token typed
+into Settings is ignored in favour of whatever the installer wrote months ago, and the
+person who typed it has no way to tell — the field accepts the value, reports it stored,
+and nothing changes.
 
 The token is verified against Netzilo Cloud on every call, so access is granted and
 revoked there, per deployment. If it resolves empty, say so plainly — point the customer
