@@ -1,5 +1,13 @@
 # Skill metadata and build scripts
 
+**Who this folder is for.** These scripts maintain the skill; they are not part of
+operating Netzilo. An agent following the runbooks never has to run them — what it
+consumes is their output, the front matter at the top of each reference file. Run them
+when you change a reference, add one, or want to rebuild the API schema reference from a
+server. The one script with a use outside maintenance is `gen-api-schemas.py`, which
+turns any Netzilo Server's own OpenAPI description into readable per-endpoint
+documentation.
+
 The `netzilo-admin` skill is loaded by agents that do not all have the same
 reach: one has only the REST API, one has shells on the server and the device,
 one is a human who can also click the dashboard and the IdP console. Every

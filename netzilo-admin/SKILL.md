@@ -356,6 +356,17 @@ Paginate and filter (`/api/events/paginated` with a code and a date window, `lim
 `page_size=`), never bulk-fetch a whole collection, and summarise what you read instead of
 pasting it — `references/09-api-and-automation.md` has the parameters and the reason.
 
+## Maintaining this skill
+
+The `scripts/` folder at the root of the repository is for whoever maintains these files:
+it generates the front matter, rebuilds the API schema reference from a server's own
+OpenAPI description, and validates the set in CI. Operating Netzilo never requires it —
+you read the references, you do not build them. The exception worth knowing: if a
+customer's server is newer than this copy, `scripts/gen-api-schemas.py
+https://<their-server>/api/support/openapi.yml --token "$TOKEN"` regenerates
+`references/33-api-request-schemas.md` for their exact version, which is the same
+description the dashboard's AI assistant reads live.
+
 ## Closing a task
 
 Report: **Outcome** (what works, verified how) → **Changes made** (and how to revert) →
