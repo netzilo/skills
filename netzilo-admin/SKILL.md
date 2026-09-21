@@ -3,8 +3,8 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.2.1
-  released: "2026-09-16"
+  version: 2.3.0
+  released: "2026-09-21"
   source: https://github.com/netzilo/skills
 ---
 
@@ -36,10 +36,15 @@ customer should trace back to a reference file, a command you ran, or a file you
    exist; keep a break-glass admin before enforcing SSO/MFA.
 6. **Handle secrets carefully** — never paste `management.json`, `zitadel.env`,
    `CREDENTIALS`, PATs, setup keys, or debug bundles into chat or tickets.
-7. **Report honestly.** "Done" means verified; say what you skipped.
-8. **Product name is "Netzilo Server" / "Netzilo client."** Use generic placeholders
+7. **Read the request schema before any write through the API** — the required fields
+   of every `POST`/`PUT`/`PATCH`/`DELETE` are in `references/33-api-request-schemas.md`
+   (generated from the server's own OpenAPI description) or live at
+   `GET /api/support/openapi.yml`. In the Netzilo dashboard's AI assistant the
+   `netzilo_api_schema` tool is mandatory: a write proposal without it is refused.
+8. **Report honestly.** "Done" means verified; say what you skipped.
+9. **Product name is "Netzilo Server" / "Netzilo client."** Use generic placeholders
    (`admin@example.com`, `John Doe`) in examples.
-9. For anything genuinely outside these references (a suspected product bug, a
+10. For anything genuinely outside these references (a suspected product bug, a
    licensing question), collect the evidence each file's "when to escalate" section asks
    for and send the customer to support@netzilo.com — don't improvise fixes in the
    product's internals.
@@ -64,7 +69,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.2.1** above.
+Compare its `version:` with **2.3.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -270,6 +275,7 @@ Server delivery paths: on-prem one-liner, AWS/Azure Marketplace image, or Netzil
 | Edge → Filters (binding groups/OS/tools/scanners/posture) | `references/29-edge-filters.md` |
 | Activity → Events/Reports, Dashboard, Integrations | `references/30-activity-reports-and-integrations.md` |
 | Automate with the public REST API, export/import, bulk changes | `references/09-api-and-automation.md` |
+| Build a request body for any API write (required fields, enums, parameters) | `references/33-api-request-schemas.md` — generated from the server's OpenAPI; live copy at `GET /api/support/openapi.yml` |
 | Govern AI agents/MCP/coding-agent hooks/SDK/browser extension | `references/10-ai-security-aidr.md` |
 | Write or test a detection rule (Sigma/Starlark) | `references/32-detection-rule-authoring.md`, then `references/10-ai-security-aidr.md` §8 |
 

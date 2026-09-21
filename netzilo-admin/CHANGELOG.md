@@ -7,6 +7,17 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.3.0 — 2026-09-21
+
+New reference `33-api-request-schemas.md`: every management API operation with its
+parameters, request body (required fields marked, enums listed) and response codes,
+generated from Netzilo Server's own OpenAPI description by `scripts/gen-api-schemas.py`.
+Operating rule 7 now requires reading the request schema before any API write; `09` §3
+points at the generated reference and at the live copy the server serves to admins at
+`GET /api/support/openapi.yml`. Background: an agent built a `POST /api/reports` body
+from memory, omitted the required `from`/`to` dates, and the write failed. The Netzilo
+dashboard's AI assistant enforces the rule with its `netzilo_api_schema` tool.
+
 ## 2.2.1 — 2026-09-16
 
 Portability fix in the log-profiling recipe (`13` §3). The step that collapses

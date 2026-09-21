@@ -103,6 +103,19 @@ Not in this product (do not promise): `/networks`, `/networks/*/resources`, `/ro
 
 ## 3. Field reference (request bodies)
 
+**Read the schema before any write.** This section is a hand-written digest of the
+most-used bodies; the complete, generated list with every required field is
+`references/33-api-request-schemas.md`, and the live, version-exact copy is served by
+the customer's own server at `GET /api/support/openapi.yml` (admin token). A body that
+misses a required field is rejected with `422` — never guess a body from the field
+names you remember. In the Netzilo dashboard's AI assistant the `netzilo_api_schema`
+tool does this lookup and a write proposal is refused until it has been called for that
+exact method and path.
+
+```bash
+nz /support/openapi.yml | yq '.paths["/api/reports"].post.requestBody'     # live schema
+```
+
 **Account settings** (`PUT /accounts/{id}`): `{"settings":{peer_login_expiration_enabled, peer_login_expiration (s), peer_inactivity_expiration_enabled, peer_inactivity_expiration (s), regular_users_view_blocked, groups_propagation_enabled, jwt_groups_enabled, jwt_groups_claim_name, jwt_allow_groups:[…], extra:{peer_approval_enabled}}}` — send the full object (read it first).
 
 **User** create: `{email, name, role:"owner|admin|user", auto_groups:[ids], is_service_user, password?, password_change_required?}`. Update: `{role, auto_groups, is_blocked, update_peer_groups}`. Read fields: `id, email, name, role, status (active|disabled|invited), last_login, auto_groups, is_current, is_service_user, is_blocked, issued, permissions.dashboard_view`.
