@@ -1302,7 +1302,7 @@ Request body (JSON):
 - `proration_date` (integer, **required**): Unix timestamp returned by the invoice preview
 - `subscription` (string (Professional | Enterprise), **required**): The subscription level of a tenant
 
-Responses: `200` The updated Tenant object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+Responses: `200` The updated Tenant object, `400` Bad Request, `401` Requires authentication, `412` Precondition failed, `422` Validation failed, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
 
 ## `POST /api/tokens/revoke`
 
