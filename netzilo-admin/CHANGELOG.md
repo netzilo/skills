@@ -7,6 +7,16 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.3.1 — 2026-09-21
+
+`33-api-request-schemas.md` regenerated from a reconciled server description: the
+OpenAPI file was audited against the handlers and corrected (tenant is `PUT`, not
+`POST`; `/api/getclient` is `GET` with an `os` query parameter; `/api/events` returns a
+string; `/api/stats` returns an object; countries/cities shapes; ~50 previously
+undocumented routes added, e.g. `/api/events/paginated`, `/api/peers/bulk-delete`,
+`/api/edge/*`, `/api/support/*`; required fields marked where the server rejects their
+absence). The catalogue in `09` §2 stays as the reading guide; `33` is the contract.
+
 ## 2.3.0 — 2026-09-21
 
 New reference `33-api-request-schemas.md`: every management API operation with its
