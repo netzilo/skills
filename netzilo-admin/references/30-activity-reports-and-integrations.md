@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 11246
+chars: 14992
 sections:
 - id: '1'
   title: Activity → Events
@@ -20,13 +20,13 @@ sections:
   chars: 498
 - id: '4'
   title: Integrations
-  chars: 1903
+  chars: 5196
 - id: '5'
   title: Procedures
   chars: 1105
 - id: '6'
   title: Diagnosis
-  chars: 1441
+  chars: 1894
 ---
 # Admin Skill — Activity Events, Reports, Dashboard Home and Integrations
 
@@ -136,11 +136,74 @@ integration will be lost." Free-plan tenants see **Upgrade Plan**.
 | Networking | **Twilio** | managed TURN relays | Account SID, Auth Token (validated against Twilio before saving) | exclusive with Cloudflare / TURN-STUN |
 | Networking | **Cloudflare** | managed TURN relays | Token ID, API Token | exclusive |
 | Networking | **TURN/STUN Servers** | your own relays | STUN `host:port` UDP/TCP; TURN `host:port` UDP/TCP/DTLS/HTTPS + username/password; **Test Connection** runs a browser-side ICE test ("Connection test successful! Found: … candidates" / "TURN authentication failed - no relay candidates found…") | exclusive; overrides the built-in relay for all peers |
-| Artificial Intelligence | **OpenAI** / **Anthropic** | AI Smart Search in Activity, AI rule generation for scanners, risk analysis of discovered tools | API key; Usage: Assistant / Log Analysis / All | at least one needed for any AI-assisted feature |
 
-API: `GET/POST /api/integrations {platform:"openai|anthropic|twilio|cloudflare|static", config:{…}, enabled:true}`,
+**Artificial Intelligence is not a card and not an integration.** It is its own
+resource — see §4a.
+
+API: `GET/POST /api/integrations {platform:"twilio|cloudflare|static", config:{…}, enabled:true}`,
 `PUT/DELETE /api/integrations/{id}`; `GET/POST /api/event-streaming {platform:"s3"|"min.io", config:{bucket,access_key,secret_key,region,endpoint?}, enabled:true}`,
-`DELETE /api/event-streaming/{id}`.
+`DELETE /api/event-streaming/{id}`. Posting an AI platform to `/api/integrations`
+is refused; use `/api/ai/providers`. The listing masks stored credentials, so a
+secret can never be read back out of it.
+
+### 4a. Artificial Intelligence — providers, models and approvals
+
+Any endpoint that speaks a supported protocol can be added; there is no fixed
+list of vendors. **Integrations → Artificial Intelligence** shows a table of
+providers, not cards, with **Add provider**.
+
+A provider has a name, a **protocol** (`anthropic-messages` or
+`openai-completions` — the latter covers Azure OpenAI, vLLM, Ollama, Groq,
+Together, OpenRouter, Mistral, DeepSeek and any other OpenAI-compatible
+gateway), an optional **endpoint** (empty means the vendor's own API), an API
+key, and a list of **models**.
+
+**Approval is per feature.** There are three: **Assistant** (`assistant`) is
+the admin chat panel; **Log Analysis** (`log-analysis`) covers risk analysis of
+discovered tools and smart search; **Threat Analysis** (`threat-analysis`)
+covers scanner rule generation and prompt scanning. Each is approved at
+provider level, and any model may override that for itself. A model with no override
+inherits the provider; a model with an explicit empty list is approved for
+nothing, which is how an expensive model is kept out of the assistant while
+its siblings stay available. One model per feature per account can be starred
+as the **default**.
+
+A provider that lists **no** models serves the "automatic" model: whichever
+model its endpoint currently reports as newest. That is what an account
+upgraded from the old OpenAI/Anthropic integration rows gets, so nothing stops
+working at upgrade.
+
+**Verify** lists the endpoint's models and makes a one-token request to prove
+the credential works. It stores nothing when run on a draft. A typed reason
+comes back — `invalid-credential`, `unreachable`, `no-models`,
+`model-refused`, `invalid-url`, `unsupported-protocol` — so the fix is
+obvious. "Not verified" is not a failure: it means nobody has tested it yet.
+
+A self-hosted endpoint must be reachable **from the management server**, not
+from the admin's browser.
+
+| Call | Purpose |
+|---|---|
+| `GET /api/ai/protocols` | protocols, features and form prefills |
+| `GET /api/ai/providers` | list; the API key is never returned, only `credential_set` |
+| `POST /api/ai/providers` | add (owner only) |
+| `PUT /api/ai/providers/{id}` | change (owner only); an empty `api_key` keeps the stored one |
+| `DELETE /api/ai/providers/{id}` | remove (owner only) |
+| `POST /api/ai/providers/verify` | test a draft; nothing is stored |
+| `POST /api/ai/providers/{id}/verify` | test a stored provider and record the result |
+| `GET /api/ai/models?use=assistant` | the models approved for a feature (`assistant`, `log-analysis`, `threat-analysis`) |
+| `GET /api/ai/capabilities` | which features this account can serve |
+
+Reads need admin; writes need owner. Adding, changing, removing and verifying
+a provider are all audited (`ai.provider.create`, `.update`, `.delete`,
+`.verify`).
+
+**Choosing the model in the assistant.** The chat panel has a model picker
+listing exactly the models approved for `assistant`, defaulting to the starred
+one. The choice sticks to that chat and each answer records which model
+produced it. The server re-checks the choice on every message, so a model
+whose approval is withdrawn mid-session is refused rather than quietly
+swapped — the admin sees an error naming the model, not a different bill.
 
 Cloud-only integrations (identity-provider sync, EDR) are documented in the public docs
 and are not present on self-hosted servers.
@@ -174,7 +237,10 @@ and are not present on self-hosted servers.
 | No events for a device | client not connected; nothing matched a policy/filter/profile | `netzilo status`; check bindings |
 | `user.login` events missing (self-hosted) | login-event import from the identity provider requires the built-in provider and the service account roles created at install | verify identity provider health (`04` §9) |
 | CSV export incomplete | only the current page is exported | raise rows per page or use the API |
-| AI Smart Search greyed / AI Insights Disabled | no AI integration | Integrations → Artificial Intelligence |
+| AI Smart Search greyed / AI Insights Disabled | no model approved for Log Analysis | Integrations → Artificial Intelligence → approve a model |
+| Assistant button missing from the header | no model approved for `assistant` | Integrations → Artificial Intelligence → approve a model |
+| "The model … cannot serve Assistant" | approval withdrawn while a chat was open | re-approve it, or pick another model in the chat's picker |
+| AI rule generation unavailable | no model approved for Threat Analysis | Integrations → Artificial Intelligence → approve a model |
 | Report empty | date range / groups; users not in the selected groups | widen |
 | AI Activity report shows "Serverless" users | peers enrolled with setup keys (no user) | expected; shown per peer |
 | Event Streaming card shows Disabled after saving | credentials rejected or bucket policy | re-enter; check IAM `s3:PutObject`/`s3:PutObjectAcl` |

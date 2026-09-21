@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.5.0
+  version: 2.6.0
   released: "2026-09-21"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 2.5.0, released 2026-09-21.** Confirm it is current before
+**This copy is version 2.6.0, released 2026-09-21.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -110,7 +110,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.5.0** above.
+Compare its `version:` with **2.6.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -324,8 +324,9 @@ is instructions for the admin rather than work you performed.
 | Edge → Scanners (detection rules) | `references/28-edge-scanners.md` | API |
 | Edge → Filters (binding groups/OS/tools/scanners/posture) | `references/29-edge-filters.md` | API |
 | Activity → Events/Reports, Dashboard, Integrations | `references/30-activity-reports-and-integrations.md` | API |
+| Integrations → Artificial Intelligence: connect an AI provider, approve models per feature, pick the assistant's model | `references/30-activity-reports-and-integrations.md` §4a | API |
 | What to call a page, an object or an event when you answer an admin | `references/35-plain-language.md` | reading only |
-| What an activity code means, or which code to filter on | `references/34-event-catalogue.md` — all 129 activities with display names and categories | reading only |
+| What an activity code means, or which code to filter on | `references/34-event-catalogue.md` — all 133 activities with display names and categories | reading only |
 | Automate with the public REST API, export/import, bulk changes | `references/09-api-and-automation.md` | API |
 | Build a request body for any API write (required fields, enums, parameters) | `references/33-api-request-schemas.md` — generated from the server's OpenAPI; live copy at `GET /api/support/openapi.yml` | API |
 | Govern AI agents/MCP/coding-agent hooks/SDK/browser extension | `references/10-ai-security-aidr.md` | API |

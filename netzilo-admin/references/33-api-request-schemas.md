@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 61196
+chars: 66762
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -18,6 +18,33 @@ sections:
 - id: delete-api-accounts-accountid
   title: '`DELETE /api/accounts/{accountId}`'
   chars: 331
+- id: get-api-ai-capabilities
+  title: '`GET /api/ai/capabilities`'
+  chars: 186
+- id: get-api-ai-models
+  title: '`GET /api/ai/models`'
+  chars: 316
+- id: get-api-ai-protocols
+  title: '`GET /api/ai/protocols`'
+  chars: 175
+- id: get-api-ai-providers
+  title: '`GET /api/ai/providers`'
+  chars: 171
+- id: post-api-ai-providers
+  title: '`POST /api/ai/providers`'
+  chars: 1242
+- id: post-api-ai-providers-verify
+  title: '`POST /api/ai/providers/verify`'
+  chars: 1270
+- id: put-api-ai-providers-providerid
+  title: '`PUT /api/ai/providers/{providerId}`'
+  chars: 1345
+- id: delete-api-ai-providers-provider
+  title: '`DELETE /api/ai/providers/{providerId}`'
+  chars: 261
+- id: post-api-ai-providers-providerid
+  title: '`POST /api/ai/providers/{providerId}/verify`'
+  chars: 317
 - id: post-api-ai-scanprompt
   title: '`POST /api/ai/scanprompt`'
   chars: 412
@@ -350,7 +377,7 @@ sections:
   chars: 282
 - id: post-api-support-sessions-sessio
   title: '`POST /api/support/sessions/{sessionId}/messages`'
-  chars: 452
+  chars: 735
 - id: get-api-templates
   title: '`GET /api/templates`'
   chars: 217
@@ -478,6 +505,122 @@ Parameters:
 - `accountId` (path, required): The unique identifier of an account
 
 Responses: `200` Delete account status code, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/ai/capabilities`
+
+Report which AI uses this account can serve
+
+Responses: `200` Capability map, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/ai/models`
+
+List the models approved for a use
+
+Parameters:
+- `use` (query, required): The feature the models must be approved for.
+
+Responses: `200` Approved models, resolution order, default marked, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/ai/protocols`
+
+Describe the AI provider vocabulary
+
+Responses: `200` The vocabulary, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/ai/providers`
+
+List AI providers
+
+Responses: `200` A JSON array of AI providers, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `POST /api/ai/providers`
+
+Create an AI provider
+
+Request body (JSON):
+- `name` (string, **required**)
+- `protocol` (string (anthropic-messages | openai-completions), **required**): The wire protocol a provider's endpoint speaks.
+- `base_url` (string, optional)
+- `api_key` (string, optional)
+- `headers` (object, optional)
+- `enabled` (boolean, **required**)
+- `uses` (array of string (assistant | log-analysis | threat-analysis), optional)
+- `priority` (integer, optional)
+- `models` (array of object, optional)
+  - `id` (string, **required**): Identifier sent to the provider on the wire. — e.g. `claude-sonnet-4-5`
+  - `display_name` (string, optional)
+  - `context_window` (integer, optional): Total token capacity, 0 or absent when unknown.
+  - `max_output_tokens` (integer, optional)
+  - `uses` (array of ?, optional): Overrides the provider's approval for this model. Omit to inherit the provider; send an empty array to approve the model for nothing.
+  - `default_for` (array of ?, optional): Uses this model serves by default, at most one model per use per account.
+
+Responses: `200` The created AI provider, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
+
+## `POST /api/ai/providers/verify`
+
+Verify a draft AI provider without storing it
+
+Request body (JSON):
+- `id` (string, optional)
+- `name` (string, **required**)
+- `protocol` (string (anthropic-messages | openai-completions), **required**): The wire protocol a provider's endpoint speaks.
+- `base_url` (string, optional)
+- `api_key` (string, optional)
+- `headers` (object, optional)
+- `models` (array of object, optional)
+  - `id` (string, **required**): Identifier sent to the provider on the wire. — e.g. `claude-sonnet-4-5`
+  - `display_name` (string, optional)
+  - `context_window` (integer, optional): Total token capacity, 0 or absent when unknown.
+  - `max_output_tokens` (integer, optional)
+  - `uses` (array of ?, optional): Overrides the provider's approval for this model. Omit to inherit the provider; send an empty array to approve the model for nothing.
+  - `default_for` (array of ?, optional): Uses this model serves by default, at most one model per use per account.
+- `probe_model` (string, optional): Model the liveness probe should call; defaults to the first available.
+
+Responses: `200` What the verification learned, including a typed failure reason, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `PUT /api/ai/providers/{providerId}`
+
+Update an AI provider
+
+Parameters:
+- `providerId` (path, required): The AI provider ID
+
+Request body (JSON):
+- `name` (string, **required**)
+- `protocol` (string (anthropic-messages | openai-completions), **required**): The wire protocol a provider's endpoint speaks.
+- `base_url` (string, optional)
+- `api_key` (string, optional)
+- `headers` (object, optional)
+- `enabled` (boolean, **required**)
+- `uses` (array of string (assistant | log-analysis | threat-analysis), optional)
+- `priority` (integer, optional)
+- `models` (array of object, optional)
+  - `id` (string, **required**): Identifier sent to the provider on the wire. — e.g. `claude-sonnet-4-5`
+  - `display_name` (string, optional)
+  - `context_window` (integer, optional): Total token capacity, 0 or absent when unknown.
+  - `max_output_tokens` (integer, optional)
+  - `uses` (array of ?, optional): Overrides the provider's approval for this model. Omit to inherit the provider; send an empty array to approve the model for nothing.
+  - `default_for` (array of ?, optional): Uses this model serves by default, at most one model per use per account.
+
+Responses: `200` The updated AI provider, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `DELETE /api/ai/providers/{providerId}`
+
+Delete an AI provider
+
+Parameters:
+- `providerId` (path, required): The AI provider ID
+
+Responses: `200` Deleted, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
+
+## `POST /api/ai/providers/{providerId}/verify`
+
+Verify a stored AI provider and record the outcome
+
+Parameters:
+- `providerId` (path, required): The AI provider ID
+
+Responses: `200` What the verification learned, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
 
 ## `POST /api/ai/scanprompt`
 
@@ -1657,6 +1800,7 @@ Parameters:
 
 Request body (JSON):
 - `text` (string, **required**): Non-blank, at most 32000 characters
+- `model` (string, optional): The "<providerId>:<modelId>" reference chosen in the chat, from GET /api/ai/models?use=assistant. Omit to keep the session's current model, which falls back to the account default. Validated on every turn: a model that is no longer approved is refused.
 
 Responses: `200` text/event-stream of agent events, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `422` Validation failed, `500` Internal Server Error
 

@@ -101,7 +101,7 @@ detected"), `activity_code` (the stable identifier — `workspace.injection.dete
 `activity_category` ("Suspicious"). The display name is already in the response you are
 reading. Quote it.
 
-The full list is `references/34-event-catalogue.md`: 129 activities with their display
+The full list is `references/34-event-catalogue.md`: 133 activities with their display
 names, codes and categories. Use it when you are choosing a `code=` filter, and use it in
 reverse when a code turns up in a log or a rule and you need to say what it means.
 

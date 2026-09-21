@@ -6,11 +6,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 7610
+chars: 7799
 sections:
 - id: administration
   title: Administration
-  chars: 4551
+  chars: 4740
 - id: access-control
   title: Access Control
   chars: 454
@@ -33,7 +33,7 @@ sections:
 # Event catalogue — what each activity is called
 
 Generated from Netzilo Server's activity table on 2026-09-21 by
-`scripts/gen-event-codes.py`. 129 activities.
+`scripts/gen-event-codes.py`. 133 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
 name), `activity_code` (the stable identifier) and `activity_category`. **Say the
@@ -57,6 +57,10 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Account peer login expiration disabled | `account.setting.peer.login.expiration.disable` |
 | Account peer login expiration enabled | `account.setting.peer.login.expiration.enable` |
 | Account peer login expiration duration updated | `account.setting.peer.login.expiration.update` |
+| AI provider created | `ai.provider.create` |
+| AI provider deleted | `ai.provider.delete` |
+| AI provider updated | `ai.provider.update` |
+| AI provider verified | `ai.provider.verify` |
 | Dashboard login | `dashboard.login` |
 | Group added to disabled management DNS setting | `dns.setting.disabled.management.group.add` |
 | Group removed from disabled management DNS setting | `dns.setting.disabled.management.group.delete` |

@@ -7,6 +7,33 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.6.0 — 2026-09-21
+
+AI is configured as providers, not two fixed cards.
+
+- **`references/30-activity-reports-and-integrations.md` §4a — Artificial Intelligence.**
+  AI is no longer an integration with an OpenAI card and an Anthropic card. Any endpoint
+  speaking `anthropic-messages` or `openai-completions` can be connected under
+  Integrations → Artificial Intelligence, including Azure OpenAI, vLLM, Ollama and any
+  other OpenAI-compatible gateway. The section covers the provider fields, per-model
+  approval, verification and its typed failure reasons, the full `/api/ai/*` surface, and
+  what an upgrade from the old integration rows produces.
+- **Three features replace five.** A model is approved for **Assistant** (the chat panel),
+  **Log Analysis** (tool risk analysis and smart search) or **Threat Analysis** (scanner
+  rule generation and prompt scanning). The values `smart-search`, `rule-generation` and
+  `prompt-scan` no longer exist.
+- **The assistant's model is chosen in the chat.** The picker lists only models approved
+  for Assistant; the server re-checks the choice on every message, so a withdrawn
+  approval is refused rather than silently substituted.
+- **No deployment-wide model key.** `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` on the
+  management server are no longer read; every account uses a provider it configured.
+- **Posting an AI platform to `/api/integrations` is refused** — use `/api/ai/providers`.
+  The integrations listing also masks stored credentials now.
+- **`references/33-api-request-schemas.md`** regenerated: adds the nine `/api/ai/*`
+  endpoints.
+- **`references/34-event-catalogue.md`** regenerated: 133 activities, adding
+  `ai.provider.create`, `.update`, `.delete` and `.verify`.
+
 ## 2.5.0 — 2026-09-21
 
 Answers in the product's language, not the API's.
