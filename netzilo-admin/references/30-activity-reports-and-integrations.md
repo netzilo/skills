@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14992
+chars: 15855
 sections:
 - id: '1'
   title: Activity → Events
@@ -20,7 +20,7 @@ sections:
   chars: 498
 - id: '4'
   title: Integrations
-  chars: 5196
+  chars: 6059
 - id: '5'
   title: Procedures
   chars: 1105
@@ -162,7 +162,16 @@ key, and a list of **models**.
 the admin chat panel; **Log Analysis** (`log-analysis`) covers risk analysis of
 discovered tools and smart search; **Threat Analysis** (`threat-analysis`)
 covers scanner rule generation and prompt scanning. Each is approved at
-provider level, and any model may override that for itself. A model with no override
+provider level, and any model may override that for itself. In the dashboard
+a fetched catalogue starts with **nothing approved** — the admin ticks models
+in, singly or with the column checkbox — so "I added the provider but the
+assistant says no model is approved" usually means no box was ticked yet.
+
+**Editing keeps what you do not touch.** `PUT /api/ai/providers/{id}` treats an
+omitted field as "keep the stored value" and a sent field — even empty — as a
+replacement; an empty or omitted `api_key` always keeps the stored key. The
+card's switch disables and re-enables; **Remove** in the settings dialog is
+the only thing that deletes. A model with no override
 inherits the provider; a model with an explicit empty list is approved for
 nothing, which is how an expensive model is kept out of the assistant while
 its siblings stay available. One model per feature per account can be starred
@@ -201,9 +210,13 @@ a provider are all audited (`ai.provider.create`, `.update`, `.delete`,
 **Choosing the model in the assistant.** The chat panel has a model picker
 listing exactly the models approved for `assistant`, defaulting to the starred
 one. The choice sticks to that chat and each answer records which model
-produced it. The server re-checks the choice on every message, so a model
-whose approval is withdrawn mid-session is refused rather than quietly
-swapped — the admin sees an error naming the model, not a different bill.
+produced it. The server re-checks the choice on every message: a model the
+admin names on that message and that has lost its approval is refused with an
+error naming it, not quietly swapped. A model the chat merely *remembers*
+and that no longer exists (a provider that had no catalogue served "@auto",
+then gained one) falls back to the default and the chat continues — so "the
+picker shows Opus but I am refused for another model" should no longer occur;
+if it does, the dashboard is out of date.
 
 Cloud-only integrations (identity-provider sync, EDR) are documented in the public docs
 and are not present on self-hosted servers.

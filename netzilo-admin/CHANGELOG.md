@@ -33,6 +33,16 @@ AI is configured as providers, not two fixed cards.
   endpoints.
 - **`references/34-event-catalogue.md`** regenerated: 133 activities, adding
   `ai.provider.create`, `.update`, `.delete` and `.verify`.
+- **`references/01-server-install.md`, `02-server-operations.md`** — the self-hosted
+  stack is **nine** containers: the AI Assistant's `support-worker` is installed on every
+  delivery path and wired to management with a generated shared token. Gates, service
+  inventory, upgrade order, firewall and the diagnosis table are updated, and the three
+  delivery paths (custom one-liner, AWS AMI, Azure image) are described as the separate
+  pipelines they are — one engine file, three independent image pins. Hand-over now says
+  the Assistant stays hidden until an owner connects an AI provider.
+- **Custom installer image tags.** The one-liner now retags to `:latest` only where that
+  tag is published and otherwise keeps the engine's pinned release; the runbook explains
+  the resulting `WARN:` and the `manifest unknown` failure it prevents.
 
 ## 2.5.0 — 2026-09-21
 

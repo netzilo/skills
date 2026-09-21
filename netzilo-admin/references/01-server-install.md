@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 21057
+chars: 24722
 sections:
 - id: '0'
   title: What gets installed (all paths)
-  chars: 1745
+  chars: 2875
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
-  chars: 5360
+  chars: 6175
 - id: '2'
   title: Path B — AWS Marketplace (CloudFormation)
   chars: 2474
@@ -25,10 +25,10 @@ sections:
   chars: 932
 - id: '5'
   title: Variant — running the core engine directly (advanced / air-gapped)
-  chars: 2251
+  chars: 2556
 - id: '6'
   title: Installation failures — diagnosis table
-  chars: 3725
+  chars: 5123
 - id: '7'
   title: Legacy path — `infrastructure_files` docker-compose
   chars: 1054
@@ -37,7 +37,7 @@ sections:
   chars: 479
 - id: '9'
   title: Reporting template
-  chars: 699
+  chars: 716
 ---
 # Netzilo Server — Installation Runbook (all delivery paths)
 
@@ -57,9 +57,21 @@ companion; this document adds the cloud paths and the advanced variants.
 
 ## 0. What gets installed (all paths)
 
-One Ubuntu 22.04 host running eight Docker containers behind Caddy on 443:
+One Ubuntu 22.04 host running nine Docker containers behind Caddy on 443:
 `caddy`, `dashboard`, `management`, `signal`, `zitadel` (identity), `coturn` (relay),
-`postgres`, `redis`. See `02-server-operations.md` §1–2 for the layout and service map.
+`postgres`, `redis`, and `support-worker` — the AI Assistant's agent, reachable only by
+`management` over the compose network. See `02-server-operations.md` §1–2 for the
+layout and service map.
+
+**Three delivery paths, three pipelines.** The custom one-liner (wrapper + engine
+fetched from `pkg.netzilo.com`), the AWS AMI (Packer image + CloudFormation + first-boot)
+and the Azure image (Packer + ARM + first-boot) run the same engine *file*,
+`install_netzilo.sh`, but each pins its container images independently: the one-liner
+retags each Netzilo image to `:latest` at install time **only if that tag exists on the
+registry** (the images are public, so it checks with `docker manifest inspect`) and
+otherwise keeps the engine's pinned release tag, saying so with a `WARN:`; the AMI and
+Azure builds bake the images into the VM image and pin each to an immutable digest. Diagnose them as
+separate environments — a fix in one pipeline says nothing about the other two.
 
 Inputs every path needs:
 
@@ -80,6 +92,9 @@ also open 49152–65535/udp for TURN relay allocations.
 
 The installer needs outbound HTTPS to `ghcr.io` (Netzilo images), Docker Hub (caddy,
 coturn, postgres, redis), `pkg.netzilo.com` (installer download) and Let's Encrypt.
+At run time `support-worker` needs outbound HTTPS to whichever AI provider the owner
+connects (Integrations → Artificial Intelligence) and, optionally, to `github.com` to
+refresh its runbooks — it works from the copy baked into its image without it.
 
 ---
 
@@ -137,8 +152,8 @@ sudo bash -c 'nohup bash /root/run-install.sh > /root/install.log 2>&1 &'
 sudo grep -E "Done\. Netzilo is starting|ERROR:|aborted" /root/install.log
 ```
 
-Optional wrapper variables: `NETZILO_IMAGE_TAG` (default `latest`; applies to the four
-Netzilo images), `NETZILO_INSTALLER_URL` (where the core installer is downloaded from, default
+Optional wrapper variables: `NETZILO_IMAGE_TAG` (default `latest`; applied per image only
+where that tag is published — see §0 — to the five Netzilo images), `NETZILO_INSTALLER_URL` (where the core installer is downloaded from, default
 `https://pkg.netzilo.com/download/install_netzilo.sh`), `NETZILO_STATE_DIR` (default
 `/opt/netzilo`), `NETZILO_PKG_BASE_URL` (client download mirror shown in the dashboard).
 
@@ -157,7 +172,12 @@ Netzilo images), `NETZILO_INSTALLER_URL` (where the core installer is downloaded
    `Dashboard` and `Cli`, machine user `netzilo-service-account`, human admin, deletes
    the Zitadel default `zitadel-admin` user) → renders `management.json`,
    `turnserver.conf`, `dashboard.env` → `docker compose up -d` → writes
-   `/opt/netzilo/CREDENTIALS` and `/opt/netzilo/netzilo-state.env`.
+   `/opt/netzilo/CREDENTIALS` and `/opt/netzilo/netzilo-state.env`. Along the way it
+   generates a shared `NETBIRD_SUPPORT_WORKER_TOKEN` and writes it into both places
+   that must agree: `management.json` (`SupportConfig`: `WorkerURL
+   http://support-worker:8080`, `ManagementURL http://management:80`, the token) and
+   the `support-worker` service environment (`SUPPORT_WORKER_TOKEN`). The worker
+   refuses to start if that variable is empty, so a mismatch fails loudly.
 6. Prints `==> Done. Netzilo is starting at https://<domain>` and the credentials.
 
 **Re-running the installer on the same host is destructive.** Because the wrapper
@@ -170,7 +190,7 @@ throwaway host.
 
 ```bash
 D=<domain>
-cd /opt/netzilo && sudo docker compose ps                                  # 8 Up, postgres+redis healthy
+cd /opt/netzilo && sudo docker compose ps                                  # 9 Up, postgres+redis+support-worker healthy
 curl -sS -o /dev/null -w "dashboard %{http_code}\n" https://$D/              # 200
 curl -sS https://$D/.well-known/openid-configuration | grep -o '"issuer":"[^"]*"'   # "issuer":"https://<domain>"
 curl -sS https://$D/ | grep -oiE '<title>[^<]*</title>'                      # <title>Netzilo</title>
@@ -192,6 +212,11 @@ is printed unconditionally). The first authenticated login creates the tenant ro
 Then hand the customer: dashboard URL, admin username, the location of
 `/opt/netzilo/CREDENTIALS`, and `02-server-operations.md` §6 (backups — nothing is
 backed up automatically).
+
+The **AI Assistant** is installed and healthy but stays hidden until an owner connects
+an AI provider and approves a model for Assistant under Integrations → Artificial
+Intelligence (`30-activity-reports-and-integrations.md` §4a). No model key ships with
+the server; say so when handing over, so its absence is not reported as a fault.
 
 ---
 
@@ -300,8 +325,9 @@ core engine directly as in §5 with these variables.)
 ## 5. Variant — running the core engine directly (advanced / air-gapped)
 
 The core engine `install_netzilo.sh` (published at
-`https://pkg.netzilo.com/download/install_netzilo.sh`) is what all paths run. Use it
-directly when the wrapper's assumptions don't fit. It writes into its **current working
+`https://pkg.netzilo.com/download/install_netzilo.sh`) is the file all three pipelines
+run — with their own image pins, see §0. Use it directly when the wrapper's assumptions
+don't fit. It writes into its **current working
 directory**; run it from the intended install dir (`/opt/netzilo`).
 
 ```bash
@@ -320,14 +346,16 @@ Engine variables not exposed by the wrapper:
 | `NETBIRD_DOMAIN` | — | FQDN, or literal `use-ip` for **plain HTTP on port 80** (test only; no TLS at all) |
 | `NETZILO_TLS_MODE` | `letsencrypt` | `selfsigned` generates a 1-year RSA-4096 cert in `./certs`; `provided` uses `NETZILO_CERT_DIR` |
 | `NETZILO_CERT_DIR` | `./certs` | must contain `fullchain.pem` + `privkey.pem` |
-| `NETZILO_IMAGE_SOURCE` | `cloud` | `disk` loads images from `NETZILO_IMAGES_DIR` (`*.tar.gz`/`*.tar`) — **air-gapped**; the eight archives must carry the expected tags |
+| `NETZILO_IMAGE_SOURCE` | `cloud` | `disk` loads images from `NETZILO_IMAGES_DIR` (`*.tar.gz`/`*.tar`) — **air-gapped**; the nine archives must carry the expected tags |
 | `NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED` | `false` | force a password change at first login even with a supplied password |
 | `NETZILO_DB_*` | container | external DB (see §4) |
 | `NETZILO_ZITADEL_DB_MAXOPENCONNS` etc. | 20/20/30m/5m | Zitadel pool |
 | `NETZILO_MSP_KEY` | generated | non-empty enables MSP/Enterprise mode in management + dashboard |
 | `NETZILO_PKG_BASE_URL` | `https://pkg.netzilo.com` | client download mirror |
+| `NETZILO_L3_URL` | `https://l3.netzilo.com` | Netzilo Level 3 gate the AI Assistant escalates to |
+| `NETZILO_L3_TOKEN` | empty | Netzilo Cloud service-account token; empty **disables** the Assistant's escalation tool (the Assistant itself still works) |
 
-Air-gapped procedure: on a connected machine `docker pull` the eight images (tags from
+Air-gapped procedure: on a connected machine `docker pull` the nine images (tags from
 the engine's `IMAGE_*` lines), `docker save <image> | gzip > netzilo-<name>.tar.gz`,
 copy them plus the engine to the host, run with `NETZILO_IMAGE_SOURCE=disk
 NETZILO_IMAGES_DIR=/path`. Docker must already be installed. Let's Encrypt is impossible
@@ -358,15 +386,20 @@ sudo docker compose ps; sudo docker compose logs --tail=60 zitadel caddy
 | `ERROR: Docker is not installed or not running.` | engine run without wrapper | install Docker CE + compose plugin |
 | `Waiting for Zitadel's PAT to be created ....` forever | Zitadel not starting (DB, memory) | `docker logs zitadel`; check `docker compose ps db`; RAM ≥4 GB |
 | `Failed requesting getting Zitadel PAT` | PAT file content `null` | Zitadel failed FirstInstance; check `docker logs zitadel`; teardown + re-run |
-| `ERROR calling create_new_project: …` (or any `ERROR calling <fn>`) | Zitadel API rejected a bootstrap call — most often the bootstrap PAT **expired (30-minute lifetime from render time)** because image pulls/DB init took too long, or a previous partial run left data | teardown (§8) and re-run with images pre-pulled (`docker pull` the eight images first) |
+| `ERROR calling create_new_project: …` (or any `ERROR calling <fn>`) | Zitadel API rejected a bootstrap call — most often the bootstrap PAT **expired (30-minute lifetime from render time)** because image pulls/DB init took too long, or a previous partial run left data | teardown (§8) and re-run with images pre-pulled (`docker pull` the nine images first) |
 | `ERROR: Could not verify service account credentials after 3 attempts.` | Zitadel token endpoint unreachable through Caddy at `https://<domain>` from the host (installer uses `--resolve <domain>:443:127.0.0.1`) | check `docker compose logs caddy`; ensure nothing else binds 80/443 (`ss -ltnp | grep -E ':80|:443'`); teardown + re-run |
 | `ERROR: NETZILO_NONINTERACTIVE=1 but NETBIRD_DOMAIN is unset/invalid.` | engine run without domain | set `NETBIRD_DOMAIN` |
 | `The domain name cannot be *.netzilo.com` | reserved | use the customer's own domain |
-| Gate: `docker compose ps` shows fewer than 8, `management` restarting | management can't reach DB/redis or bad `management.json` | `docker compose logs management`; check `db`/`redis` healthy |
+| Gate: `docker compose ps` shows fewer than 9, `management` restarting | management can't reach DB/redis or bad `management.json` | `docker compose logs management`; check `db`/`redis` healthy |
+| Gate: `support-worker` `Restarting`/`Exit`, log `refusing to start: SUPPORT_WORKER_TOKEN is empty` | the shared token was not rendered into `docker-compose.yml` (hand-edited compose, or an engine older than the worker) | `SUPPORT_WORKER_TOKEN` in `docker-compose.yml` must equal `SupportConfig.WorkerToken` in `management.json`; fix both or re-install on a clean host |
+| Dashboard has no AI Assistant button after login | no AI provider approved for Assistant — **expected on a fresh install** | owner connects a provider under Integrations → Artificial Intelligence (`30 §4a`) |
+| Assistant message fails: `support agent is not configured on this deployment` | `SupportConfig` missing from `management.json` (engine older than the worker) | re-install with the current engine, or add the `SupportConfig` block and restart `management` |
 | Gate: dashboard 200 but login loops back / "Oops, something went wrong" | browser reached the server by a different name than the installed domain (e.g. IP or alias) | always use `https://<domain>` exactly; OIDC redirect URIs are bound to it |
 | Gate: TLS issuer is Caddy/self-signed instead of Let's Encrypt | HTTP-01 challenge failed (80 blocked, DNS) or LE rate limit | open 80/443, fix DNS; Caddy retries. If rate-limited (`too many certificates`) wait or use `provided` |
 | Port 80/443 already in use | another web server on the host | stop/disable it (nginx/apache) before install |
 | One-liner `curl` fails | no egress to `pkg.netzilo.com` | download on another machine, `scp` both scripts, run wrapper locally (it finds `install_netzilo.sh` next to itself) |
+| `WARN: ghcr.io/netzilo/<image>:latest is not on the registry — keeping the engine's pinned …` | no `:latest` tag is published for that image | not a fault: the pinned release installs. If every image warns, the moving tag was never published — tell Netzilo; do not work around it by guessing tags |
+| `docker compose pull` → `manifest unknown` for a `ghcr.io/netzilo/*` image | the engine copy carries a tag that no longer exists (old CDN copy, or a hand-edited pin) | re-download the engine, or pin to a tag that resolves with `docker manifest inspect` |
 
 Zitadel bootstrap is not resumable: after any `ERROR calling …` the only path is
 teardown and a fresh run. Because the engine wipes state on re-run anyway, that is
@@ -415,7 +448,7 @@ and state the diagnosis:
 
 - [ ] Gate 1 host meets OS/sizing/DNS prerequisites
 - [ ] Gate 2 installer completed (`Done. Netzilo is starting …` / `first-boot complete`)
-- [ ] Gate 3 8 containers Up, postgres + redis healthy
+- [ ] Gate 3 9 containers Up, postgres + redis + support-worker healthy
 - [ ] Gate 4 dashboard HTTP 200
 - [ ] Gate 5 trusted certificate (or waived: provided/self-signed)
 - [ ] Gate 6 OIDC discovery 200 with `issuer` = `https://<domain>`

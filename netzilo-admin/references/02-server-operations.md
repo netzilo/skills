@@ -6,20 +6,20 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 42505
+chars: 43254
 sections:
 - id: '1'
   title: Know which layout you are on
-  chars: 2087
+  chars: 2140
 - id: '2'
   title: Service inventory and health
-  chars: 4073
+  chars: 4520
 - id: '3'
   title: Start / stop / restart
   chars: 832
 - id: '4'
   title: Upgrading
-  chars: 12375
+  chars: 12479
 - id: '5'
   title: Configuration changes
   chars: 2266
@@ -40,7 +40,7 @@ sections:
   chars: 1076
 - id: '11'
   title: Firewall reference
-  chars: 875
+  chars: 1020
 - id: '12'
   title: Marketplace-specific items
   chars: 2828
@@ -110,9 +110,9 @@ Files in `$C` and what they hold:
 
 | File | Purpose | Secrets inside |
 |---|---|---|
-| `docker-compose.yml` | 8 services, images, volumes, management env/command | Postgres admin password, `NETZILO_MSP_KEY` |
+| `docker-compose.yml` | 9 services, images, volumes, management env/command | Postgres admin password, `NETZILO_MSP_KEY`, `SUPPORT_WORKER_TOKEN` |
 | `Caddyfile` | reverse proxy + TLS; all routes for dashboard, API, gRPC, Zitadel | — |
-| `management.json` | management server config | `DataStoreEncryptionKey`, `InternalAPIToken`, IdP client secret, TURN password |
+| `management.json` | management server config | `DataStoreEncryptionKey`, `InternalAPIToken`, IdP client secret, TURN password, `SupportConfig.WorkerToken` |
 | `zitadel.env` | Zitadel runtime config | **`ZITADEL_MASTERKEY`** (irreplaceable), DB passwords |
 | `dashboard.env` | dashboard runtime config (auth, package mirror) | `NETZILO_MSP_KEY` |
 | `turnserver.conf` | coturn | TURN static credential |
@@ -130,9 +130,10 @@ Treat `$C` as a secrets directory (it is `root`-owned; keep it that way).
 cd "$C" && sudo docker compose ps
 ```
 
-Expected: 8 containers — `caddy`, `coturn`, `dashboard`, `management`, `signal`,
-`zitadel`, `postgres` (healthy), `redis` (healthy). Only `db` (`postgres`) and `redis`
-have compose healthchecks; the others show plain `Up`.
+Expected: 9 containers — `caddy`, `coturn`, `dashboard`, `management`, `signal`,
+`zitadel`, `support-worker` (healthy), `postgres` (healthy), `redis` (healthy). Only
+`db` (`postgres`), `redis` and `support-worker` report health — the first two from compose
+healthchecks, the worker from the `HEALTHCHECK` in its image; the others show plain `Up`.
 
 | Container | Image | Listens | Role |
 |---|---|---|---|
@@ -144,6 +145,7 @@ have compose healthchecks; the others show plain `Up`.
 | `coturn` | `coturn/coturn:latest` | **host network**: `3478` tcp/udp, `5349` tcp/udp, relay `49152–65535/udp` | STUN/TURN relay |
 | `postgres` | `postgres:16` | internal `5432` | databases `netzilo` (management) and `zitadel` |
 | `redis` | `redis:latest` | **published on host `6379`, no password** | management store cache + Zitadel caches |
+| `support-worker` | `ghcr.io/netzilo/net-support-worker` | internal `:8080`, **no ingress** | AI Assistant agent: management calls it with the shared token, it calls management back at `http://management:80`, and reaches the owner-configured AI provider outbound; stateless, runbooks baked into the image |
 
 Redis on marketplace deploys is shielded by the cloud security group/NSG (6379 is not
 opened there). On an on-prem host with no host firewall port 6379 is reachable
@@ -169,7 +171,7 @@ curl -sS -o /dev/null -w "mgmt api   -> HTTP %{http_code}\n" "https://$D/api/use
 | OIDC discovery | `200`, `"issuer":"https://<domain>"` |
 | TLS | issuer Let's Encrypt (or your CA in `provided` mode); `notAfter` in the future |
 | management API unauthenticated | `401` (proves Caddy → management path works) |
-| `docker compose ps` | 8 Up, postgres+redis healthy |
+| `docker compose ps` | 9 Up, postgres+redis+support-worker healthy |
 
 Zitadel health from the host (Caddy proxies `/debug/*` to Zitadel):
 
@@ -369,12 +371,14 @@ Same procedure, one component at a time, in this order, verifying after each:
 2. management
 3. dashboard
 4. signal
+5. support-worker
 
-The identity provider goes first because everything authenticates through it. Signal goes
-last because it is independent and its restart is the least visible.
+The identity provider goes first because everything authenticates through it. Signal and
+the support worker go last because they are independent and stateless; a worker restart
+only interrupts an Assistant turn that is in flight.
 
 ```bash
-for S in zitadel management dashboard signal; do
+for S in zitadel management dashboard signal support-worker; do
   sudo docker compose pull "$S" && sudo docker compose up -d --no-deps "$S"
   echo "== $S recreated; verify before continuing =="; read -r
 done
@@ -748,7 +752,9 @@ Inbound to the server:
 | 6379 | TCP | Redis | **must not be public** |
 
 Outbound: `443` to `ghcr.io`, Docker Hub, Let's Encrypt, `pkg.netzilo.com`
-(dashboard download links are client-side; the server itself needs the registries).
+(dashboard download links are client-side; the server itself needs the registries), and —
+for the AI Assistant — to the AI provider endpoint the owner connected, plus optionally
+`github.com` for `support-worker` runbook refresh.
 
 Clients need **no inbound** ports. They need outbound `443/tcp` to the server domain,
 and outbound UDP (any) for direct WireGuard; without UDP they still work via TURN over
