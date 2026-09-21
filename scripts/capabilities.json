@@ -179,5 +179,11 @@
     "requires": [
       "api"
     ]
+  },
+  "34-event-catalogue.md": {
+    "requires": []
+  },
+  "35-plain-language.md": {
+    "requires": []
   }
 }

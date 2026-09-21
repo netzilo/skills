@@ -7,6 +7,24 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.5.0 — 2026-09-21
+
+Answers in the product's language, not the API's.
+
+- **New rule 8, "Speak the product's language."** Name the page and the object an admin
+  would recognise, quote an event's display name and category instead of its code, and
+  keep ids out of sentences. Paths, codes and ids stay where they are needed: in a change
+  you are proposing, in an answer to "how did you check that", and in a filter the admin
+  will run themselves.
+- **`references/35-plain-language.md`** — when an identifier belongs in an answer, a table
+  mapping every area of the product to what the admin calls it and where they find it,
+  the names-not-ids rule, and worked rewrites of the sentences that read like plumbing.
+- **`references/34-event-catalogue.md`** — all 129 activities with their display names,
+  codes and categories, generated from the server's activity table by
+  `scripts/gen-event-codes.py`. `workspace.injection.detected` is "Code injection
+  detected", *Suspicious*; the API returns that name on every event, so there was never a
+  reason to read the code aloud.
+
 ## 2.4.0 — 2026-09-21
 
 Machine-readable capabilities, partial loading, and a write doctrine — the release

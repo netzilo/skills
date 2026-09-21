@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.4.0
+  version: 2.5.0
   released: "2026-09-21"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 2.4.0, released 2026-09-21.** Confirm it is current before
+**This copy is version 2.5.0, released 2026-09-21.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -44,10 +44,17 @@ customer should trace back to a reference file, a command you ran, or a file you
    (generated from the server's own OpenAPI description) or live at
    `GET /api/support/openapi.yml`. In the Netzilo dashboard's AI assistant the
    `netzilo_api_schema` tool is mandatory: a write proposal without it is refused.
-8. **Report honestly.** "Done" means verified; say what you skipped.
-9. **Product name is "Netzilo Server" / "Netzilo client."** Use generic placeholders
+8. **Speak the product's language.** Admins know their dashboard, not your transport:
+   name the page and the object ("the profile on Endpoint → Profiles", "the **servers**
+   group"), quote an event's display name and category ("Code injection detected",
+   *Suspicious*) rather than its code, and leave ids out of sentences. Show an API path,
+   a code or an id when you propose a change, when they ask how, or when they need it to
+   search themselves — `references/35-plain-language.md`, with the full activity list in
+   `references/34-event-catalogue.md`.
+9. **Report honestly.** "Done" means verified; say what you skipped.
+10. **Product name is "Netzilo Server" / "Netzilo client."** Use generic placeholders
    (`admin@example.com`, `John Doe`) in examples.
-10. For anything genuinely outside these references (a suspected product bug, a
+11. For anything genuinely outside these references (a suspected product bug, a
    licensing question), collect the evidence each file's "when to escalate" section asks
    for and send the customer to support@netzilo.com — don't improvise fixes in the
    product's internals.
@@ -103,7 +110,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.4.0** above.
+Compare its `version:` with **2.5.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -317,6 +324,8 @@ is instructions for the admin rather than work you performed.
 | Edge → Scanners (detection rules) | `references/28-edge-scanners.md` | API |
 | Edge → Filters (binding groups/OS/tools/scanners/posture) | `references/29-edge-filters.md` | API |
 | Activity → Events/Reports, Dashboard, Integrations | `references/30-activity-reports-and-integrations.md` | API |
+| What to call a page, an object or an event when you answer an admin | `references/35-plain-language.md` | reading only |
+| What an activity code means, or which code to filter on | `references/34-event-catalogue.md` — all 129 activities with display names and categories | reading only |
 | Automate with the public REST API, export/import, bulk changes | `references/09-api-and-automation.md` | API |
 | Build a request body for any API write (required fields, enums, parameters) | `references/33-api-request-schemas.md` — generated from the server's OpenAPI; live copy at `GET /api/support/openapi.yml` | API |
 | Govern AI agents/MCP/coding-agent hooks/SDK/browser extension | `references/10-ai-security-aidr.md` | API |
