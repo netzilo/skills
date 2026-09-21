@@ -1,3 +1,53 @@
+---
+id: '07'
+title: Netzilo Client — Troubleshooting Runbook
+requires:
+- client-device
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 19661
+sections:
+- id: '1'
+  title: CLI cannot talk to the daemon
+  chars: 929
+- id: '2'
+  title: Not logged in / cannot log in
+  chars: 2596
+- id: '3'
+  title: Connected to management but peers unreachable
+  chars: 2079
+- id: '4'
+  title: Relays / signal / management connectivity
+  chars: 1371
+- id: '5'
+  title: Interface / driver problems
+  chars: 1548
+- id: '6'
+  title: DNS
+  chars: 1607
+- id: '7'
+  title: Routes and exit nodes
+  chars: 992
+- id: '8'
+  title: SSH
+  chars: 556
+- id: '9'
+  title: TLS inspection / AI security side effects
+  chars: 2521
+- id: '10'
+  title: Upgrade / install problems
+  chars: 948
+- id: '11'
+  title: Verbose diagnostics
+  chars: 1036
+- id: '12'
+  title: What to report
+  chars: 604
+- id: '13'
+  title: Environment problems that look like product faults
+  chars: 1677
+---
 # Netzilo Client — Troubleshooting Runbook
 
 **Audience:** an AI operator diagnosing a user's or server's Netzilo client. Work from

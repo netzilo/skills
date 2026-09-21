@@ -1,3 +1,39 @@
+---
+id: '13'
+title: Reading Netzilo Logs — Client and Management
+requires:
+- server-shell
+- client-device
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 31679
+sections:
+- id: '1'
+  title: Method
+  chars: 646
+- id: '2'
+  title: Line anatomy (same on client and management)
+  chars: 1658
+- id: '3'
+  title: Profile a log in one minute
+  chars: 1697
+- id: '4'
+  title: The client log
+  chars: 15452
+- id: '5'
+  title: The management log
+  chars: 7589
+- id: '6'
+  title: Correlating client and server
+  chars: 1342
+- id: '7'
+  title: Worked readings (from real logs, identifiers replaced)
+  chars: 2239
+- id: '8'
+  title: When the log does not explain it
+  chars: 371
+---
 # Reading Netzilo Logs — Client and Management
 
 **Use this when you are handed a log and asked "what went wrong?"** — the reverse of the

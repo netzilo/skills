@@ -1,3 +1,39 @@
+---
+id: '28'
+title: Admin Skill — Edge Scanners (detection rules)
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 10620
+sections:
+- id: '1'
+  title: Model
+  chars: 1169
+- id: '2'
+  title: Field reference (Add / Edit Scanner)
+  chars: 1801
+- id: '3'
+  title: Minimal rule template
+  chars: 1328
+- id: '4'
+  title: Testing with Replay
+  chars: 1110
+- id: '5'
+  title: API
+  chars: 664
+- id: '6'
+  title: Lifecycle procedure
+  chars: 576
+- id: '7'
+  title: Diagnosis
+  chars: 1359
+- id: '8'
+  title: Limits to state before a customer discovers them
+  chars: 1497
+---
 # Admin Skill — Edge Scanners (detection rules)
 
 **Dashboard:** Edge → **Scanners** (`/ai-edge/scanners`). **API:** `/api/edge/scanners`,

@@ -1,3 +1,33 @@
+---
+id: '22'
+title: Admin Skill — Network Routes, Routing Peers and Exit Nodes
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 10806
+sections:
+- id: '1'
+  title: Model
+  chars: 1437
+- id: '2'
+  title: Field reference
+  chars: 2771
+- id: '3'
+  title: API
+  chars: 835
+- id: '4'
+  title: Procedures
+  chars: 2516
+- id: '5'
+  title: What the routing peer does (for verification)
+  chars: 899
+- id: '6'
+  title: Diagnosis
+  chars: 1883
+---
 # Admin Skill — Network Routes, Routing Peers and Exit Nodes
 
 **Dashboard:** Network → **Routes** (`/network-routes`); also Peers → peer → Network

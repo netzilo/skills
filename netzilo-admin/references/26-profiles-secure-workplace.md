@@ -1,3 +1,39 @@
+---
+id: '26'
+title: Admin Skill — Profiles (Enterprise Workspace, Enterprise Browser, Disposable Browser, Browser Extension)
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 13983
+sections:
+- id: '1'
+  title: Model
+  chars: 1446
+- id: '2'
+  title: Enterprise Workspace — reference
+  chars: 3539
+- id: '3'
+  title: Enterprise Browser — reference
+  chars: 696
+- id: '4'
+  title: Disposable Browser — reference
+  chars: 423
+- id: '5'
+  title: Domain Settings (Browser Extension and Enterprise Browser)
+  chars: 3352
+- id: '6'
+  title: API
+  chars: 1281
+- id: '7'
+  title: Procedures
+  chars: 1100
+- id: '8'
+  title: Diagnosis
+  chars: 1609
+---
 # Admin Skill — Profiles (Enterprise Workspace, Enterprise Browser, Disposable Browser, Browser Extension)
 
 **Dashboard:** Endpoint → **Profiles** (`/profiles`). **API:** `/api/profiles`,

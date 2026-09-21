@@ -1,0 +1,19 @@
+# Python tooling in scripts/ — bytecode and caches are never part of the skill.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Editor and OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Generated locally while testing a generator; the committed copies are the
+# ones under netzilo-admin/references/.
+/tmp/
+*.tmp

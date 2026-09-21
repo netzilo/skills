@@ -1,3 +1,30 @@
+---
+id: '21'
+title: Admin Skill — Posture Checks
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 8944
+sections:
+- id: '1'
+  title: Check types (cards in the Create/Update Posture Check modal)
+  chars: 2801
+- id: '2'
+  title: Creating and attaching
+  chars: 985
+- id: '3'
+  title: API
+  chars: 1901
+- id: '4'
+  title: Design guidance
+  chars: 933
+- id: '5'
+  title: Diagnosis
+  chars: 1614
+---
 # Admin Skill — Posture Checks
 
 **Dashboard:** Endpoint → **Posture Checks** (`/posture-checks`). **API:** `/api/posture-checks`.

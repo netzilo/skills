@@ -1,14 +1,25 @@
 #!/usr/bin/env python3
 """Render the management API's request schemas as a runbook reference.
 
-    scripts/gen-api-schemas.py path/to/openapi.yml > netzilo-admin/references/33-api-request-schemas.md
+Netzilo Server serves its own OpenAPI description to admins, so the reference
+can always be rebuilt from the exact version a customer runs:
 
-The source of truth is the OpenAPI description shipped inside Netzilo Server
-(served to admins at GET /api/support/openapi.yml). This file is the offline
-copy for operators without a live server; regenerate it when the API changes.
+    # from a running server (admin token; Netzilo Cloud or self-hosted)
+    scripts/gen-api-schemas.py https://<server>/api/support/openapi.yml \
+        --token "$NETZILO_API_TOKEN" > netzilo-admin/references/33-api-request-schemas.md
+
+    # or from a description you already have on disk
+    scripts/gen-api-schemas.py openapi.yml > netzilo-admin/references/33-api-request-schemas.md
+
+The token may also come from the NETZILO_API_TOKEN environment variable. The
+committed copy under netzilo-admin/references/ is the offline fallback for
+operators with no server to ask; regenerate it whenever the API changes and run
+scripts/gen-frontmatter.py afterwards so the section index matches.
 """
 
+import argparse
 import sys
+import urllib.request
 from datetime import date
 
 import yaml
@@ -81,8 +92,22 @@ def render_body(schema, indent=0, depth=0):
     return lines
 
 
-def main(path):
-    spec = yaml.safe_load(open(path))
+def read_spec(source: str, token: str | None) -> str:
+    """Local path or https URL; an admin token is sent as the API expects it."""
+    if not source.startswith(("http://", "https://")):
+        return open(source, encoding="utf-8").read()
+    request = urllib.request.Request(source, headers={"Accept": "application/yaml"})
+    if token:
+        # The management API accepts a personal access token as "Token <value>"
+        # and a session JWT as "Bearer <value>".
+        scheme = "Bearer" if token.count(".") == 2 else "Token"
+        request.add_header("Authorization", f"{scheme} {token}")
+    with urllib.request.urlopen(request, timeout=60) as response:
+        return response.read().decode("utf-8")
+
+
+def main(source, token=None):
+    spec = yaml.safe_load(read_spec(source, token))
     paths = spec.get("paths") or {}
     out = [
         "# API request schemas",
@@ -130,4 +155,11 @@ def main(path):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("source", help="path to an openapi.yml, or the URL of GET /api/support/openapi.yml")
+    parser.add_argument("--token", default=None, help="admin API token (default: $NETZILO_API_TOKEN)")
+    args = parser.parse_args()
+    try:
+        main(args.source, args.token or __import__("os").environ.get("NETZILO_API_TOKEN"))
+    except OSError as error:
+        sys.exit(f"could not read {args.source}: {error}")

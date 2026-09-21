@@ -1,3 +1,39 @@
+---
+id: '15'
+title: Incident Response and Recovery — Containment, Revocation, Getting Back In
+requires:
+- api
+- server-shell
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 8946
+sections:
+- id: '1'
+  title: Before you touch anything
+  chars: 707
+- id: '2'
+  title: What each action actually does
+  chars: 1266
+- id: '3'
+  title: Suspected compromised device
+  chars: 1150
+- id: '4'
+  title: Suspected compromised or leaked credential
+  chars: 1062
+- id: '5'
+  title: Departing employee
+  chars: 949
+- id: '6'
+  title: Locked out — getting back in
+  chars: 2060
+- id: '7'
+  title: Suspicious AI activity
+  chars: 787
+- id: '8'
+  title: After the incident
+  chars: 488
+---
 # Incident Response and Recovery — Containment, Revocation, Getting Back In
 
 **Use this when something is wrong right now**: a device or account is suspected

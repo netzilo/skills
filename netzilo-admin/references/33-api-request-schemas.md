@@ -1,3 +1,435 @@
+---
+id: '33'
+title: API request schemas
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 61196
+sections:
+- id: get-api-accounts
+  title: '`GET /api/accounts`'
+  chars: 233
+- id: put-api-accounts-accountid
+  title: '`PUT /api/accounts/{accountId}`'
+  chars: 1879
+- id: delete-api-accounts-accountid
+  title: '`DELETE /api/accounts/{accountId}`'
+  chars: 331
+- id: post-api-ai-scanprompt
+  title: '`POST /api/ai/scanprompt`'
+  chars: 412
+- id: post-api-auth-tokens
+  title: '`POST /api/auth/tokens`'
+  chars: 515
+- id: get-api-auth-tokens-sessionid
+  title: '`GET /api/auth/tokens/{sessionId}`'
+  chars: 222
+- id: get-api-dns-nameservers
+  title: '`GET /api/dns/nameservers`'
+  chars: 258
+- id: post-api-dns-nameservers
+  title: '`POST /api/dns/nameservers`'
+  chars: 1367
+- id: get-api-dns-nameservers-nsgroupi
+  title: '`GET /api/dns/nameservers/{nsgroupId}`'
+  chars: 352
+- id: put-api-dns-nameservers-nsgroupi
+  title: '`PUT /api/dns/nameservers/{nsgroupId}`'
+  chars: 1466
+- id: delete-api-dns-nameservers-nsgro
+  title: '`DELETE /api/dns/nameservers/{nsgroupId}`'
+  chars: 346
+- id: get-api-dns-settings
+  title: '`GET /api/dns/settings`'
+  chars: 245
+- id: put-api-dns-settings
+  title: '`PUT /api/dns/settings`'
+  chars: 369
+- id: get-api-edge-discovered-tools
+  title: '`GET /api/edge/discovered-tools`'
+  chars: 239
+- id: delete-api-edge-discovered-tools
+  title: '`DELETE /api/edge/discovered-tools/{discoveredToolId}`'
+  chars: 293
+- id: post-api-edge-discovered-tools-d
+  title: '`POST /api/edge/discovered-tools/{discoveredToolId}/analyze`'
+  chars: 312
+- id: post-api-edge-discovered-tools-d
+  title: '`POST /api/edge/discovered-tools/{discoveredToolId}/block`'
+  chars: 293
+- id: post-api-edge-discovered-tools-d
+  title: '`POST /api/edge/discovered-tools/{discoveredToolId}/sanction`'
+  chars: 434
+- id: post-api-edge-events
+  title: '`POST /api/edge/events`'
+  chars: 501
+- id: get-api-edge-filters
+  title: '`GET /api/edge/filters`'
+  chars: 348
+- id: post-api-edge-filters
+  title: '`POST /api/edge/filters`'
+  chars: 891
+- id: get-api-edge-filters-filterid
+  title: '`GET /api/edge/filters/{filterId}`'
+  chars: 263
+- id: put-api-edge-filters-filterid
+  title: '`PUT /api/edge/filters/{filterId}`'
+  chars: 944
+- id: delete-api-edge-filters-filterid
+  title: '`DELETE /api/edge/filters/{filterId}`'
+  chars: 267
+- id: get-api-edge-scanners
+  title: '`GET /api/edge/scanners`'
+  chars: 219
+- id: post-api-edge-scanners
+  title: '`POST /api/edge/scanners`'
+  chars: 615
+- id: get-api-edge-scanners-catalog
+  title: '`GET /api/edge/scanners/catalog`'
+  chars: 241
+- id: get-api-edge-scanners-generate
+  title: '`GET /api/edge/scanners/generate`'
+  chars: 282
+- id: post-api-edge-scanners-generate
+  title: '`POST /api/edge/scanners/generate`'
+  chars: 397
+- id: get-api-edge-scanners-scannerid
+  title: '`GET /api/edge/scanners/{scannerId}`'
+  chars: 268
+- id: put-api-edge-scanners-scannerid
+  title: '`PUT /api/edge/scanners/{scannerId}`'
+  chars: 670
+- id: delete-api-edge-scanners-scanner
+  title: '`DELETE /api/edge/scanners/{scannerId}`'
+  chars: 271
+- id: get-api-edge-tools
+  title: '`GET /api/edge/tools`'
+  chars: 210
+- id: post-api-edge-tools
+  title: '`POST /api/edge/tools`'
+  chars: 686
+- id: get-api-edge-tools-catalog
+  title: '`GET /api/edge/tools/catalog`'
+  chars: 235
+- id: get-api-edge-tools-toolid
+  title: '`GET /api/edge/tools/{toolId}`'
+  chars: 253
+- id: put-api-edge-tools-toolid
+  title: '`PUT /api/edge/tools/{toolId}`'
+  chars: 735
+- id: delete-api-edge-tools-toolid
+  title: '`DELETE /api/edge/tools/{toolId}`'
+  chars: 259
+- id: get-api-event-streaming
+  title: '`GET /api/event-streaming`'
+  chars: 247
+- id: post-api-event-streaming
+  title: '`POST /api/event-streaming`'
+  chars: 371
+- id: get-api-event-streaming-getlogvi
+  title: '`GET /api/event-streaming/getLogVideos`'
+  chars: 306
+- id: post-api-event-streaming-sign-ur
+  title: '`POST /api/event-streaming/sign-urls`'
+  chars: 313
+- id: delete-api-event-streaming-strea
+  title: '`DELETE /api/event-streaming/{streamingId}`'
+  chars: 288
+- id: get-api-events
+  title: '`GET /api/events`'
+  chars: 227
+- id: post-api-events
+  title: '`POST /api/events`'
+  chars: 345
+- id: get-api-events-paginated
+  title: '`GET /api/events/paginated`'
+  chars: 593
+- id: get-api-getclient
+  title: '`GET /api/getclient`'
+  chars: 266
+- id: get-api-getsecdata
+  title: '`GET /api/getsecdata`'
+  chars: 231
+- id: get-api-groups
+  title: '`GET /api/groups`'
+  chars: 227
+- id: post-api-groups
+  title: '`POST /api/groups`'
+  chars: 367
+- id: get-api-groups-groupid
+  title: '`GET /api/groups/{groupId}`'
+  chars: 306
+- id: put-api-groups-groupid
+  title: '`PUT /api/groups/{groupId}`'
+  chars: 452
+- id: delete-api-groups-groupid
+  title: '`DELETE /api/groups/{groupId}`'
+  chars: 311
+- id: get-api-integrations
+  title: '`GET /api/integrations`'
+  chars: 226
+- id: post-api-integrations
+  title: '`POST /api/integrations`'
+  chars: 484
+- id: put-api-integrations-integration
+  title: '`PUT /api/integrations/{integrationId}`'
+  chars: 547
+- id: delete-api-integrations-integrat
+  title: '`DELETE /api/integrations/{integrationId}`'
+  chars: 278
+- id: get-api-locations-countries
+  title: '`GET /api/locations/countries`'
+  chars: 269
+- id: get-api-locations-countries-coun
+  title: '`GET /api/locations/countries/{country}/cities`'
+  chars: 333
+- id: get-api-lookup-account
+  title: '`GET /api/lookup-account`'
+  chars: 204
+- id: get-api-mfa
+  title: '`GET /api/mfa`'
+  chars: 201
+- id: post-api-mfa
+  title: '`POST /api/mfa`'
+  chars: 312
+- id: put-api-mfa
+  title: '`PUT /api/mfa`'
+  chars: 311
+- id: get-api-peers
+  title: '`GET /api/peers`'
+  chars: 348
+- id: get-api-peers-stream
+  title: '`GET /api/peers-stream`'
+  chars: 354
+- id: post-api-peers-bulk-delete
+  title: '`POST /api/peers/bulk-delete`'
+  chars: 348
+- id: post-api-peers-sync
+  title: '`POST /api/peers/sync`'
+  chars: 340
+- id: get-api-peers-peerid
+  title: '`GET /api/peers/{peerId}`'
+  chars: 300
+- id: put-api-peers-peerid
+  title: '`PUT /api/peers/{peerId}`'
+  chars: 677
+- id: delete-api-peers-peerid
+  title: '`DELETE /api/peers/{peerId}`'
+  chars: 306
+- id: get-api-peers-peerid-aidr-snapsh
+  title: '`GET /api/peers/{peerId}/aidr-snapshot`'
+  chars: 377
+- id: get-api-peers-peerid-aidr-snapsh
+  title: '`GET /api/peers/{peerId}/aidr-snapshot/events`'
+  chars: 547
+- id: post-api-peers-peerid-aidr-snaps
+  title: '`POST /api/peers/{peerId}/aidr-snapshot/replay`'
+  chars: 506
+- id: get-api-peers-peerid-aidr-snapsh
+  title: '`GET /api/peers/{peerId}/aidr-snapshot/search`'
+  chars: 392
+- id: get-api-policies
+  title: '`GET /api/policies`'
+  chars: 233
+- id: post-api-policies
+  title: '`POST /api/policies`'
+  chars: 1008
+- id: get-api-policies-policyid
+  title: '`GET /api/policies/{policyId}`'
+  chars: 313
+- id: put-api-policies-policyid
+  title: '`PUT /api/policies/{policyId}`'
+  chars: 1096
+- id: delete-api-policies-policyid
+  title: '`DELETE /api/policies/{policyId}`'
+  chars: 317
+- id: get-api-posture-checks
+  title: '`GET /api/posture-checks`'
+  chars: 251
+- id: post-api-posture-checks
+  title: '`POST /api/posture-checks`'
+  chars: 836
+- id: get-api-posture-checks-posturech
+  title: '`GET /api/posture-checks/{postureCheckId}`'
+  chars: 352
+- id: put-api-posture-checks-posturech
+  title: '`PUT /api/posture-checks/{postureCheckId}`'
+  chars: 943
+- id: delete-api-posture-checks-postur
+  title: '`DELETE /api/posture-checks/{postureCheckId}`'
+  chars: 349
+- id: get-api-profiles
+  title: '`GET /api/profiles`'
+  chars: 348
+- id: post-api-profiles
+  title: '`POST /api/profiles`'
+  chars: 687
+- id: put-api-profiles-profileid
+  title: '`PUT /api/profiles/{profileId}`'
+  chars: 778
+- id: delete-api-profiles-profileid
+  title: '`DELETE /api/profiles/{profileId}`'
+  chars: 302
+- id: post-api-register
+  title: '`POST /api/register`'
+  chars: 527
+- id: get-api-reports
+  title: '`GET /api/reports`'
+  chars: 211
+- id: post-api-reports
+  title: '`POST /api/reports`'
+  chars: 706
+- id: get-api-reports-reportid
+  title: '`GET /api/reports/{reportId}`'
+  chars: 258
+- id: delete-api-reports-reportid
+  title: '`DELETE /api/reports/{reportId}`'
+  chars: 262
+- id: get-api-routes
+  title: '`GET /api/routes`'
+  chars: 227
+- id: post-api-routes
+  title: '`POST /api/routes`'
+  chars: 1603
+- id: get-api-routes-routeid
+  title: '`GET /api/routes/{routeId}`'
+  chars: 306
+- id: put-api-routes-routeid
+  title: '`PUT /api/routes/{routeId}`'
+  chars: 1688
+- id: delete-api-routes-routeid
+  title: '`DELETE /api/routes/{routeId}`'
+  chars: 311
+- id: get-api-setup-keys
+  title: '`GET /api/setup-keys`'
+  chars: 239
+- id: post-api-setup-keys
+  title: '`POST /api/setup-keys`'
+  chars: 1281
+- id: get-api-setup-keys-keyid
+  title: '`GET /api/setup-keys/{keyId}`'
+  chars: 318
+- id: put-api-setup-keys-keyid
+  title: '`PUT /api/setup-keys/{keyId}`'
+  chars: 1365
+- id: delete-api-setup-keys-keyid
+  title: '`DELETE /api/setup-keys/{keyId}`'
+  chars: 295
+- id: get-api-smartsearch
+  title: '`GET /api/smartsearch`'
+  chars: 269
+- id: post-api-smartsearch
+  title: '`POST /api/smartsearch`'
+  chars: 468
+- id: get-api-stats
+  title: '`GET /api/stats`'
+  chars: 209
+- id: post-api-stripe
+  title: '`POST /api/stripe`'
+  chars: 220
+- id: get-api-summary
+  title: '`GET /api/summary`'
+  chars: 246
+- id: get-api-support-openapi-yml
+  title: '`GET /api/support/openapi.yml`'
+  chars: 233
+- id: get-api-support-sessions
+  title: '`GET /api/support/sessions`'
+  chars: 324
+- id: post-api-support-sessions
+  title: '`POST /api/support/sessions`'
+  chars: 225
+- id: get-api-support-sessions-session
+  title: '`GET /api/support/sessions/{sessionId}`'
+  chars: 295
+- id: delete-api-support-sessions-sess
+  title: '`DELETE /api/support/sessions/{sessionId}`'
+  chars: 282
+- id: post-api-support-sessions-sessio
+  title: '`POST /api/support/sessions/{sessionId}/messages`'
+  chars: 452
+- id: get-api-templates
+  title: '`GET /api/templates`'
+  chars: 217
+- id: get-api-templates-category
+  title: '`GET /api/templates/{category}`'
+  chars: 326
+- id: get-api-tenant
+  title: '`GET /api/tenant`'
+  chars: 205
+- id: put-api-tenant
+  title: '`PUT /api/tenant`'
+  chars: 435
+- id: get-api-tenant-logo
+  title: '`GET /api/tenant/logo`'
+  chars: 215
+- id: post-api-tenant-logo
+  title: '`POST /api/tenant/logo`'
+  chars: 232
+- id: delete-api-tenant-logo
+  title: '`DELETE /api/tenant/logo`'
+  chars: 215
+- id: get-api-tenant-logo-info
+  title: '`GET /api/tenant/logo/info`'
+  chars: 224
+- id: post-api-tenant-subscription
+  title: '`POST /api/tenant/subscription`'
+  chars: 472
+- id: post-api-tenant-subscription-con
+  title: '`POST /api/tenant/subscription/confirm`'
+  chars: 510
+- id: post-api-tokens-revoke
+  title: '`POST /api/tokens/revoke`'
+  chars: 311
+- id: get-api-users
+  title: '`GET /api/users`'
+  chars: 337
+- id: post-api-users
+  title: '`POST /api/users`'
+  chars: 899
+- id: get-api-users-userid
+  title: '`GET /api/users/{userId}`'
+  chars: 281
+- id: put-api-users-userid
+  title: '`PUT /api/users/{userId}`'
+  chars: 713
+- id: delete-api-users-userid
+  title: '`DELETE /api/users/{userId}`'
+  chars: 306
+- id: get-api-users-userid-auth-factor
+  title: '`GET /api/users/{userId}/auth-factors`'
+  chars: 293
+- id: delete-api-users-userid-auth-fac
+  title: '`DELETE /api/users/{userId}/auth-factors`'
+  chars: 280
+- id: post-api-users-userid-invite
+  title: '`POST /api/users/{userId}/invite`'
+  chars: 320
+- id: put-api-users-userid-name
+  title: '`PUT /api/users/{userId}/name`'
+  chars: 336
+- id: put-api-users-userid-password
+  title: '`PUT /api/users/{userId}/password`'
+  chars: 348
+- id: get-api-users-userid-tokens
+  title: '`GET /api/users/{userId}/tokens`'
+  chars: 330
+- id: post-api-users-userid-tokens
+  title: '`POST /api/users/{userId}/tokens`'
+  chars: 485
+- id: get-api-users-userid-tokens-toke
+  title: '`GET /api/users/{userId}/tokens/{tokenId}`'
+  chars: 397
+- id: delete-api-users-userid-tokens-t
+  title: '`DELETE /api/users/{userId}/tokens/{tokenId}`'
+  chars: 387
+- id: post-api-verify-recaptcha
+  title: '`POST /api/verify-recaptcha`'
+  chars: 261
+---
 # API request schemas
 
 Generated from Netzilo Server's OpenAPI description on 2026-09-21 by `scripts/gen-api-schemas.py`.

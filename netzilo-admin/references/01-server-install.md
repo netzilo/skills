@@ -1,3 +1,44 @@
+---
+id: '01'
+title: Netzilo Server — Installation Runbook (all delivery paths)
+requires:
+- server-shell
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 21057
+sections:
+- id: '0'
+  title: What gets installed (all paths)
+  chars: 1745
+- id: '1'
+  title: Path A — On-prem / any Linux server (one-liner)
+  chars: 5360
+- id: '2'
+  title: Path B — AWS Marketplace (CloudFormation)
+  chars: 2474
+- id: '3'
+  title: Path C — Azure Marketplace (managed application)
+  chars: 1423
+- id: '4'
+  title: Variant — external PostgreSQL
+  chars: 932
+- id: '5'
+  title: Variant — running the core engine directly (advanced / air-gapped)
+  chars: 2251
+- id: '6'
+  title: Installation failures — diagnosis table
+  chars: 3725
+- id: '7'
+  title: Legacy path — `infrastructure_files` docker-compose
+  chars: 1054
+- id: '8'
+  title: Teardown (before a re-install, or to remove)
+  chars: 479
+- id: '9'
+  title: Reporting template
+  chars: 699
+---
 # Netzilo Server — Installation Runbook (all delivery paths)
 
 **Audience:** an AI operator installing **Netzilo Server** for a customer on any of the

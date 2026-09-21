@@ -1,3 +1,30 @@
+---
+id: '29'
+title: Admin Skill — Edge Filters (binding AI policy to devices)
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 7909
+sections:
+- id: '1'
+  title: Model
+  chars: 927
+- id: '2'
+  title: Field reference (Create New Filter / Edit Filter)
+  chars: 2055
+- id: '3'
+  title: API
+  chars: 802
+- id: '4'
+  title: Design patterns
+  chars: 1055
+- id: '5'
+  title: Diagnosis — "the filter is not applying"
+  chars: 2386
+---
 # Admin Skill — Edge Filters (binding AI policy to devices)
 
 **Dashboard:** Edge → **Filters** (`/ai-edge/filters`). **API:** `/api/edge/filters`.

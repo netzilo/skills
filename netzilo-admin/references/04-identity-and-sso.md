@@ -1,3 +1,41 @@
+---
+id: '04'
+title: Netzilo — Identity, Users, SSO and MFA Administration
+requires:
+- idp-console
+- server-shell
+executable_on:
+- human-operator
+chars: 20062
+sections:
+- id: '1'
+  title: How users get into the account
+  chars: 2322
+- id: '2'
+  title: Account-level authentication settings (Dashboard → Settings)
+  chars: 1634
+- id: '3'
+  title: The built-in identity provider (self-hosted Netzilo Server)
+  chars: 3028
+- id: '4'
+  title: Everyday identity tasks (self-hosted)
+  chars: 3008
+- id: '5'
+  title: Login failure messages and what they mean
+  chars: 1827
+- id: '6'
+  title: E-mail (SMTP) — required for invitations and password-reset mails
+  chars: 1371
+- id: '7'
+  title: SSO federation (external identity providers)
+  chars: 3282
+- id: '8'
+  title: Legacy self-hosted path (management talking to a customer IdP directly)
+  chars: 2124
+- id: '9'
+  title: Quick checks
+  chars: 413
+---
 # Netzilo — Identity, Users, SSO and MFA Administration
 
 **Audience:** an AI operator managing who can log in to a customer's Netzilo (self-hosted

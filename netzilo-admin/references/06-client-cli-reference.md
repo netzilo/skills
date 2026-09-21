@@ -1,3 +1,29 @@
+---
+id: '06'
+title: Netzilo Client — CLI and Configuration Reference
+requires:
+- client-device
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 14288
+sections:
+- id: '1'
+  title: Global flags (all commands)
+  chars: 1473
+- id: '2'
+  title: Commands
+  chars: 7904
+- id: '3'
+  title: Environment variables beyond flags
+  chars: 1388
+- id: '4'
+  title: Files and state
+  chars: 1780
+- id: '5'
+  title: Tray application (`netzilo-ui`)
+  chars: 869
+---
 # Netzilo Client — CLI and Configuration Reference
 
 **Audience:** an AI operator who needs the exact command, flag, environment variable,

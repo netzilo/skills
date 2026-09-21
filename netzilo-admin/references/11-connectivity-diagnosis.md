@@ -1,3 +1,43 @@
+---
+id: '11'
+title: Netzilo — End-to-End Connectivity Diagnosis ("Host X is unreachable")
+requires:
+- api
+- client-device
+- server-shell
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 14718
+sections:
+- id: '0'
+  title: Classify the target (2 minutes)
+  chars: 1091
+- id: '1'
+  title: Is the Netzilo layer up on both ends?
+  chars: 1038
+- id: '2'
+  title: Can A and the remote peer see each other?
+  chars: 1401
+- id: '3'
+  title: Does policy allow it? (resolve it, don't eyeball it)
+  chars: 2879
+- id: '4'
+  title: Is the route correct and delivered? (routed hosts and exit nodes)
+  chars: 1666
+- id: '5'
+  title: Verify the routing peer itself (run on R)
+  chars: 3078
+- id: '6'
+  title: Name resolution
+  chars: 1182
+- id: '7'
+  title: Server-side checks (self-hosted only)
+  chars: 928
+- id: '8'
+  title: Report template
+  chars: 684
+---
 # Netzilo — End-to-End Connectivity Diagnosis ("Host X is unreachable")
 
 **Audience:** an AI operator who has been told "device A cannot reach host X over

@@ -1,3 +1,30 @@
+---
+id: '27'
+title: Admin Skill — Edge Tools (MCP servers) and Discovered Tools
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 7605
+sections:
+- id: '1'
+  title: Model
+  chars: 1145
+- id: '2'
+  title: Field reference (Add / Edit Tool)
+  chars: 2127
+- id: '3'
+  title: API
+  chars: 1114
+- id: '4'
+  title: Procedures
+  chars: 1293
+- id: '5'
+  title: Diagnosis
+  chars: 1425
+---
 # Admin Skill — Edge Tools (MCP servers) and Discovered Tools
 
 **Dashboard:** Edge → **Tools** (`/ai-edge/tools`, tabs **Approved** / **Discovered**).

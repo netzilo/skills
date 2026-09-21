@@ -1,3 +1,48 @@
+---
+id: '10'
+title: Netzilo — AI Security (AIDR) Administration
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 23468
+sections:
+- id: '1'
+  title: Architecture in one page
+  chars: 2577
+- id: '2'
+  title: Rollout runbook
+  chars: 2541
+- id: '3'
+  title: Client-side mechanics you must know when troubleshooting
+  chars: 1937
+- id: '4'
+  title: Coding-agent hooks (`netzilo hook`)
+  chars: 1465
+- id: '5'
+  title: SDK for custom agents
+  chars: 2573
+- id: '6'
+  title: Browser extension and Enterprise Browser
+  chars: 2351
+- id: '7'
+  title: Edge Tools and MCP
+  chars: 948
+- id: '8'
+  title: Writing and testing rules (Edge Scanners)
+  chars: 3340
+- id: '9'
+  title: Troubleshooting
+  chars: 2630
+- id: '10'
+  title: Reporting and evidence
+  chars: 584
+- id: '11'
+  title: Constraints to disclose early
+  chars: 1961
+---
 # Netzilo — AI Security (AIDR) Administration
 
 **Audience:** an AI operator deploying and running Netzilo's AI Detection & Response

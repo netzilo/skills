@@ -1,3 +1,35 @@
+---
+id: '14'
+title: What Netzilo Collects — Data Handling, Privacy and Security Review
+requires: []
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 8629
+sections:
+- id: '1'
+  title: The short answer
+  chars: 1052
+- id: '2'
+  title: What every device reports to the management server
+  chars: 1751
+- id: '3'
+  title: What the AI security layer collects
+  chars: 1735
+- id: '4'
+  title: Session recordings and behaviour snapshots
+  chars: 394
+- id: '5'
+  title: Server usage statistics
+  chars: 858
+- id: '6'
+  title: Answers to the questions reviewers actually ask
+  chars: 1447
+- id: '7'
+  title: Preparing for a security review
+  chars: 863
+---
 # What Netzilo Collects — Data Handling, Privacy and Security Review
 
 **Use this when the customer asks what leaves their devices.** Security reviews, data

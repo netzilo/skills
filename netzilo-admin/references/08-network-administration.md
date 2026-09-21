@@ -1,3 +1,42 @@
+---
+id: 08
+title: Netzilo — Network Administration (Peers, Policies, Routes, DNS, Posture, Activity)
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 17745
+sections:
+- id: '1'
+  title: Peers (Endpoint → Peers, `/peers`)
+  chars: 2496
+- id: '2'
+  title: Setup keys (Endpoint → Setup Keys, `/setup-keys`)
+  chars: 975
+- id: '3'
+  title: Groups
+  chars: 592
+- id: '4'
+  title: Policies (Network → Policies, `/access-control`)
+  chars: 2924
+- id: '5'
+  title: Routes and exit nodes (Network → Routes, `/network-routes`)
+  chars: 2089
+- id: '6'
+  title: DNS (Network → DNS Servers `/dns/nameservers`, DNS Settings `/dns/settings`)
+  chars: 1633
+- id: '7'
+  title: Posture checks (Endpoint → Posture Checks, `/posture-checks`)
+  chars: 2292
+- id: '8'
+  title: Activity, reports, integrations
+  chars: 2891
+- id: '9'
+  title: Multi-tenant / self-service (cloud and MSP servers)
+  chars: 759
+---
 # Netzilo — Network Administration (Peers, Policies, Routes, DNS, Posture, Activity)
 
 **Audience:** an AI operator configuring a customer's Netzilo network in the dashboard

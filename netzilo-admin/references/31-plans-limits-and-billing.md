@@ -1,3 +1,34 @@
+---
+id: '31'
+title: Plans, Limits and Billing — Why Something Is Blocked
+requires:
+- dashboard-ui
+executable_on:
+- human-operator
+chars: 7400
+sections:
+- id: '1'
+  title: The three plans
+  chars: 642
+- id: '2'
+  title: Every hard limit, and the exact message
+  chars: 2280
+- id: '3'
+  title: What has no limit
+  chars: 305
+- id: '4'
+  title: Changing plan
+  chars: 891
+- id: '5'
+  title: What happens when payment lapses
+  chars: 683
+- id: '6'
+  title: Self-hosted and managed instances
+  chars: 690
+- id: '7'
+  title: Diagnosis
+  chars: 1338
+---
 # Plans, Limits and Billing — Why Something Is Blocked
 
 **Use this when an action is refused and the reason might be the plan, a quota, or

@@ -7,6 +7,37 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.4.0 — 2026-09-21
+
+Machine-readable capabilities, partial loading, and a write doctrine — the release
+that makes one runbook set usable by agents with very different reach.
+
+- **Every reference now declares what it needs.** Front matter carries `requires`
+  (`api`, `dashboard-ui`, `server-shell`, `client-device`, `idp-console`) and the
+  `executable_on` surfaces derived from it, so an agent knows before it reads whether a
+  procedure is something it performs or something it explains. SKILL.md's new "What you
+  can execute here" defines the three surfaces, and the routing table gained a `Needs`
+  column. Sections can override the file when they differ.
+- **Long files load in parts.** The same front matter carries a section index with sizes;
+  a 178 KB runbook is read one section at a time instead of swallowing an agent's
+  context. `references/08-network-administration.md`, previously reachable only by
+  guessing, is now in the routing table.
+- **A change doctrine.** "Making a change through the API" states the six steps every
+  write follows: read the schema, read the current state, say what you will do, apply it,
+  read it back, report the difference. Rule 6 now forbids asking anyone for a token and
+  says plainly that a 401 or 403 is your own access being refused.
+- **Escalating with only the API** (`12` §10): what an API-only agent can collect, what it
+  cannot produce and must ask for, how to keep the credential sweep honest on API output,
+  and the rule that it composes the summary but never holds a token.
+- **Reading without drowning** (`09` §6.1): paginate and filter, never bulk-`GET`
+  `/api/events`, verify parameter names against `33`, summarise instead of pasting.
+- **Tooling.** `scripts/` gains the metadata contract (`skillmeta.py`,
+  `capabilities.json`), its generator (`gen-frontmatter.py`), a validator
+  (`check-skills.py`: front matter currency, capability curation against the prose,
+  version identity, link and anchor resolution, size budgets) and `build.sh`. CI runs the
+  validator on every push. `gen-api-schemas.py` can now rebuild `33` straight from a
+  running server's `GET /api/support/openapi.yml`.
+
 ## 2.3.1 — 2026-09-21
 
 `33-api-request-schemas.md` regenerated from a reconciled server description: the

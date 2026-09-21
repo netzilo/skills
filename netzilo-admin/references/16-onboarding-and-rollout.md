@@ -1,3 +1,48 @@
+---
+id: '16'
+title: Day 0 to Production — Onboarding and Rollout
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 8011
+sections:
+- id: '0'
+  title: What the admin sees first
+  chars: 787
+- id: phase-1-the-server-is-ready
+  title: Phase 1 — The server is ready
+  chars: 1074
+- id: phase-2-design-the-groups-before
+  title: Phase 2 — Design the groups before anyone connects
+  chars: 729
+- id: phase-3-pilot-with-a-handful-of-
+  title: Phase 3 — Pilot with a handful of devices
+  chars: 754
+- id: phase-4-replace-the-default-poli
+  title: Phase 4 — Replace the default policy
+  chars: 529
+- id: phase-5-routes-dns-and-exit-node
+  title: Phase 5 — Routes, DNS and exit nodes, if needed
+  chars: 466
+- id: phase-6-posture-checks-in-report
+  title: Phase 6 — Posture checks, in report mode first
+  chars: 710
+- id: phase-7-ai-security-in-report-mo
+  title: Phase 7 — AI security, in report mode first
+  chars: 548
+- id: phase-8-roll-out-to-everyone
+  title: Phase 8 — Roll out to everyone
+  chars: 639
+- id: the-first-week-mistakes-in-order
+  title: The first-week mistakes, in order of frequency
+  chars: 882
+- id: handover
+  title: Handover
+  chars: 431
+---
 # Day 0 to Production — Onboarding and Rollout
 
 **Use this for a new customer, or an existing one expanding to a new team.** Most

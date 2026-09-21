@@ -1,3 +1,93 @@
+---
+id: '12'
+title: Escalation — Building a Diagnostic Package for Code-Level Analysis
+requires:
+- server-shell
+- client-device
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 35159
+sections:
+- id: '1'
+  title: Escalate only when the answer needs the source code
+  chars: 2388
+  requires: []
+  executable_on:
+  - dashboard-assistant
+  - netzilo-harness
+  - human-operator
+- id: '2'
+  title: Classify the impact
+  chars: 555
+  requires: []
+  executable_on:
+  - dashboard-assistant
+  - netzilo-harness
+  - human-operator
+- id: '3'
+  title: What the client debug bundle actually contains
+  chars: 1750
+- id: '4'
+  title: Collect
+  chars: 7778
+- id: '5'
+  title: Correlation keys — include these explicitly
+  chars: 1030
+- id: '6'
+  title: Remove credentials before anything leaves the machine
+  chars: 1875
+- id: '7'
+  title: Do not anonymize by default — decide deliberately
+  chars: 1096
+- id: '8'
+  title: If you cannot run the commands yourself
+  chars: 1912
+- id: '9'
+  title: Write the summary
+  chars: 454
+  requires: []
+  executable_on:
+  - dashboard-assistant
+  - netzilo-harness
+  - human-operator
+- id: observed
+  title: Observed
+  chars: 76
+- id: expected-and-the-configuration-t
+  title: Expected, and the configuration that says so
+  chars: 145
+- id: why-this-needs-code-level-analys
+  title: Why this needs code-level analysis
+  chars: 415
+- id: correlation-keys
+  title: Correlation keys
+  chars: 312
+- id: already-ruled-out
+  title: Already ruled out
+  chars: 93
+- id: server-side-logs
+  title: Server-side logs
+  chars: 341
+- id: logging-state
+  title: Logging state
+  chars: 290
+- id: '10'
+  title: Escalating with only the API
+  chars: 7697
+  requires:
+  - api
+  executable_on:
+  - dashboard-assistant
+  - netzilo-harness
+  - human-operator
+- id: '11'
+  title: Package and send
+  chars: 4517
+- id: '12'
+  title: While it is open
+  chars: 936
+---
 # Escalation — Building a Diagnostic Package for Code-Level Analysis
 
 Escalation exists for one purpose: **to hand a problem to an analyst who can read the
@@ -15,6 +105,14 @@ Two rules govern the whole procedure:
    and they decide. Never transmit their data anywhere yourself.
 2. **Credentials never leave the machine, identifiers must.** §6 lists what to strip;
    §7 explains why over-redacting destroys the evidence you are shipping.
+
+**Which path is yours.** If you have a shell on the affected device and, for self-hosted,
+on the server, work the file in order: §3–§8 collect, §9 writes the summary, §11 packages
+and sends it. If the management REST API is all you have — the Netzilo dashboard's AI
+assistant is that case — you cannot build the bundle at all, and half-following the
+collection sections wastes a support cycle. Go to §10: it lists what the API can prove,
+which of §8's blocks to ask the admin to run, and how the summary is sent when you cannot
+send it yourself.
 
 ---
 
@@ -448,7 +546,131 @@ Negative results belong here; they are what stops the analyst repeating your wor
 
 ---
 
-## 10. Package and send
+## 10. Escalating with only the API
+
+Not every agent has a shell. The Netzilo dashboard's AI assistant is the case this section
+exists for: its single capability is the management REST API, called with the signed-in
+admin's own token. No filesystem, no client device, no server login, no `netzilo` command
+and no `docker`. Sections §3–§8 are unreachable for it, and working them half-way produces
+a package with exactly the interesting parts missing.
+
+What follows is the whole of what such an agent can do. It is usually enough — most
+escalations are decided by the summary and the configuration, and the archive only settles
+the ones that turn on a single log line.
+
+### 10.1 What the API can collect
+
+All reads, all permitted to an admin token, all returning the configuration an analyst
+would otherwise reconstruct by hand. Collect only what the case touches; §10.4 says why a
+wider sweep costs you rather than helps.
+
+| Evidence | Call |
+|---|---|
+| Peers — connection state, OS, client version, `last_seen`, posture metadata | `GET /api/peers`, or `GET /api/peers/{id}` once you have the id |
+| Groups, policies, posture checks | `GET /api/groups`, `GET /api/policies`, `GET /api/posture-checks` |
+| Routes and DNS | `GET /api/routes`, `GET /api/dns/nameservers`, `GET /api/dns/settings` |
+| Account settings — login expiration, JWT groups, peer approval | `GET /api/accounts` |
+| Audit trail, narrowed to the incident | `GET /api/events/paginated?date_from=…&date_to=…&code=…&limit=…` |
+| AI cases — the bindings and the engine's own record | `GET /api/edge/filters`, `GET /api/edge/scanners`, `GET /api/edge/tools`, `GET /api/peers/{id}/aidr-snapshot` |
+| An activity summary over a window | `POST /api/reports` — a write, so read the schema in `references/33-api-request-schemas.md` first: `from` and `to` (both `YYYY-MM-DD`) are required, and a body assembled from memory without them is rejected |
+
+Versions: each affected device's client version is the `version` (and `ui_version`) field of
+its peer record, and that is the only version the API will hand you. **The server's image
+versions are not exposed over the API at all** — they come from `docker compose images`,
+which is in §8's server block. Ask for them; do not infer them from the client.
+
+Keep every collection call bounded. `09-api-and-automation.md` §6.1 explains how, and why a
+dump of the whole account is worse than a short answer.
+
+### 10.2 What you cannot produce — say so rather than leaving a gap
+
+| Missing | What it would have shown | Who can produce it |
+|---|---|---|
+| Client debug bundle | `status.txt` plus the whole daemon log directory (§3) | the admin, §8 client block |
+| Device state — status detail, routes, firewall, resolver | what the device is actually doing, not what its enrolment record says (§4.2) | the admin, §8 client block |
+| Management and container logs | why the server refused a request (§4.3) | the admin, §8 server block, self-hosted only; on Cloud §4.3 says not to ask at all |
+| Server configuration files | nothing anyone may send — they hold secrets (§6) | — |
+
+An API-collected package is configuration and audit trail. It shows what the deployment
+**is**; it never shows what the server **did** with one particular request. Write that into
+the summary in as many words. An analyst who assumes the logs were collected reads their
+absence as a finding, and spends a cycle on it.
+
+### 10.3 Ask the admin for the parts you cannot reach
+
+Hand over the blocks that already exist: §8 for the client and for the self-hosted server,
+and §4.2 when the analyst has asked for one of the verbosity knobs. Do not compose new
+commands. The §8 blocks are the ones written against every supported platform, and a
+command you improvise is one the admin has to debug on your behalf.
+
+Ask for the output **pasted back as text**. You have nowhere to put an archive and no way
+to open one, so for a debug bundle the admin keeps the zip and attaches it to the case
+themselves while you work from the pasted status detail and the log lines around the
+occurrence. Repeat §8's warning verbatim when you hand over the Windows block: that zip
+contains `config.json`, `token.dat`, `pat.dat` and `netzilo-ca-key.pem`, and those four come
+out before it goes anywhere.
+
+### 10.4 Assemble the summary
+
+§9 is still the deliverable, and it is the one part of an escalation an API-only agent can
+produce in full. Fill it from what you have:
+
+- Severity and scope (§2) from the admin's account of the impact — the API does not know
+  how many people cannot work.
+- **Observed** and **Expected** from the admin's report and from the objects you read. Cite
+  each object by name and id; you have no `config/` directory to point at, so the id is what
+  lets the analyst fetch the same object.
+- **Correlation keys** (§5) as far as the API carries them: peer id, peer name, Netzilo IP,
+  `dns_label`/FQDN, the owning user's e-mail, account id, event timestamps, and the AIDR
+  `correlation_id` from event metadata. The peer's **WireGuard public key is not in the peer
+  record** — if the case needs a client-to-server join, ask for it from the status output in
+  §8.
+- One line naming each item in §10.2 you could not collect, and why.
+
+Inline the small objects that carry the argument — the policy, the route, the three events —
+and summarise the rest. A four-hundred-device peer list proves nothing that one sentence
+about the affected two does not, and it buries the sentence.
+
+### 10.5 Credentials leave API output too
+
+There is no private key in an API response, so §6 can look inapplicable here. It is not.
+Several documented reads return live credentials, and an event payload can carry one into a
+summary that is then pasted into a case:
+
+| Remove | Where it comes from |
+|---|---|
+| `key` — usable setup-key material | `GET /api/setup-keys`. Do not collect it unless the case is about a setup key, and then send `name`, `state` and `used_times`, never `key` |
+| `plain_token` | the response to creating a PAT. It never appears in a read, and no escalation needs one created |
+| `api_key`, `authToken`, `apiToken`, `secret_key`, `access_key` | `GET /api/integrations` and `GET /api/event-streaming` — treat the whole `config` object as secret unless the server returned it masked |
+| Setup-key and token names and ids in `meta` | `GET /api/events/paginated` — `setupkey.*` and token events carry them |
+
+Replace each with `REDACTED` and say in the summary that you did, so the analyst does not
+read a redaction as a missing field. Never ask the admin to paste a token, a setup key or a
+password into the conversation to move things along: you cannot un-see it, and the
+transcript outlives the case.
+
+### 10.6 Sending — what is honestly yours to do
+
+You compose the summary; the admin approves it and it is sent. That is not a formality. The
+approval in §11 is about the customer's data leaving their systems, and the decision is
+theirs.
+
+You cannot make the Level 3 calls in §11 yourself. They read `DSH_L3_PAT` and `DSH_L3_URL`
+from a harness environment you do not have, and a token is never something you ask for,
+accept in the conversation, or hold. So:
+
+- If the deployment has Level 3 escalation configured, hand the finished summary to the
+  admin, or to an operator who has a shell, and let them send it with §11.
+- If it does not — **Settings → Plugins → Level 3 escalation** is empty — say so plainly,
+  point the admin at that page, and give them the summary to send themselves. There is no
+  fallback address, and inventing one costs the customer a day.
+
+Either way, put the case id on the summary's first line, so a follow-up lands on the same
+case rather than starting a second one (§12).
+
+---
+
+## 11. Package and send
 
 ```bash
 cd ..
@@ -545,7 +767,7 @@ preserved for analysis.
 
 ---
 
-## 11. While it is open
+## 12. While it is open
 
 - Apply any workaround that reduces impact and record it in the timeline.
 - **A follow-up is the same case, not a new one.** Reuse the same `user` value (the case

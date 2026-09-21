@@ -1,3 +1,33 @@
+---
+id: '20'
+title: Admin Skill — Policies (Access Control)
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 10192
+sections:
+- id: '1'
+  title: Model
+  chars: 1281
+- id: '2'
+  title: Field reference (Add / Update Access Control Policy)
+  chars: 3003
+- id: '3'
+  title: API
+  chars: 1025
+- id: '4'
+  title: Procedures
+  chars: 1894
+- id: '5'
+  title: Semantics you must get right
+  chars: 951
+- id: '6'
+  title: Diagnosis — "why can't A reach B / why can A reach B?"
+  chars: 1651
+---
 # Admin Skill — Policies (Access Control)
 
 **Dashboard:** Network → **Policies** (`/access-control`). **API:** `/api/policies`.

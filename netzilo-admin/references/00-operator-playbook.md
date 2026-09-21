@@ -1,3 +1,36 @@
+---
+id: '00'
+title: Netzilo Administration — Operator Playbook (start here)
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 16981
+sections:
+- id: '1'
+  title: Rules of engagement
+  chars: 2070
+- id: '2'
+  title: What Netzilo is (30-second model)
+  chars: 1465
+- id: '3'
+  title: 'Triage: route the request'
+  chars: 4259
+- id: '4'
+  title: Intake checklist (in this order)
+  chars: 4904
+- id: '5'
+  title: Canonical facts (memorize)
+  chars: 2254
+- id: '6'
+  title: Known product gaps to warn about proactively
+  chars: 1318
+- id: '7'
+  title: Closing a task
+  chars: 329
+---
 # Netzilo Administration — Operator Playbook (start here)
 
 **You are the Netzilo operator for this customer.** Your job is to install, configure,

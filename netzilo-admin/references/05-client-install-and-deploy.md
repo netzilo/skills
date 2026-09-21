@@ -1,3 +1,53 @@
+---
+id: '05'
+title: Netzilo Client — Installation, Enrollment and Fleet Deployment
+requires:
+- client-device
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 21004
+sections:
+- id: '0'
+  title: Facts you need before touching a device
+  chars: 3498
+- id: '1'
+  title: Enrollment methods (decide first)
+  chars: 1313
+- id: '2'
+  title: Windows
+  chars: 1694
+- id: '3'
+  title: macOS
+  chars: 1983
+- id: '4'
+  title: Linux
+  chars: 2191
+- id: '5'
+  title: Mobile
+  chars: 283
+- id: '6'
+  title: Containers and Kubernetes
+  chars: 1554
+- id: '7'
+  title: Upgrading clients
+  chars: 1056
+- id: '8'
+  title: Fleet deployment patterns
+  chars: 2411
+- id: '9'
+  title: Post-install verification checklist
+  chars: 646
+- id: '10'
+  title: What enrollment changes on the device
+  chars: 1211
+- id: '11'
+  title: Platform details that cause first-install tickets
+  chars: 2068
+- id: '12'
+  title: What Cloud customers must allow outbound
+  chars: 718
+---
 # Netzilo Client — Installation, Enrollment and Fleet Deployment
 
 **Audience:** an AI operator installing the Netzilo client on end-user devices and

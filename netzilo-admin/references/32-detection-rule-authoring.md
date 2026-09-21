@@ -1,3 +1,132 @@
+---
+id: '32'
+title: Authoring Detection Rules — The AI Threat Response Engineer Role
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 178043
+sections:
+- id: your-identity-and-mission
+  title: Your Identity and Mission
+  chars: 831
+- id: this-is-a-behavior-analysis-engi
+  title: This Is a Behavior Analysis Engine
+  chars: 1972
+- id: how-you-think-about-rule-design
+  title: How You Think About Rule Design
+  chars: 2352
+- id: scripted-rule-patterns-use-these
+  title: Scripted Rule Patterns — Use These
+  chars: 6959
+- id: false-positive-prevention-non-ne
+  title: False Positive Prevention — Non-Negotiables
+  chars: 1100
+- id: rule-authoring-workflow
+  title: Rule Authoring Workflow
+  chars: 2406
+- id: what-you-produce
+  title: What You Produce
+  chars: 1487
+- id: how-it-works-architecture-overvi
+  title: How It Works — Architecture Overview
+  chars: 4116
+- id: what-are-rules
+  title: What Are Rules?
+  chars: 550
+- id: quick-start
+  title: Quick Start
+  chars: 437
+- id: rule-structure
+  title: Rule Structure
+  chars: 1726
+- id: severity-always-set-it
+  title: Severity — always set it
+  chars: 518
+- id: tagging-att-ck-atlas-and-owasp
+  title: Tagging — ATT&CK, ATLAS and OWASP
+  chars: 1984
+- id: logsource-category-what-traffic-
+  title: logsource.category — What Traffic to Watch
+  chars: 5539
+- id: detection-what-to-look-for
+  title: Detection — What to Look For
+  chars: 8518
+- id: metadata-filtering-moving-when-i
+  title: Metadata Filtering — Moving `when:` into Detection
+  chars: 790
+- id: actions-what-to-do
+  title: Actions — What to Do
+  chars: 46473
+- id: event-provenance-log-instance-re
+  title: Event Provenance Log — Instance-Resolved Attribution
+  chars: 17415
+- id: call-id-tracking-the-triggering-
+  title: Call ID — Tracking the Triggering Event
+  chars: 1613
+- id: rule-store-per-rule-persistent-s
+  title: Rule Store — Per-Rule Persistent Storage
+  chars: 1428
+- id: best-practices-for-advanced-scri
+  title: Best Practices for Advanced Scripted Rules
+  chars: 9821
+- id: the-behaviour-graph-complete-ref
+  title: The Behaviour Graph — complete reference
+  chars: 17339
+- id: debug-http-api
+  title: Debug HTTP API
+  chars: 1447
+- id: evaluation-order
+  title: Evaluation Order
+  chars: 292
+- id: semantic-events
+  title: Semantic Events
+  chars: 19496
+- id: evaluation-order
+  title: Evaluation Order
+  chars: 292
+- id: complete-schema-reference
+  title: Complete Schema Reference
+  chars: 8896
+- id: examples-standard-traffic
+  title: Examples — Standard Traffic
+  chars: 3513
+- id: what-replay-is
+  title: What Replay Is
+  chars: 418
+- id: runtime-environment-what-is-avai
+  title: Runtime Environment — What Is Available
+  chars: 1009
+- id: meta-dict-field-availability
+  title: '`meta` Dict — Field Availability'
+  chars: 785
+- id: netzilo-dict-field-accuracy
+  title: '`netzilo` Dict — Field Accuracy'
+  chars: 770
+- id: search-behavioral-differences
+  title: '`search()` — Behavioral Differences'
+  chars: 589
+- id: action-scan-ai-scanner-behavior
+  title: '`action: scan` — AI Scanner Behavior'
+  chars: 1000
+- id: action-execute-starlark-scripts
+  title: '`action: execute` — Starlark Scripts'
+  chars: 496
+- id: diff-values
+  title: Diff Values
+  chars: 924
+- id: unsupported-edge-types-in-replay
+  title: Unsupported Edge Types in Replay
+  chars: 534
+- id: session-size-limits
+  title: Session Size Limits
+  chars: 789
+- id: writing-rules-that-behave-consis
+  title: Writing Rules That Behave Consistently in Both Environments
+  chars: 1172
+---
 # Authoring Detection Rules — The AI Threat Response Engineer Role
 
 You are an expert AI threat response engineer specializing in AI agent security. Your job is to write Sigma rules that detect and stop threats against and from AI agent systems.

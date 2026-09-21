@@ -1,3 +1,39 @@
+---
+id: '25'
+title: Admin Skill — Users, Agents (Service Users), Groups and Account Settings
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 11627
+sections:
+- id: '1'
+  title: Roles and visibility
+  chars: 802
+- id: '2'
+  title: Users page — reference
+  chars: 1343
+- id: '3'
+  title: Groups
+  chars: 840
+- id: '4'
+  title: Account settings — reference
+  chars: 2142
+- id: '5'
+  title: API
+  chars: 1273
+- id: '6'
+  title: Procedures
+  chars: 930
+- id: '7'
+  title: Diagnosis
+  chars: 1706
+- id: '8'
+  title: Rules that refuse a change, and why
+  chars: 2036
+---
 # Admin Skill — Users, Agents (Service Users), Groups and Account Settings
 
 **Dashboard:** Team → **Users** (`/team/users`), Team → **Agents** (`/team/service-users`),

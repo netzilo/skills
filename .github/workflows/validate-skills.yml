@@ -1,0 +1,64 @@
+name: validate-skills
+
+# Checks the skill's machine-readable metadata: front matter that matches the
+# reference files, a capability map that covers them, consistent versions, and
+# links that resolve. Needs nothing but this repository and PyYAML.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      openapi_url:
+        description: >-
+          URL of a Netzilo Server OpenAPI description (GET /api/support/openapi.yml).
+          Leave empty to skip the api-schema-drift job.
+        required: false
+        default: ""
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Front matter is current
+        run: python scripts/gen-frontmatter.py --check
+
+      - name: Validate skills
+        run: python scripts/check-skills.py
+
+  # Manual only: the description comes from a running Netzilo Server
+  # (GET /api/support/openapi.yml), so this job takes a URL and is never part
+  # of a push build.
+  api-schema-drift:
+    if: github.event_name == 'workflow_dispatch' && inputs.openapi_url != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Download the OpenAPI description
+        run: curl -fsSL "${{ inputs.openapi_url }}" -o /tmp/openapi.yml
+
+      - name: Regenerate the API schema reference
+        run: |
+          python scripts/gen-api-schemas.py /tmp/openapi.yml \
+            > netzilo-admin/references/33-api-request-schemas.md
+          python scripts/gen-frontmatter.py
+
+      - name: Fail if the committed reference has drifted
+        run: git diff --exit-code -- netzilo-admin/references/33-api-request-schemas.md

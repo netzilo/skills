@@ -1,3 +1,44 @@
+---
+id: '19'
+title: Install Netzilo Server on Your Own Server
+requires:
+- server-shell
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 7360
+sections:
+- id: step-1-check-the-prerequisites
+  title: Step 1 — Check the prerequisites
+  chars: 1346
+- id: step-2-run-the-installer
+  title: Step 2 — Run the installer
+  chars: 416
+- id: step-3-answer-the-prompts
+  title: Step 3 — Answer the prompts
+  chars: 732
+- id: step-4-choose-how-https-is-secur
+  title: Step 4 — Choose how HTTPS is secured
+  chars: 654
+- id: step-5-log-in
+  title: Step 5 — Log in
+  chars: 569
+- id: optional-unattended-scripted-ins
+  title: Optional — Unattended (scripted) install
+  chars: 846
+- id: managing-your-server
+  title: Managing your server
+  chars: 1195
+- id: troubleshooting
+  title: Troubleshooting
+  chars: 899
+- id: uninstall
+  title: Uninstall
+  chars: 170
+- id: need-help
+  title: Need help?
+  chars: 156
+---
 # Install Netzilo Server on Your Own Server
 
 Netzilo Server is a self-hosted secure-networking platform (management, signal,

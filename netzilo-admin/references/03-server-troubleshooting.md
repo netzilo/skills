@@ -1,3 +1,47 @@
+---
+id: '03'
+title: Netzilo Server — Troubleshooting Runbook
+requires:
+- server-shell
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 24725
+sections:
+- id: '1'
+  title: Nothing loads / certificate problems
+  chars: 1839
+- id: '2'
+  title: A container is unhealthy or restarting
+  chars: 3549
+- id: '3'
+  title: Cannot log in to the dashboard
+  chars: 2439
+- id: '4'
+  title: Clients cannot connect to the server
+  chars: 1815
+- id: 4a-signal-and-relay-stun-turn-de
+  title: 4a. Signal and relay (STUN/TURN) — dedicated diagnosis
+  chars: 8361
+- id: '5'
+  title: Performance and load
+  chars: 1069
+- id: '6'
+  title: Disk full
+  chars: 556
+- id: '7'
+  title: After a host reboot / cloud maintenance
+  chars: 517
+- id: '8'
+  title: Upgrade went wrong
+  chars: 754
+- id: '9'
+  title: Metering / billing (marketplace)
+  chars: 1030
+- id: '10'
+  title: When to escalate to Netzilo
+  chars: 787
+---
 # Netzilo Server — Troubleshooting Runbook
 
 **Audience:** an AI operator diagnosing a self-hosted Netzilo Server (on-prem installer,

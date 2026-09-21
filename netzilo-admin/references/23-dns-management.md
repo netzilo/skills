@@ -1,3 +1,30 @@
+---
+id: '23'
+title: Admin Skill — DNS Management
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 6826
+sections:
+- id: '1'
+  title: Model
+  chars: 1359
+- id: '2'
+  title: Field reference
+  chars: 1226
+- id: '3'
+  title: API
+  chars: 871
+- id: '4'
+  title: Procedures
+  chars: 1329
+- id: '5'
+  title: Diagnosis
+  chars: 1667
+---
 # Admin Skill — DNS Management
 
 **Dashboard:** Network → **DNS Servers** (`/dns/nameservers`) and **DNS Settings**

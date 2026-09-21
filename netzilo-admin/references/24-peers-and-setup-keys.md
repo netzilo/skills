@@ -1,3 +1,36 @@
+---
+id: '24'
+title: Admin Skill — Peers and Setup Keys
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 11188
+sections:
+- id: '1'
+  title: Peer lifecycle
+  chars: 1104
+- id: '2'
+  title: Peers page — field and action reference
+  chars: 2304
+- id: '3'
+  title: Setup keys — reference
+  chars: 1675
+- id: '4'
+  title: API
+  chars: 1406
+- id: '5'
+  title: Procedures
+  chars: 1342
+- id: '6'
+  title: Diagnosis
+  chars: 1831
+- id: '7'
+  title: Limits that reject a change
+  chars: 1081
+---
 # Admin Skill — Peers and Setup Keys
 
 **Dashboard:** Endpoint → **Peers** (`/peers`, detail `/peer?id=`), Endpoint → **Setup

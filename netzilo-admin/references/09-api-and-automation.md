@@ -1,3 +1,39 @@
+---
+id: 09
+title: Netzilo — Public API and Automation
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 21623
+sections:
+- id: '0'
+  title: The server and an admin token come first
+  chars: 1310
+- id: '1'
+  title: Authentication
+  chars: 1475
+- id: '2'
+  title: Endpoint catalogue
+  chars: 3326
+- id: '3'
+  title: Field reference (request bodies)
+  chars: 4745
+- id: '4'
+  title: Recipes
+  chars: 3199
+- id: '5'
+  title: Client-side automation
+  chars: 709
+- id: '6'
+  title: Rate limits, pagination, gotchas
+  chars: 3265
+- id: '7'
+  title: How the API reports failure
+  chars: 3151
+---
 # Netzilo — Public API and Automation
 
 **Audience:** an AI operator automating Netzilo administration (bulk changes, exports,
@@ -148,6 +184,10 @@ Events: `{id, timestamp, activity, activity_code, initiator_id, initiator_name, 
 
 ## 4. Recipes
 
+Each body below is a working example, not a contract. Check the endpoint in
+`references/33-api-request-schemas.md` before adapting one — a required field the example
+happens not to need is still required of you.
+
 ### 4.1 Create a setup key for an autoscaling group
 ```bash
 GID=$(nz /groups | jq -r '.[] | select(.name=="servers") | .id')
@@ -224,6 +264,45 @@ comma-separated peer IDs that just connected.
   `maximum number of personal peers reached` (>99 peers); Enterprise/MSP have no limits.
 - The API is labelled Beta in the docs; test destructive scripts against a small group
   first.
+
+### 6.1 Reading a large collection without drowning in it
+
+An agent's tool result is capped and truncated when it overflows — sometimes mid-object,
+so what survives no longer parses. A 50 KB JSON dump crowds out the reasoning it was
+fetched for, and the three records that answered the question are the ones that got cut.
+Fetch narrowly, then summarise.
+
+- **Never bulk-`GET /api/events`.** It returns the account's entire history in one
+  response and takes no parameters to bound it. Use `/api/events/paginated`, which is the
+  only list endpoint in this API that paginates at all (§7).
+- **Bound every event query by time and by code.** `date_from` and `date_to` take the
+  window, `code` filters by activity string and may be repeated for several codes, `limit`
+  is 1–1000 and `offset` walks the pages. There is no `page_size` — and an unknown
+  parameter is ignored silently rather than rejected, so you get the default 25 rows back
+  while believing you asked for a thousand.
+- **Ask for the narrowest window that can answer the question.** An hour either side of a
+  known occurrence, not the last thirty days. Widen only when the narrow window comes back
+  empty, and state which window you used when you report what you found.
+- **Fetch the object, not the list.** Apart from events and the AIDR feeds, list endpoints
+  return everything they hold, so take one list read, keep the ids, and go back with
+  `GET /api/peers/{id}` or `GET /api/policies/{id}` for the objects the case is about.
+- **Verify parameter names against `references/33-api-request-schemas.md`** before you use
+  them; it lists every documented query parameter per endpoint. Free-text search on events
+  is `q`; `expand` exists on `GET /api/profiles` and nowhere else; `search` exists on
+  `GET /api/lookup-account` and nowhere else. Do not carry a parameter over from another
+  product's API — it changes nothing and the result quietly misleads you.
+- **Summarise rather than paste.** Report the counts, the distinct actors and the two or
+  three records that carry the argument, and keep the ids so any of it can be refetched.
+
+Two calls that are correct as written:
+
+```bash
+# blocked-access events for one user, three-hour window
+nz "/events/paginated?date_from=2026-09-17T07:00:00Z&date_to=2026-09-17T10:00:00Z&code=peer.access.blocked&user=$UID&limit=200"
+
+# one peer's high-severity AIDR events, paged with a cursor rather than an offset
+nz "/peers/$PEER/aidr-snapshot/events?severity=high&limit=50&cursor=$LAST_EVENT_ID"
+```
 
 ## 7. How the API reports failure
 

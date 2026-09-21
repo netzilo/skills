@@ -1,3 +1,47 @@
+---
+id: '18'
+title: Netzilo Server — Gate-Driven Install and Verification (Custom / On-Prem)
+requires:
+- server-shell
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 14246
+sections:
+- id: '0'
+  title: Gather inputs from the user (mandatory — do not assume)
+  chars: 2657
+- id: '1'
+  title: Pre-flight (run on the host)
+  chars: 863
+- id: '2'
+  title: Install (non-interactive)
+  chars: 1892
+- id: '3'
+  title: Wait for completion
+  chars: 607
+- id: '4'
+  title: End-to-end verification
+  chars: 1888
+- id: '5'
+  title: Login smoke test (optional but preferred)
+  chars: 656
+- id: '6'
+  title: Diagnostics (when a gate fails)
+  chars: 1951
+- id: '7'
+  title: Cleanup / teardown
+  chars: 413
+- id: '8'
+  title: Success criteria (report this)
+  chars: 739
+- id: appendix-a-provisioning-a-throwa
+  title: Appendix A — Provisioning a throwaway test VM
+  chars: 717
+- id: appendix-b-environment-variables
+  title: Appendix B — Environment variables
+  chars: 756
+---
 # Netzilo Server — Gate-Driven Install and Verification (Custom / On-Prem)
 
 **Audience:** an AI agent instructed to install the custom (bring-your-own-server)

@@ -1,0 +1,183 @@
+{
+  "//": "Curated: what each reference needs to EXECUTE its procedures, not what it mentions. scripts/check-skills.py cross-checks these against signals in the prose. 'sections' overrides the file default for individual sections.",
+  "00-operator-playbook.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "01-server-install.md": {
+    "requires": [
+      "server-shell"
+    ]
+  },
+  "02-server-operations.md": {
+    "requires": [
+      "server-shell"
+    ]
+  },
+  "03-server-troubleshooting.md": {
+    "requires": [
+      "server-shell"
+    ]
+  },
+  "04-identity-and-sso.md": {
+    "requires": [
+      "idp-console",
+      "server-shell"
+    ]
+  },
+  "05-client-install-and-deploy.md": {
+    "requires": [
+      "client-device"
+    ]
+  },
+  "06-client-cli-reference.md": {
+    "requires": [
+      "client-device"
+    ]
+  },
+  "07-client-troubleshooting.md": {
+    "requires": [
+      "client-device"
+    ]
+  },
+  "08-network-administration.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "09-api-and-automation.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "10-ai-security-aidr.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "11-connectivity-diagnosis.md": {
+    "requires": [
+      "api",
+      "client-device",
+      "server-shell"
+    ]
+  },
+  "12-escalation-package.md": {
+    "requires": [
+      "server-shell",
+      "client-device"
+    ],
+    "sections": {
+      "1": [],
+      "2": [],
+      "9": [],
+      "10": [
+        "api"
+      ]
+    }
+  },
+  "13-log-interpretation.md": {
+    "requires": [
+      "server-shell",
+      "client-device"
+    ]
+  },
+  "14-data-handling-and-privacy.md": {
+    "requires": []
+  },
+  "15-incident-response-and-recovery.md": {
+    "requires": [
+      "api",
+      "server-shell"
+    ]
+  },
+  "16-onboarding-and-rollout.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "17-end-user-guide.md": {
+    "requires": []
+  },
+  "18-server-install-gated.md": {
+    "requires": [
+      "server-shell"
+    ]
+  },
+  "19-server-install-handout.md": {
+    "requires": [
+      "server-shell"
+    ]
+  },
+  "20-policies-access-control.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "21-posture-checks.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "22-network-routes-and-exit-nodes.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "23-dns-management.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "24-peers-and-setup-keys.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "25-users-groups-and-account-settings.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "26-profiles-secure-workplace.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "27-edge-tools-and-mcp.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "28-edge-scanners.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "29-edge-filters.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "30-activity-reports-and-integrations.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "31-plans-limits-and-billing.md": {
+    "requires": [
+      "dashboard-ui"
+    ]
+  },
+  "32-detection-rule-authoring.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "33-api-request-schemas.md": {
+    "requires": [
+      "api"
+    ]
+  }
+}

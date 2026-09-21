@@ -1,3 +1,26 @@
+---
+id: '17'
+title: The End-User Guide — What to Give Employees
+requires: []
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 6264
+sections:
+- id: '1'
+  title: Tell people before you install, not after
+  chars: 845
+- id: '2'
+  title: The page to publish
+  chars: 2390
+- id: '3'
+  title: Translating what the employee says
+  chars: 1628
+- id: '4'
+  title: What to tell an employee who asks what is monitored
+  chars: 808
+---
 # The End-User Guide — What to Give Employees
 
 **Use this when the admin needs something to hand to their people.** Every file in this

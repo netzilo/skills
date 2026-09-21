@@ -1,3 +1,33 @@
+---
+id: '30'
+title: Admin Skill — Activity Events, Reports, Dashboard Home and Integrations
+requires:
+- api
+executable_on:
+- dashboard-assistant
+- netzilo-harness
+- human-operator
+chars: 11246
+sections:
+- id: '1'
+  title: Activity → Events
+  chars: 3828
+- id: '2'
+  title: Reports
+  chars: 1550
+- id: '3'
+  title: Dashboard home
+  chars: 498
+- id: '4'
+  title: Integrations
+  chars: 1903
+- id: '5'
+  title: Procedures
+  chars: 1105
+- id: '6'
+  title: Diagnosis
+  chars: 1441
+---
 # Admin Skill — Activity Events, Reports, Dashboard Home and Integrations
 
 **Dashboard:** Activity → **Events** (`/activity`), Activity → **Reports** (`/reports`),

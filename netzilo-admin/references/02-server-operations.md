@@ -1,3 +1,71 @@
+---
+id: '02'
+title: Netzilo Server — Day-2 Operations Runbook
+requires:
+- server-shell
+executable_on:
+- netzilo-harness
+- human-operator
+chars: 42505
+sections:
+- id: '1'
+  title: Know which layout you are on
+  chars: 2087
+- id: '2'
+  title: Service inventory and health
+  chars: 4073
+- id: '3'
+  title: Start / stop / restart
+  chars: 832
+- id: '4'
+  title: Upgrading
+  chars: 12375
+- id: '5'
+  title: Configuration changes
+  chars: 2266
+- id: '6'
+  title: Backup
+  chars: 2487
+- id: '7'
+  title: Restore
+  chars: 2538
+- id: '8'
+  title: TLS certificates
+  chars: 2862
+- id: '9'
+  title: Changing the server domain
+  chars: 835
+- id: '10'
+  title: Re-running the installer — DESTRUCTIVE
+  chars: 1076
+- id: '11'
+  title: Firewall reference
+  chars: 875
+- id: '12'
+  title: Marketplace-specific items
+  chars: 2828
+- id: '13'
+  title: Capacity and sizing
+  chars: 854
+- id: '14'
+  title: Decommission
+  chars: 471
+- id: '15'
+  title: Quick reference
+  chars: 723
+- id: '16'
+  title: Answers to the architecture questions customers ask
+  chars: 1918
+- id: '17'
+  title: Migrating the database engine
+  chars: 1194
+- id: '18'
+  title: Keeping the geolocation database current
+  chars: 620
+- id: '19'
+  title: Certificate noise that is not a fault
+  chars: 662
+---
 # Netzilo Server — Day-2 Operations Runbook
 
 **Audience:** an AI operator administering a customer's self-hosted **Netzilo Server**
