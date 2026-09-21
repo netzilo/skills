@@ -185,5 +185,23 @@
   },
   "35-plain-language.md": {
     "requires": []
+  },
+  "36-device-tools.md": {
+    "requires": [
+      "api",
+      "device-tools"
+    ]
+  },
+  "37-device-tool-reference.md": {
+    "requires": [
+      "api",
+      "device-tools"
+    ]
+  },
+  "38-device-diagnosis-method.md": {
+    "requires": [
+      "api",
+      "device-tools"
+    ]
   }
 }

@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 35159
+chars: 35753
 sections:
 - id: '1'
   title: Escalate only when the answer needs the source code
@@ -42,7 +42,7 @@ sections:
   chars: 1096
 - id: '8'
   title: If you cannot run the commands yourself
-  chars: 1912
+  chars: 2506
 - id: '9'
   title: Write the summary
   chars: 454
@@ -441,6 +441,14 @@ the analyst knows why addresses do not line up.
 ---
 
 ## 8. If you cannot run the commands yourself
+
+**First check whether you can.** With the device tools (`references/36-device-tools.md`)
+the dashboard assistant can collect most of the device-side evidence itself: `diag.status
+{full: true}`, `diag.config`, `diag.routes`, `diag.system`, the log tail with `diag.logs`,
+targeted excerpts with `diag.grep` (current and rotated logs, with context), and
+`diag.bundle` to write the debug bundle **on the device**. The bundle is not uploaded — the
+person still sends the archive (§11) — but the summary, correlation keys and log excerpts
+below can be assembled without asking them to run anything.
 
 Common: the customer is on the affected machine and you are not. Give them one block to
 paste, tell them what it produces, and what to send back. Do not ask them to interpret

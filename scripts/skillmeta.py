@@ -28,15 +28,16 @@ CAPABILITIES = {
     "server-shell": "a shell on the Netzilo Server host (docker, systemd, files)",
     "client-device": "a shell or OS access on a device running the Netzilo client",
     "idp-console": "the identity provider's own admin console",
+    "device-tools": "the support device tools through management: read a peer's tool catalog and run its tools remotely",
 }
 
 # Agent surfaces and the capabilities each one has. A reference is executable
 # on a surface when the surface holds every capability the reference requires;
 # otherwise the agent explains the procedure and the human performs it.
 SURFACES = {
-    "dashboard-assistant": {"api"},
-    "netzilo-harness": {"api", "server-shell", "client-device"},
-    "human-operator": {"api", "dashboard-ui", "server-shell", "client-device", "idp-console"},
+    "dashboard-assistant": {"api", "device-tools"},
+    "netzilo-harness": {"api", "server-shell", "client-device", "device-tools"},
+    "human-operator": {"api", "dashboard-ui", "server-shell", "client-device", "idp-console", "device-tools"},
 }
 
 # Signals used to cross-check the curated map against the prose, so a file
@@ -53,6 +54,7 @@ SIGNALS = {
     "api": re.compile(r"\bnz /|GET /api/|POST /api/|PUT /api/|DELETE /api/|PATCH /api/"),
     "idp-console": re.compile(r"Zitadel console|Entra|Okta|Google Workspace admin", re.I),
     "dashboard-ui": re.compile(r"Dashboard →|dashboard →", re.I),
+    "device-tools": re.compile(r"\bdevice_(tools|run)\(|/api/support/devices/"),
 }
 
 

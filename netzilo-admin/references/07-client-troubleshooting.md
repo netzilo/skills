@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 19661
+chars: 20513
 sections:
 - id: '1'
   title: CLI cannot talk to the daemon
@@ -22,7 +22,7 @@ sections:
   chars: 1371
 - id: '5'
   title: Interface / driver problems
-  chars: 1548
+  chars: 1845
 - id: '6'
   title: DNS
   chars: 1607
@@ -49,6 +49,14 @@ sections:
   chars: 1677
 ---
 # Netzilo Client — Troubleshooting Runbook
+
+> **From the agent, not by hand.** Every "run on the device" step below has an equivalent
+> the dashboard assistant and the harness can execute directly through the device tools:
+> `netzilo status` → `diag.status`, log inspection → `diag.logs` / `diag.grep`, DNS →
+> `diag.dns`, reachability → `diag.probe`, `netzilo down`/`up` → `mod.disconnect` /
+> `mod.reconnect` (proposed for approval on someone else's device). Procedure, consent
+> rule and limits: `references/36-device-tools.md`. A client too old for the tools still
+> follows this file by hand.
 
 **Audience:** an AI operator diagnosing a user's or server's Netzilo client. Work from
 the symptom; each entry gives the evidence to collect, the cause, and the fix. Error
@@ -172,8 +180,12 @@ with backoff up to 14 days), `error while connecting to the Signal Exchange Serv
 | `Default route is configured but sysctl operations failed … NB_USE_LEGACY_ROUTING=true or setting net.ipv4.conf.*.rp_filter to 2` | Linux exit-node client on hardened kernel | set the env var in the service or the sysctl |
 
 Non-admin/non-root runs are silently forced into **netstack** mode: no TUN device, only
-the SOCKS5 proxy (`127.0.0.1:41339`) can reach peers, and DNS names do not resolve. If
-the symptom is "connected but nothing routes", check whether the daemon runs as root/SYSTEM.
+the local SOCKS5 proxy on `127.0.0.1` can reach peers, and Netzilo names do not resolve
+through the host's resolver (they do through the proxy with `socks5h`). The proxy port is
+`--socks5-port`, and without it a non-root run uses a per-user port derived from the home
+directory, not `41339`. If the symptom is "connected but nothing routes", check whether the
+daemon runs as root/SYSTEM. Used on purpose, the same mode is a quick probe peer:
+`11-connectivity-diagnosis.md` §8.
 
 ---
 

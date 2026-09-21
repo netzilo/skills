@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 31679
+chars: 32193
 sections:
 - id: '1'
   title: Method
@@ -35,6 +35,13 @@ sections:
   chars: 371
 ---
 # Reading Netzilo Logs — Client and Management
+
+> **Getting the lines.** From the dashboard assistant and the harness, the client log of a
+> connected peer is read directly with `diag.logs` (tail) and `diag.grep` (regex search on
+> the device, most recent matches first, with `context` lines, across rotated `.gz` logs
+> with `all_files: true`). Search on the device and read excerpts; never pull a whole log.
+> Tool cards: `references/37-device-tool-reference.md` §9; the "it was working
+> yesterday" playbook: `references/38-device-diagnosis-method.md` §4.6.
 
 **Use this when you are handed a log and asked "what went wrong?"** — the reverse of the
 troubleshooting runbooks, which start from a symptom. Everything here is observable

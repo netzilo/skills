@@ -6,29 +6,29 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 24722
+chars: 27840
 sections:
 - id: '0'
   title: What gets installed (all paths)
-  chars: 2875
+  chars: 3820
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
-  chars: 6175
+  chars: 6121
 - id: '2'
   title: Path B — AWS Marketplace (CloudFormation)
-  chars: 2474
+  chars: 3879
 - id: '3'
   title: Path C — Azure Marketplace (managed application)
-  chars: 1423
+  chars: 2209
 - id: '4'
   title: Variant — external PostgreSQL
-  chars: 932
+  chars: 1093
 - id: '5'
   title: Variant — running the core engine directly (advanced / air-gapped)
   chars: 2556
 - id: '6'
   title: Installation failures — diagnosis table
-  chars: 5123
+  chars: 4998
 - id: '7'
   title: Legacy path — `infrastructure_files` docker-compose
   chars: 1054
@@ -67,11 +67,29 @@ layout and service map.
 fetched from `pkg.netzilo.com`), the AWS AMI (Packer image + CloudFormation + first-boot)
 and the Azure image (Packer + ARM + first-boot) run the same engine *file*,
 `install_netzilo.sh`, but each pins its container images independently: the one-liner
-retags each Netzilo image to `:latest` at install time **only if that tag exists on the
-registry** (the images are public, so it checks with `docker manifest inspect`) and
-otherwise keeps the engine's pinned release tag, saying so with a `WARN:`; the AMI and
-Azure builds bake the images into the VM image and pin each to an immutable digest. Diagnose them as
+retags every Netzilo image to `:latest` at install time — the moving tag that only the
+AZURE release-branch builds publish, so a custom install always gets the newest release
+build; the AMI and Azure builds bake the images into the VM image and pin each to an
+immutable digest. Diagnose them as
 separate environments — a fix in one pipeline says nothing about the other two.
+
+**Which builds carry `support-worker`.** The worker joined the engine in September 2026.
+Engines published before that — and AMIs or Azure images baked from them — install
+eight containers and never show the Assistant, however new the management image is.
+Tell the two apart on the host before diagnosing a "missing Assistant":
+
+```bash
+grep -c 'support-worker' /opt/netzilo/docker-compose.yml        # custom one-liner
+grep -c 'support-worker' /opt/netzilo/run/docker-compose.yml    # AWS / Azure image
+# 0 = pre-worker engine (eight containers): the Assistant cannot be enabled on this
+#     install; a new install from a current engine/image is required (teardown §8).
+# >0 = worker engine (nine containers): continue with the gates.
+```
+
+A pre-worker install cannot gain the worker in place: `docker compose pull` only
+refreshes images that are already in the compose file, and re-running the installer
+wipes the server (§1.4, §8). Move by backup → new install → restore
+(`02-server-operations.md` §6–7).
 
 Inputs every path needs:
 
@@ -152,8 +170,8 @@ sudo bash -c 'nohup bash /root/run-install.sh > /root/install.log 2>&1 &'
 sudo grep -E "Done\. Netzilo is starting|ERROR:|aborted" /root/install.log
 ```
 
-Optional wrapper variables: `NETZILO_IMAGE_TAG` (default `latest`; applied per image only
-where that tag is published — see §0 — to the five Netzilo images), `NETZILO_INSTALLER_URL` (where the core installer is downloaded from, default
+Optional wrapper variables: `NETZILO_IMAGE_TAG` (default `latest`; applies to the five
+Netzilo images), `NETZILO_INSTALLER_URL` (where the core installer is downloaded from, default
 `https://pkg.netzilo.com/download/install_netzilo.sh`), `NETZILO_STATE_DIR` (default
 `/opt/netzilo`), `NETZILO_PKG_BASE_URL` (client download mirror shown in the dashboard).
 
@@ -271,7 +289,27 @@ Credentials are in `/opt/netzilo/CREDENTIALS` and `/etc/motd`, and in SSM as abo
 Metering (`METERING_ENABLED=1`, dimension `users`) runs hourly — see
 `02-server-operations.md` §12.3.
 
-Run the §1.5 gates against the domain.
+### 2.4 What the AMI carries
+
+- **Nine containers, all baked.** The image ships every container including
+  `support-worker`, each pinned to an immutable digest; first boot starts them from the
+  local image store (`NETZILO_IMAGE_SOURCE=cloud`, nothing is pulled). The worker's shared
+  token is generated at first boot and written into both `management.json`
+  (`SupportConfig.WorkerToken`) and the worker's environment, exactly as on the one-liner.
+- **No new inbound port.** The worker listens on `:8080` on the compose network only and
+  is called by `management`; the security group is unchanged (22 admin CIDR; 80, 443,
+  3478, 5349, 49152–65535/udp public). Outbound it needs `443` to the AI provider the
+  owner later connects, and to `github.com` for runbook refresh — the default egress
+  rule allows both.
+- **Nothing to configure for AI at launch.** The template has no AI parameters. The
+  Assistant stays hidden until an owner adds a provider under Integrations →
+  Artificial Intelligence (`30-activity-reports-and-integrations.md` §4a).
+- **AMIs built before September 2026 have eight containers** and cannot be upgraded in
+  place to nine — see §1 "Which builds carry `support-worker`". Launch a new stack from
+  the current AMI and restore (`02-server-operations.md` §6–7).
+
+Run the §1.5 gates against the domain: `docker compose ps` in `/opt/netzilo/run` must
+show 9 Up with `postgres`, `redis` and `support-worker` healthy.
 
 ---
 
@@ -304,6 +342,18 @@ DB parameters are not exposed in the wizard (container mode).
 The VM has a system-assigned identity with `Reader` on the resource group; metering
 uses it to discover the managed-application resource id.
 
+### 3.3 What the Azure image carries
+
+Same as the AMI (§2.4): nine containers baked and digest-pinned, including
+`support-worker`; shared token generated at first boot; the worker is reachable only
+from `management` on the compose network, so the NSG is unchanged (22 admin CIDR;
+80, 443, 3478, 5349 public) and no wizard field concerns AI. Outbound `443` to the
+chosen AI provider and to `github.com` must be allowed (the default NSG outbound rule
+does). The Assistant appears only after an owner connects a provider. Images published
+before September 2026 run eight containers and cannot gain the worker in place — new
+managed application from the current image, then restore (`02-server-operations.md`
+§6–7). Gate 3 reads 9 Up with `postgres`, `redis` and `support-worker` healthy.
+
 ---
 
 ## 4. Variant — external PostgreSQL
@@ -314,6 +364,8 @@ the host; an admin role able to `CREATE DATABASE` and `CREATE ROLE`; `sslmode`
 `require` recommended. The installer creates databases `netzilo` and `zitadel` and role
 `zitadel`. No `db` container or `netzilo_db_data` volume is created. Backups become the
 DB provider's responsibility; everything else in `02-server-operations.md` still applies.
+`support-worker` is unaffected by the DB mode — it holds no data and talks only to
+`management`; the stack is eight containers in external mode (no `postgres`).
 
 On-prem, pass through the wrapper by exporting before `bash install-netzilo.sh --yes`:
 `NETZILO_DB_MODE=external NETZILO_DB_HOST=… NETZILO_DB_PORT=5432 NETZILO_DB_ADMIN_USER=… NETZILO_DB_ADMIN_PASSWORD=… NETZILO_DB_SSLMODE=require`.
@@ -398,8 +450,7 @@ sudo docker compose ps; sudo docker compose logs --tail=60 zitadel caddy
 | Gate: TLS issuer is Caddy/self-signed instead of Let's Encrypt | HTTP-01 challenge failed (80 blocked, DNS) or LE rate limit | open 80/443, fix DNS; Caddy retries. If rate-limited (`too many certificates`) wait or use `provided` |
 | Port 80/443 already in use | another web server on the host | stop/disable it (nginx/apache) before install |
 | One-liner `curl` fails | no egress to `pkg.netzilo.com` | download on another machine, `scp` both scripts, run wrapper locally (it finds `install_netzilo.sh` next to itself) |
-| `WARN: ghcr.io/netzilo/<image>:latest is not on the registry — keeping the engine's pinned …` | no `:latest` tag is published for that image | not a fault: the pinned release installs. If every image warns, the moving tag was never published — tell Netzilo; do not work around it by guessing tags |
-| `docker compose pull` → `manifest unknown` for a `ghcr.io/netzilo/*` image | the engine copy carries a tag that no longer exists (old CDN copy, or a hand-edited pin) | re-download the engine, or pin to a tag that resolves with `docker manifest inspect` |
+| `docker compose pull` → `manifest unknown` for a `ghcr.io/netzilo/*` image | a tag that does not exist (hand-edited pin), or — seen on a developer Mac — Docker Desktop mid credential-helper prompt answering `manifest unknown` for everything; the packages are public and need no login | verify the tag from a clean shell: `docker manifest inspect <image>`; if a known-good tag also fails, the client is at fault, not the registry |
 
 Zitadel bootstrap is not resumable: after any `ERROR calling …` the only path is
 teardown and a fresh run. Because the engine wipes state on re-run anyway, that is

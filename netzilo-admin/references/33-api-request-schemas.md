@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 66762
+chars: 68139
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -360,6 +360,15 @@ sections:
 - id: get-api-summary
   title: '`GET /api/summary`'
   chars: 246
+- id: get-api-support-devices-peerid
+  title: '`GET /api/support/devices/{peerId}`'
+  chars: 282
+- id: post-api-support-devices-peerid-
+  title: '`POST /api/support/devices/{peerId}/invoke`'
+  chars: 700
+- id: get-api-support-devices-peerid-t
+  title: '`GET /api/support/devices/{peerId}/tools`'
+  chars: 395
 - id: get-api-support-openapi-yml
   title: '`GET /api/support/openapi.yml`'
   chars: 233
@@ -459,7 +468,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-09-21 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-09-22 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -1751,6 +1760,38 @@ Responses: `200` Event processed, `400` Bad Request, `404` Resource not found, `
 Retrieve activity summary
 
 Responses: `200` Summary of top users, top groups and total events, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/support/devices/{peerId}`
+
+Describe a peer for the support tools without contacting it
+
+Parameters:
+- `peerId` (path, required)
+
+Responses: `200` The device summary, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
+
+## `POST /api/support/devices/{peerId}/invoke`
+
+Run one support tool on a peer
+
+Parameters:
+- `peerId` (path, required)
+
+Request body (JSON):
+- `name` (string, **required**): A tool name from the device's catalog
+- `args` (object, optional): Arguments matching that tool's args_schema; unknown fields are rejected by the device
+- `timeout_ms` (integer, optional): Per-command deadline; the device clamps it to its own ceiling (120000)
+
+Responses: `200` The device's result, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `501` Not implemented on this device, `503` Service unavailable, `504` Gateway timeout, `500` Internal Server Error
+
+## `GET /api/support/devices/{peerId}/tools`
+
+List the tools a peer offers
+
+Parameters:
+- `peerId` (path, required)
+
+Responses: `200` The device's tool catalog, as the client produced it, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `501` Not implemented on this device, `503` Service unavailable, `504` Gateway timeout, `500` Internal Server Error
 
 ## `GET /api/support/openapi.yml`
 

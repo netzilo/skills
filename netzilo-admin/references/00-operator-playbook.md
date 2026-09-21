@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16981
+chars: 17837
 sections:
 - id: '1'
   title: Rules of engagement
@@ -17,13 +17,13 @@ sections:
   chars: 1465
 - id: '3'
   title: 'Triage: route the request'
-  chars: 4259
+  chars: 4633
 - id: '4'
   title: Intake checklist (in this order)
-  chars: 4904
+  chars: 5259
 - id: '5'
   title: Canonical facts (memorize)
-  chars: 2254
+  chars: 2381
 - id: '6'
   title: Known product gaps to warn about proactively
   chars: 1318
@@ -99,6 +99,12 @@ and Azure Marketplace image (`/opt/netzilo/run`), or Netzilo Cloud (nothing to i
 
 ## 3. Triage: route the request
 
+**If the problem is on one specific device and you are the dashboard assistant or the
+harness**, you can act on that device directly: read its status, search its logs, test DNS
+and reachability from the machine, and with consent refresh, reconnect or run a command —
+`references/36-device-tools.md`. Read the account first; go to the device to see what the
+account cannot.
+
 | Customer says… | Go to |
 |---|---|
 | "Install / set up the server", AWS/Azure marketplace, external database, air-gapped, provided certificate | `01-server-install.md` (+ `18-server-install-gated.md` for the scripted gate flow, `19-server-install-handout.md` to hand to the customer) |
@@ -146,6 +152,11 @@ runs the servers and IdP); everything else applies with `https://go.netzilo.com`
 ---
 
 ## 4. Intake checklist (in this order)
+
+When the report concerns a particular peer, add to the intake: the peer's **name or the
+user it belongs to**, whether it is **online** (`GET /api/peers`), its **OS and client
+version**, and **whose device it is** — the caller's own or someone else's — because that
+last fact decides what may run without approval (`references/36-device-tools.md` §1–§2).
 
 The first three items are requirements. Do not start diagnosing until they are done.
 
@@ -237,7 +248,7 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Fact | Value |
 |---|---|
 | Server ports (inbound) | 22 (admin CIDR), 80, 443, 3478 tcp+udp, 5349 tcp+udp; 49152–65535/udp on cloud templates; 6379 must never be public |
-| Server containers | `caddy dashboard management signal zitadel coturn postgres redis` |
+| Server containers | `caddy dashboard management signal zitadel coturn postgres redis support-worker` (nine; `support-worker` = AI Assistant agent, internal only, absent on engines/images published before 2026-09) |
 | Server state dirs | on-prem `/opt/netzilo`; images `/opt/netzilo/run` (compose) + `/opt/netzilo` (state); credentials `/opt/netzilo/CREDENTIALS` |
 | Server secrets that cannot be recovered | `ZITADEL_MASTERKEY` (`zitadel.env`), `DataStoreEncryptionKey` (`management.json`) |
 | Domain | permanent once installed; must not be `*.netzilo.com` |

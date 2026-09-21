@@ -8,7 +8,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 14718
+chars: 19339
 sections:
 - id: '0'
   title: Classify the target (2 minutes)
@@ -35,10 +35,22 @@ sections:
   title: Server-side checks (self-hosted only)
   chars: 928
 - id: '8'
+  title: 'A probe peer from your own shell: `netzilo up -F -U` and its SOCKS5 proxy'
+  chars: 3969
+- id: '9'
   title: Report template
   chars: 684
 ---
 # Netzilo — End-to-End Connectivity Diagnosis ("Host X is unreachable")
+
+> **Running this from the agent.** The device-side steps of this procedure (§1, §2, §4, §6)
+> can be executed on the affected peer through the device tools — `diag.route_match`
+> answers "does traffic to X go through Netzilo on this device" in one call, `diag.dns`
+> resolves X the way the tunnel would, `diag.status {full: true}` shows direct-or-relayed
+> per peer, and `diag.probe` tests the port from the device. The routing-peer checks in §5
+> can run the same way on R. Playbook with stop conditions and OS branches:
+> `references/38-device-diagnosis-method.md` §4.2; each tool's arguments and output:
+> `references/37-device-tool-reference.md`.
 
 **Audience:** an AI operator who has been told "device A cannot reach host X over
 Netzilo" and must find the reason with evidence, not guesses. This runbook is the
@@ -278,7 +290,66 @@ keep working until keys rotate.
 
 ---
 
-## 8. Report template
+## 8. A probe peer from your own shell: `netzilo up -F -U` and its SOCKS5 proxy
+
+When you have a shell with the `netzilo` binary but no running client you may use — or you
+want a test that touches nothing on the host — start a throwaway peer in the foreground in
+userspace mode. It answers "can a Netzilo peer in these groups reach X on this port" in
+under a minute, without a TUN device, routes, or changes to the host's DNS.
+
+`-F` (`--foreground-mode`) runs the engine in this process instead of a daemon; Ctrl-C stops
+it. `-U` (`--userspace-mode`) uses the userspace TCP/IP stack: the peer's only way in is a
+**local SOCKS5 proxy on `127.0.0.1`**. Run as a normal user, the client uses userspace mode
+even without `-U`. Always choose the port yourself with `--socks5-port`: `netzilo status`
+does not show it, and a run that is not root otherwise listens on a per-user port derived
+from the home directory, not on `41339`. `NB_SOCKS5_LISTENER_PORT` overrides the flag.
+
+```sh
+D=$(mktemp -d)   # its own config, log and socket path, so a running client on this host is untouched
+netzilo up -F -U -l debug --socks5-port 1080 \
+  --management-url https://srv.netzilo.com:443 --pat "$NETZILOPAT" \
+  --config "$D/config.json" --log-file "$D/client.log" --daemon-addr "unix://$D/daemon.sock" &
+tail -f "$D/client.log"   # keep this open for the whole test, in a second shell if you have one
+# A second probe on the same host also needs --wireguard-port 51821 (any free port).
+```
+
+**The log is the only view into a foreground client.** It has no daemon, so `netzilo status`
+cannot see it, and nothing else reports what it is doing. Always run it with `-l debug`
+(`--log-level debug`) and keep reading the log while you test: enrolment, the connection
+to management and each peer connection are recorded there and nowhere else. At debug level
+each connection through the proxy logs its path — `Dial Netzilo Route <addr>` went into
+the tunnel, `Dial System Route <addr>` left through the host's own network (the
+destination is not a Netzilo address or route), and `failed to dial via Netzilo route`
+names the error. It is up when the log shows `Netzilo engine started, FQDN: … the
+IP is: …` (`grep -m1 'engine started' "$D/client.log"`). When a request through the proxy
+fails, read the lines it produced before drawing a conclusion. Then send traffic through
+the proxy. Use the **`socks5h`** form so
+the proxy resolves names through Netzilo DNS; plain `socks5` resolves on the host, whose
+resolver knows no Netzilo names.
+
+```sh
+curl -sv --socks5-hostname 127.0.0.1:1080 http://db-proxy.netzilo.network:8080/  # HTTP(S)
+curl -sv -x socks5h://127.0.0.1:1080 https://10.20.5.7/                            # same, proxy URL form
+nc -vz -X 5 -x 127.0.0.1:1080 10.20.5.7 5432                                      # any TCP port (OpenBSD nc)
+ssh -o ProxyCommand='nc -X 5 -x 127.0.0.1:1080 %h %p' admin@10.20.5.7              # SSH through it
+ALL_PROXY=socks5h://127.0.0.1:1080 some-cli ...                                    # tools that honour ALL_PROXY
+```
+
+Read the result the way §3 and §4 read policy and routes:
+
+- **The probe is its own peer.** It registers in the account with the groups its PAT's user
+  or its setup key gives it, and policy applies to it, not to the affected device. A
+  success proves the path works *for a peer in those groups*; compare its groups with
+  device A's before you call A's problem solved. A failure where A's groups would pass is
+  a policy finding about the probe, not about A.
+- **It tests the Netzilo path only.** Routed destinations (§4) and exit nodes apply to it
+  like any peer. Destinations outside Netzilo leave through the host's own network.
+- **TCP through SOCKS5 only.** `ping` does not go through a SOCKS5 proxy; test a port.
+- **Clean up.** Stop it with Ctrl-C (`kill %1`) and delete `$D`. If the peer stays listed
+  in the dashboard, remove it (`DELETE /api/peers/{id}`) so it does not linger in the
+  account's groups.
+
+## 9. Report template
 
 State the classification (§0), then the first failing check and its evidence, e.g.:
 

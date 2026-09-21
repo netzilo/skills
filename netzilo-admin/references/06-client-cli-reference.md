@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 14288
+chars: 14710
 sections:
 - id: '1'
   title: Global flags (all commands)
   chars: 1473
 - id: '2'
   title: Commands
-  chars: 7904
+  chars: 8121
 - id: '3'
   title: Environment variables beyond flags
   chars: 1388
@@ -36,8 +36,10 @@ from has its own Netzilo client, its output describes that machine's enrolment, 
 customer's (`SKILL.md` → "The Netzilo client on your own machine is a tool, not evidence").
 
 Elevation: on Linux/macOS the daemon socket is world-writable, so most commands work
-unprivileged; `service`, `ssh`, and foreground `up -F` require root. On Windows run an
-elevated terminal for `service`, `ssh`, and `up -F`.
+unprivileged; `service`, `ssh`, and a foreground `up -F` with a TUN device require root.
+A foreground run as a normal user uses userspace mode (as with `-U`) and needs a writable
+`--config`; it is reachable only through its SOCKS5 proxy (`11-connectivity-diagnosis.md`
+§8). On Windows run an elevated terminal for `service`, `ssh`, and `up -F`.
 
 ---
 
@@ -70,7 +72,7 @@ legacy `WT_` prefix is also read; `NB_` wins.
 | Flag | Default | Meaning |
 |---|---|---|
 | `--foreground-mode`, `-F` | false | run the engine in this process (no daemon); Ctrl-C logs out and resets keys |
-| `--userspace-mode`, `-U` | false | userspace TCP/IP stack (netstack); no TUN device, SOCKS5-only reachability |
+| `--userspace-mode`, `-U` | false | userspace TCP/IP stack (netstack); no TUN device, reachable only through the local SOCKS5 proxy (`11-connectivity-diagnosis.md` §8) |
 | `--interface-name` | `wt0` (macOS `utun100`) | WireGuard interface; macOS must be `utunN` |
 | `--wireguard-port` | `51820` | local WireGuard UDP port |
 | `--pat` | | personal access token login (`NB_PAT`; also `NETZILOPAT` env or stored `pat.dat`) |
@@ -86,7 +88,7 @@ legacy `WT_` prefix is also read; `NB_` wins.
 | `--proxy` | | upstream proxy for management/signal/TURN: `http://…`, `socks5://…`, or `auto` |
 | `--unified-proxy` | false | (daemon mode forces on) local SOCKS5+HTTP proxy |
 | `--mitm` | false | (daemon mode forces on) TLS inspection on the unified proxy |
-| `--socks5-port` | `41339` | unified proxy port |
+| `--socks5-port` | `41339` as root; a per-user port derived from the home directory otherwise | local SOCKS5 proxy port on `127.0.0.1` (`NB_SOCKS5_LISTENER_PORT` overrides); `netzilo status` does not show it |
 | `--web-server-port` | `41336` | local control server port (hooks, browser extension) |
 | `--mcp-gateway-port` | `41338` | embedded MCP gateway port |
 | `--container-name`, `--parent-pid` | | internal (Windows workspace containers) |

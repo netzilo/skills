@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.6.0
-  released: "2026-09-21"
+  version: 2.9.0
+  released: "2026-09-23"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 2.6.0, released 2026-09-21.** Confirm it is current before
+**This copy is version 2.9.0, released 2026-09-23.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -29,7 +29,9 @@ customer should trace back to a reference file, a command you ran, or a file you
 3. **Destructive actions need consent every time**: re-running the server installer
    (wipes the database), `docker compose down --volumes`, deleting peers/users/groups/the
    tenant, changing the server domain, rotating the masterkey, `netzilo down` on a device
-   (logs it out). State exactly what will be lost first.
+   (logs it out) — and through the device tools, `mod.disconnect`, which does the same,
+   and any `shell.run`. State exactly what will be lost first
+   (`references/36-device-tools.md` §1 and §7).
 4. **Back up before changing the server** — nothing is automatic
    (`references/02-server-operations.md` §6).
 5. **Least privilege**: remove the permissive Default policy only after replacements
@@ -67,8 +69,8 @@ you promise anything:
 
 | Surface | Has | Typical instance |
 |---|---|---|
-| `dashboard-assistant` | `api` | The AI assistant inside the Netzilo dashboard: the management REST API as the signed-in admin, writes proposed for that admin to approve, nothing else |
-| `netzilo-harness` | `api`, `server-shell`, `client-device` | The containerised Netzilo support agent (installed from the published install script): the API, a shell, the usual network tools, and the Netzilo client |
+| `dashboard-assistant` | `api`, `device-tools` | The AI assistant inside the Netzilo dashboard: the management REST API as the signed-in user, writes proposed for approval, and the **device tools** — the agent reads a peer's diagnostics, searches its logs and, with consent, changes its state or runs a command on it (`references/36-device-tools.md`) |
+| `netzilo-harness` | `api`, `server-shell`, `client-device`, `device-tools` | The containerised Netzilo support agent (installed from the published install script): the API, a shell, the usual network tools, the Netzilo client, and the device tools |
 | `human-operator` | everything, including `dashboard-ui` and `idp-console` | A person following these files by hand |
 
 Each reference declares in its front matter the capabilities its procedures need and the
@@ -110,7 +112,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.6.0** above.
+Compare its `version:` with **2.9.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -144,6 +146,13 @@ in this order. They are requirements, not preferences.
 ### 1. Establish the management URL
 
 The customer's server is the one they log into. There is no other way to know it.
+
+**Nothing in your environment names it.** `DSH_L3_URL` / `DSH_L3_PAT` (and `L3_URL` /
+`L3_PAT`) are the Level 3 escalation gate and its token: they are for
+`references/12-escalation-package.md` §11 and nothing else. The gate is not a management
+server — `/api/peers` there returns 404 — and its token is not the customer's. Never send
+a management API call to that URL or present that token to one. Ask the person for the
+server and a token, as below, even when those variables are set.
 
 | Deployment | Dashboard | API base |
 |---|---|---|
@@ -305,6 +314,11 @@ is instructions for the admin rather than work you performed.
 | Any CLI flag, env var, config path, log field | `references/06-client-cli-reference.md` | device |
 | Device won't connect, relayed, DNS, routes, SSH, daemon unreachable | `references/07-client-troubleshooting.md` | device |
 | "Device A can't reach host X" (peer, routed LAN/VPC, or exit node) | `references/11-connectivity-diagnosis.md` — the full procedure | API, device |
+| Diagnose or repair a specific peer **from the agent**: find the device, whose it is and what that permits, check it, read a result, change it well, and when a change needs the admin's approval | `references/36-device-tools.md` — the procedure | API, device tools |
+| What exactly each device tool does: every argument, every output field, how it behaves on macOS, Linux and Windows, how it fails | `references/37-device-tool-reference.md` — one card per tool, coding-agent style; read the card before the first call | API, device tools |
+| Find the root cause of a device problem methodically: facts not to rediscover, the diagnostic loop, the OS matrix, and a decision tree per symptom (not connected, cannot reach X, DNS, slow, access denied, worked yesterday, after upgrade) | `references/38-device-diagnosis-method.md` — load the tree for the symptom in front of you | API, device tools |
+| What exactly one device tool does: arguments, bounds, output fields, platform differences, failure modes, an example — read a card before the first use | `references/37-device-tool-reference.md` — one card per tool, plus how to read any result | API, device tools |
+| Work a device problem to its cause: the operating-system matrix (paths, interface, DNS mechanism, posture signals that cannot be true on a platform), the hypothesis-and-evidence method, playbooks by symptom with stop conditions | `references/38-device-diagnosis-method.md` | API, device tools |
 | "Here is a log — what went wrong?" (client, management, signal) | `references/13-log-interpretation.md` — line anatomy, healthy sequences, message families, noise vs signal, correlation, worked readings | device, server shell |
 | New customer, or rolling out to a new team — what order to do it in | `references/16-onboarding-and-rollout.md` — phased plan with an exit test per phase, and the first-week mistakes | API |
 | "What does Netzilo collect?" — security review, data protection, works council | `references/14-data-handling-and-privacy.md` — every field collected, what AI events carry, what can be disabled | reading only |

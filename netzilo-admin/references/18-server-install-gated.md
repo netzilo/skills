@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 14246
+chars: 14436
 sections:
 - id: '0'
   title: Gather inputs from the user (mandatory — do not assume)
@@ -22,7 +22,7 @@ sections:
   chars: 607
 - id: '4'
   title: End-to-end verification
-  chars: 1888
+  chars: 2061
 - id: '5'
   title: Login smoke test (optional but preferred)
   chars: 656
@@ -34,7 +34,7 @@ sections:
   chars: 413
 - id: '8'
   title: Success criteria (report this)
-  chars: 739
+  chars: 756
 - id: appendix-a-provisioning-a-throwa
   title: Appendix A — Provisioning a throwaway test VM
   chars: 717
@@ -217,7 +217,7 @@ echo | openssl s_client -connect "$D:443" -servername "$D" 2>/dev/null \
 
 | Gate | Check | Expected |
 |------|-------|----------|
-| **3** | `docker compose ps` | **8 services Up**: `caddy`, `coturn`, `dashboard`, `management`, `signal`, `zitadel`, `postgres` (healthy), `redis` (healthy) |
+| **3** | `docker compose ps` | **9 services Up**: `caddy`, `coturn`, `dashboard`, `management`, `signal`, `zitadel`, `support-worker` (healthy), `postgres` (healthy), `redis` (healthy). Only 8 and no `support-worker` line = pre-worker engine; report it, the Assistant cannot be enabled on this install (`01-server-install.md` §1) |
 | **4** | dashboard | `HTTP 200` |
 | **5** | TLS cert | `issuer=… Let's Encrypt …`, and `notAfter` is in the future (waived if `TLS_MODE=provided`) |
 | **6** | OIDC discovery | `HTTP 200`, `"issuer":"https://<DOMAIN>"` |
@@ -303,7 +303,7 @@ Report PASS only if **all** are true:
 
 - [ ] Gate 1 — host meets Ubuntu + sizing requirements
 - [ ] Gate 2 — installer completed (`Done. Netzilo is starting …`)
-- [ ] Gate 3 — all 8 containers Up (postgres + redis healthy)
+- [ ] Gate 3 — all 9 containers Up (postgres + redis + support-worker healthy)
 - [ ] Gate 4 — dashboard returns HTTP 200
 - [ ] Gate 5 — trusted Let's Encrypt cert (or explicitly waived for self-signed)
 - [ ] Gate 6 — OIDC discovery 200 with correct issuer

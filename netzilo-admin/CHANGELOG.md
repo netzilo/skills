@@ -7,6 +7,104 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.9.0 — 2026-09-23
+
+A throwaway foreground client is a connectivity probe.
+
+- **New `references/11-connectivity-diagnosis.md` §8 — a probe peer from your own shell.**
+  `netzilo up -F -U --socks5-port <p>` starts a peer in this process with the userspace
+  stack: no TUN device, no routes, no host DNS change, reachable only through a SOCKS5
+  proxy on `127.0.0.1`. The section gives the command with its own config, log and socket
+  path so a running client is untouched, why it must run with `-l debug` and a log kept
+  open (a foreground client has no daemon, so the log is the only view into it; it is up
+  at the `Netzilo engine started` line), how to send
+  `curl`, `nc` and `ssh` through the proxy with `socks5h` so names resolve through Netzilo
+  DNS, and how to read the result: the probe is its own peer, so policy applies to its
+  groups, not to the affected device's. The report template moved to §9.
+- **`SKILL.md` §1: the Level 3 variables are not the customer's server.** An agent in the
+  harness, finding no management URL configured, sent `/api/peers` to `DSH_L3_URL` with
+  `DSH_L3_PAT`. The section now says that nothing in the environment names the
+  customer's server, that the L3 pair is for escalation only, and to ask instead.
+- **Corrected: the SOCKS5 port of a non-root run is not `41339`.** Without
+  `--socks5-port`, a client that is not root listens on a per-user port derived from the
+  home directory, and `netzilo status` does not show the port (`06` flag table, `07` §5).
+- **`references/36-device-tools.md`: in the Netzilo harness `device_tools` also takes
+  `server_url` and `token`.** The harness no longer carries a configured server or token;
+  the agent asks the person for them, and `device_run` reuses what the device was listed
+  with. A change on someone else's device asks the person first and never blocks: it
+  runs once approved, or straight away when there is no approval prompt.
+- **Corrected: a foreground `up -F` needs root only for a TUN device.** Run as a normal user
+  it uses userspace mode and needs a writable `--config` (`06`, introduction).
+
+## 2.8.0 — 2026-09-22
+
+The device tools are specified like a coding agent's tools, and the diagnosis has a
+method.
+
+- **New `references/37-device-tool-reference.md` — a card per tool or tool pair.** Every device tool
+  now has a specification the agent reads before first use instead of rediscovering it:
+  purpose, when to use it and what not to use it for, each argument with type, default
+  and bounds, every output field and its meaning, **platform differences**, failure modes,
+  and worked examples. §0 states the contract every tool shares: the result envelope and
+  its seven statuses, limits, redaction, concurrency, at-most-once delivery, the daemon's
+  identity per OS, and that a client reporting "Darwin" is macOS. The catalog remains
+  authoritative for *which* tools exist; this file for what they *mean*.
+- **New `references/38-device-diagnosis-method.md` — root cause, not symptom relief.**
+  §1 lists the facts the agent must not rediscover (policy is evaluated on the server,
+  routes exist twice, DNS is two resolvers, posture is probed locally with per-OS
+  heuristics and enforced remotely, the client log is the record). §2 is the loop:
+  symptom in the person's words, account first, fix the platform, one hypothesis per
+  tool, an evidence ledger, explicit stop conditions, verify with the reading that found
+  the fault. §3 is the operating-system matrix: daemon identity, config and log paths
+  (the same folder on Windows), interface names, how each OS installs host DNS and
+  programs routes, shell equivalents, and which posture signals **cannot be true on a
+  platform** (`os_updated` and `antivirus_enabled` outside the Debian family and ClamAV;
+  `screen_lock_enabled` without GNOME or KDE). §4 has a decision tree per symptom with OS
+  branches and stop conditions; §5 what the device cannot tell you; §6 the report.
+- **`references/36-device-tools.md` slimmed to the procedure** (12 KB, loads whole): when
+  to go to the device, consent, find, check, reading a result, changing well, shell as
+  the last tool, limits, management's refusals, reporting. The per-tool tables moved to
+  `37`, the playbooks to `38`.
+- **Client (same release): `diag.grep all_files` means the log and its rotations only.**
+  It no longer walks the whole log directory, which on Windows is also the directory
+  holding `config.json` and `token.dat`; `37` §9 says so.
+- **Cross-references** in `11-connectivity-diagnosis.md` and `13-log-interpretation.md`
+  point at the cards and trees that now hold that material.
+
+## 2.7.0 — 2026-09-22
+
+The agent can reach the device.
+
+- **New `references/36-device-tools.md` — Device Tools.** From the dashboard assistant
+  (and the harness), the agent can now act on a specific peer through management:
+  `device_tools(peer_id)` returns the machine, whose it is, and the tools it offers;
+  `device_run(peer_id, name, arguments, reason)` runs one. Thirteen read-only diagnostics
+  (status, config, routes, route match, tunnel-aware DNS, probe, posture, system, log
+  tail, on-device regex search over current and rotated logs, debug bundle, catalog),
+  three state changes (refresh, disconnect, log level) and a governed shell. Disconnect
+  signs the person out and is performed only after its result has left the device; there
+  is deliberately no reconnect or separate logout, because neither can work over a
+  connection the command itself tears down. The file covers finding the device, the consent rule, every tool's arguments and
+  output, how to read a result, playbooks by symptom, when a change is proposed for
+  approval, shell rules by platform, and what the tools still cannot do.
+- **Consent rule.** Diagnostics run immediately. Changes and commands run immediately on
+  the caller's own device and are **proposed for the admin's approval** on anybody
+  else's. Regular users may reach their own device; management enforces ownership.
+- **New capability `device-tools`** in the front-matter vocabulary. `dashboard-assistant`
+  and `netzilo-harness` hold it, so §36 is executable on both.
+- **`references/33-api-request-schemas.md` regenerated** from the server's OpenAPI
+  description: adds `GET /api/support/devices/{peerId}`, `GET …/tools` and
+  `POST …/invoke`, with the `SupportDevice`, `SupportDeviceTool`,
+  `SupportDeviceInvokeRequest` and `SupportDeviceCommandResult` schemas the device
+  tools speak. The same description is served live at `GET /api/support/openapi.yml`.
+- **Cross-references added** to `00-operator-playbook.md` (triage and intake),
+  `07-client-troubleshooting.md`, `11-connectivity-diagnosis.md`,
+  `12-escalation-package.md` §8 and `13-log-interpretation.md`: where a runbook says "on
+  the affected device", the assistant can now run the equivalent through the device
+  tools instead of handing the person a command.
+- **Legacy clients.** A client that predates the feature is reported as too old and
+  nothing is dispatched to it; the hand-run runbooks remain the path for those devices.
+
 ## 2.6.0 — 2026-09-21
 
 AI is configured as providers, not two fixed cards.
@@ -40,9 +138,14 @@ AI is configured as providers, not two fixed cards.
   delivery paths (custom one-liner, AWS AMI, Azure image) are described as the separate
   pipelines they are — one engine file, three independent image pins. Hand-over now says
   the Assistant stays hidden until an owner connects an AI provider.
-- **Custom installer image tags.** The one-liner now retags to `:latest` only where that
-  tag is published and otherwise keeps the engine's pinned release; the runbook explains
-  the resulting `WARN:` and the `manifest unknown` failure it prevents.
+- **Every marketplace case covers the worker.** `01-server-install.md` §2.4 (AWS AMI) and
+  §3.3 (Azure image) state what the images carry: nine digest-pinned containers, token
+  generated at first boot, no new inbound port or wizard field, outbound 443 to the AI
+  provider. §1 adds the one-command check that tells a pre-worker engine or image (eight
+  containers, Assistant impossible) from a current one, and says such an install cannot
+  gain the worker in place — backup, new install, restore. §4 notes the worker is
+  unaffected by external-DB mode. `18-server-install-gated.md` gate 3 and the operator
+  playbook's container list read nine.
 
 ## 2.5.0 — 2026-09-21
 

@@ -45,6 +45,7 @@ Defined once in `skillmeta.py` (`CAPABILITIES`):
 | `server-shell` | a shell on the Netzilo Server host (docker, systemd, files) |
 | `client-device` | a shell or OS access on a device running the Netzilo client |
 | `idp-console` | the identity provider's own admin console |
+| `device-tools` | the support device tools through management: read a peer's tool catalog and run its tools remotely |
 
 `requires` records what a procedure needs to be **run**, not what the prose
 mentions. A page that explains a `docker compose` command without asking anyone
@@ -56,9 +57,9 @@ to run it does not require `server-shell`.
 
 | Surface | Has |
 |---|---|
-| `dashboard-assistant` | `api` |
-| `netzilo-harness` | `api`, `server-shell`, `client-device` |
-| `human-operator` | all five |
+| `dashboard-assistant` | `api`, `device-tools` |
+| `netzilo-harness` | `api`, `server-shell`, `client-device`, `device-tools` |
+| `human-operator` | all six |
 
 A reference is **executable** on a surface when the surface holds every
 capability in `requires`; that is the whole of `executable_on`. Otherwise the
