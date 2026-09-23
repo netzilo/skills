@@ -203,5 +203,11 @@
       "api",
       "device-tools"
     ]
+  },
+  "39-end-user-self-service.md": {
+    "requires": [
+      "api",
+      "device-tools"
+    ]
   }
 }

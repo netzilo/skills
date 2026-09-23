@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.9.0
+  version: 2.10.0
   released: "2026-09-23"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 2.9.0, released 2026-09-23.** Confirm it is current before
+**This copy is version 2.10.0, released 2026-09-23.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -112,7 +112,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.9.0** above.
+Compare its `version:` with **2.10.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -325,6 +325,7 @@ is instructions for the admin rather than work you performed.
 | Compromised device or credential, departing employee, locked out by a change | `references/15-incident-response-and-recovery.md` — containment order, what each action really revokes, lockout recovery | API, server shell |
 | Blocked by a plan, a quota or billing; "upgrade" prompts; a lapsed subscription | `references/31-plans-limits-and-billing.md` — every limit and its exact message | dashboard |
 | The admin needs something to give their employees | `references/17-end-user-guide.md` — a page to publish, plus what an employee's complaint really means | reading only |
+| **The person you are helping is a regular user** (the assistant on the Workplace page): what they can see through the API, what you may run on their own device without an approval step, the symptoms they bring and which side of the administrator's boundary each ends on, and the message to write when the cause is the administrator's | `references/39-end-user-self-service.md` — read first in a regular user's session, then the tool cards in 37 and the playbook in 38 | API, device tools |
 | Runbook exhausted and it still fails — escalate to Netzilo | `references/12-escalation-package.md` — build the redacted support package the customer sends | device, server shell |
 | The shape of the network: groups as the unit of policy, addressing, what to model first | `references/08-network-administration.md` — read before the per-page files below | API |
 | Network → Policies (access control) | `references/20-policies-access-control.md` | API |

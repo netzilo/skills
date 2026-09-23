@@ -7,6 +7,35 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.10.0 — 2026-09-23
+
+The assistant now has a second seat: a regular user on the Workplace page.
+
+- **New `references/39-end-user-self-service.md` — helping a person who is not an
+  administrator.** Netzilo Server lets an administrator open the AI assistant to regular
+  users (Settings → Permissions: *Allow regular users to use the AI Assistant* plus the
+  allowed groups; the server reports the result as `permissions.ai_assistant` on
+  the user record, `GET /api/users?self=true` for the user themselves). An agent in that seat works with the caller's own permissions:
+  the file lists exactly what a regular user's token returns (their own peers, the current
+  user, the applicable Edge filters) and that everything else is a 403 to be named, not
+  worked around; that the device tools run on the person's own device without an approval
+  step, so the agent's read-before-change discipline is the only gate; a symptom table
+  saying which side of the administrator's boundary each common complaint ends on; a
+  four-line message template for handing a cause the administrator owns across that
+  boundary with the evidence attached; and that there is no Level 3 escalation from this
+  seat. `SKILL.md` routes to it.
+- **New activity `support.session.create` ("Support session created") in
+  `34-event-catalogue.md`.** Written when a conversation with the assistant gets its first
+  message; the target and `meta.session_id` are the session id, `meta.title` the first
+  message, `meta.role` the caller's role. Admins open the read-only transcript from the eye
+  icon on the event (`GET /api/support/audit/sessions/{id}`, admin only, any user's session,
+  kept after the owner deletes it). This is the oversight for the regular-user seat.
+- **`25-users-groups-and-account-settings.md` readers:** the new account settings
+  `user_ai_assistant_enabled` and `user_ai_assistant_groups` (group ids) on
+  `PUT /api/accounts/{id}`; both are needed for a regular user to be admitted, and an
+  empty group list admits nobody. `GET /api/ai/capabilities` now answers any signed-in
+  user with the per-use booleans only.
+
 ## 2.9.0 — 2026-09-23
 
 A throwaway foreground client is a connectivity probe.

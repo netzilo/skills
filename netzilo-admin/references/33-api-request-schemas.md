@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 68139
+chars: 68550
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
   chars: 233
 - id: put-api-accounts-accountid
   title: '`PUT /api/accounts/{accountId}`'
-  chars: 1879
+  chars: 2290
 - id: delete-api-accounts-accountid
   title: '`DELETE /api/accounts/{accountId}`'
   chars: 331
@@ -468,7 +468,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-09-22 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-09-23 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -502,6 +502,8 @@ Request body (JSON):
   - `jwt_groups_enabled` (boolean, optional): Allows extract groups from JWT claim and add it to account groups. — e.g. `True`
   - `jwt_groups_claim_name` (string, optional): Name of the claim from which we extract groups names to add it to account groups. — e.g. `roles`
   - `jwt_allow_groups` (array of string, optional): List of groups to which users are allowed access
+  - `user_ai_assistant_enabled` (boolean, optional): Lets regular users open the AI assistant. Admins always may. A regular user also needs to belong to one of user_ai_assistant_groups. — e.g. `False`
+  - `user_ai_assistant_groups` (array of string, optional): Group IDs whose members may use the AI assistant when user_ai_assistant_enabled is set. With the switch on and no groups listed, no regular user may.
   - `extra` (?, optional)
 
 Responses: `200` An Account object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error

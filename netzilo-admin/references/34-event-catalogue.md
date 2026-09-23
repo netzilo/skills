@@ -6,11 +6,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 7799
+chars: 7854
 sections:
 - id: administration
   title: Administration
-  chars: 4740
+  chars: 4795
 - id: access-control
   title: Access Control
   chars: 454
@@ -32,8 +32,8 @@ sections:
 ---
 # Event catalogue — what each activity is called
 
-Generated from Netzilo Server's activity table on 2026-09-21 by
-`scripts/gen-event-codes.py`. 133 activities.
+Generated from Netzilo Server's activity table on 2026-09-23 by
+`scripts/gen-event-codes.py`. 134 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
 name), `activity_code` (the stable identifier) and `activity_category`. **Say the
@@ -125,6 +125,7 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Setup key revoked | `setupkey.revoke` |
 | Setup key updated | `setupkey.update` |
 | Subscription updated | `subscription.updated` |
+| Support session created | `support.session.create` |
 | Tenant updated | `tenant.updated` |
 | Tool created | `tool.created` |
 | Tool deleted | `tool.deleted` |
