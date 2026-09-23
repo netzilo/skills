@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 7605
+chars: 9127
 sections:
 - id: '1'
   title: Model
@@ -23,7 +23,7 @@ sections:
   chars: 1293
 - id: '5'
   title: Diagnosis
-  chars: 1425
+  chars: 2947
 ---
 # Admin Skill — Edge Tools (MCP servers) and Discovered Tools
 
@@ -153,6 +153,10 @@ Discovered → **block** (API `…/block`), or approve then disable. Blocked cal
 | Tool saves but Continue disabled | icon URL or category missing; URL/command missing for the transport | fill the required fields |
 | Cursor/VS Code cannot connect to the gateway | client not running; port 41338 in use | start the client; `netzilo up --mcp-gateway-port <p>` |
 | Headers not sent | stored under `env` for HTTP tools — confirm via `GET /api/edge/tools/{id}` | re-enter |
+| Tool calls to an OAuth-protected server start failing; client log `[OAuth Refresh] Token for server <server> expired … Re-authorization required.` | the saved sign-in for that server expired too long ago to refresh silently | the user signs in to the server again; registering or connecting the server again starts a browser sign-in (log `A browser window will open for you to authorize the application`) |
+| Client log `MCP server <server> has no bearer token or custom headers - connection may fail if OAuth is required` | the tool carries no credentials and no sign-in has been completed | if the server needs authentication, add the `Authorization` header to the tool (stored under `env`) or complete its OAuth sign-in; harmless for servers that need none |
+| Client log `MCP proxy: client <client> not authorized to access MCP server <server>` | the local gateway refused the call because that MCP client is not on the server's access list | not expected with the default client setup; collect an anonymized debug bundle and follow `12-escalation-package.md` |
+| AI agent traffic passes although rules should block; client log `evaluatellm: gateway IPC error (fail-open)` or `agentsdk: MCPGatewayPort not set — Evaluate will fail open` | the local gateway was not reachable (or, for the SDK, was disabled), so the check did not run and the request was allowed | make sure the client is running and connected (`netzilo status`); for the SDK remove `mcp_gateway_port: 0`; then re-test (`10-ai-security-aidr.md` §9) |
 
 Events: `tool.created/updated/deleted`, `tool.allowed`, `tool.blocked`, `tool.detected`,
 `tool.sanctioned`, `tool.explicitly_blocked`.

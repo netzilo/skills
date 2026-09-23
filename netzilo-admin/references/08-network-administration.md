@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 17745
+chars: 20414
 sections:
 - id: '1'
   title: Peers (Endpoint → Peers, `/peers`)
-  chars: 2496
+  chars: 2796
 - id: '2'
   title: Setup keys (Endpoint → Setup Keys, `/setup-keys`)
   chars: 975
@@ -20,16 +20,16 @@ sections:
   chars: 592
 - id: '4'
   title: Policies (Network → Policies, `/access-control`)
-  chars: 2924
+  chars: 3417
 - id: '5'
   title: Routes and exit nodes (Network → Routes, `/network-routes`)
-  chars: 2089
+  chars: 2562
 - id: '6'
   title: DNS (Network → DNS Servers `/dns/nameservers`, DNS Settings `/dns/settings`)
-  chars: 1633
+  chars: 2809
 - id: '7'
   title: Posture checks (Endpoint → Posture Checks, `/posture-checks`)
-  chars: 2292
+  chars: 2519
 - id: '8'
   title: Activity, reports, integrations
   chars: 2891
@@ -94,9 +94,14 @@ Peer lifecycle facts:
 - **Inactivity expiration**: SSO peers disconnected longer than the period are expired.
 - **Ephemeral** peers (from ephemeral setup keys) are deleted 10 minutes after going
   offline.
-- **Approval required** (Cloud): new peers cannot talk to anyone until an admin approves.
-- Free plan limits: 5 users / 100 peers (`maximum number of personal peers reached`);
-  self-hosted Enterprise/MSP deployments are unlimited.
+- **Approval required** (Cloud): new peers are flagged for an admin to review and
+  **Approve**. Treat it as a review queue: do not rely on peer approval to keep a device
+  off the network. To keep a device out, block its user (Team → Users) or delete the
+  peer.
+- Free plan limits: 5 users / 100 peers. The device is refused with the exact text
+  `maximum number of personal peers reached`; a refusal with any other text is not the
+  plan (`24-peers-and-setup-keys.md` §6). Self-hosted Enterprise/MSP deployments are
+  unlimited.
 
 ---
 
@@ -163,6 +168,13 @@ a policy edit takes effect on the *source* peers.
 API: `POST /api/policies` `{name, description, enabled, any_check_must_pass, source_posture_checks:[ids], rules:[{name, description, enabled, action:"accept", protocol:"all|tcp|udp|icmp", bidirectional, sources:[groupIds], destinations:[groupIds], ports:["443","8000-8100"], port_ranges:[{start,end}], allowed_routes:[cidrs]}]}`;
 `PUT /api/policies/{id}`, `DELETE`.
 
+Validation refusals (HTTP 400) and what they mean:
+
+| Message | Cause | Fix |
+|---|---|---|
+| `for ALL or ICMP protocol ports is not allowed` | a rule with protocol `all` or `icmp` carries `ports` or `port_ranges` | remove the ports, or switch the rule to `tcp`/`udp` |
+| `for ALL or ICMP protocol type flow can be only bi-directional` | a rule with protocol `all` or `icmp` has `bidirectional:false` | set `bidirectional:true`, or use `tcp`/`udp` with at least one port for a one-way rule |
+
 Recipes:
 
 - **Move from open mesh to least privilege:** create the needed policies first (they
@@ -209,6 +221,13 @@ Deleting the network deletes all its routes.
 
 API: `POST /api/routes` `{network_id, description, enabled, peer | peer_groups:[id], network | domains:[…], keep_route, metric, masquerade, groups:[dist], access_control_groups:[…]}`.
 
+Validation refusals (HTTP 400): `only one of 'peer' or 'peer_groups' should be provided`
+and `either 'peer' or 'peers_group' should be provided` (exactly one routing source);
+`only one of 'network' or 'domains' should be provided` and `either 'network' or
+'domains' should be provided` (exactly one target); `metric should be between 1 and 9999`;
+`identifier should be between 1 and 40 characters`; `invalid Prefix` (the CIDR does not
+parse). Each names the field to fix.
+
 Kubernetes routing peers: ephemeral reusable key with auto-group → Deployment (3
 replicas, `NET_ADMIN`, `SYS_ADMIN`, `SYS_RESOURCE`) → route via that peer group.
 
@@ -237,6 +256,17 @@ their own OS DNS (`disabled_management_groups`).
 
 API: `POST /api/dns/nameservers` `{name, description, nameservers:[{ip, ns_type:"udp", port}], enabled, groups, primary, domains, search_domains_enabled}`; `PUT /api/dns/settings` `{disabled_management_groups}`.
 
+Validation refusals (HTTP 400) — `primary` and `domains` are mutually exclusive, and the
+messages say so:
+
+| Message | Cause | Fix |
+|---|---|---|
+| `nameserver group primary status is true and domains are not empty, you should set either primary or domain` | `primary:true` together with match domains | either clear `domains` (primary resolver) or set `primary:false` (split DNS) |
+| `nameserver group primary status is false and domains are empty, it should be primary or have at least one domain` | neither primary nor any match domain | add a domain, or make it primary |
+| `nameserver group primary status is true and search domains is enabled, you should not set search domains for primary nameservers` | `search_domains_enabled:true` on a primary group | turn search domains off, or make the group a match-domain group |
+| `the list of nameservers should be 1 or 3, got <n>` | 0, 2 or more than 3 servers | provide one or three |
+| `nameserver group got an invalid domain: <domain> …` / `the list of group IDs should not be empty` / `a nameserver group with name <name> already exist` | malformed domain; no distribution group; duplicate name | fix the named field |
+
 Test from a peer: Linux `resolvectl query peer-a.netzilo.network` / `dig`, macOS
 `dscacheutil -q host -a name peer-a.netzilo.network`, Windows `Resolve-DnsName peer-a.netzilo.network`.
 
@@ -247,7 +277,9 @@ Test from a peer: Linux `resolvectl query peer-a.netzilo.network` / `dig`, macOS
 A check is a named bundle of conditions evaluated on the **source** peer; attach it to
 policies (and to profiles / Edge filters). Free-plan tenants cannot create/edit checks
 ("Upgrade Plan"); self-hosted Enterprise/MSP can. A check cannot be deleted while any
-policy, profile or filter uses it.
+policy, profile or filter uses it: `DELETE /api/posture-checks/{id}` answers HTTP 412
+`posture checks have been linked to policy: <policy name>` — detach it from the named
+policy (Posture Checks tab) and retry; the dashboard disables the delete control instead.
 
 | Card | Field | Semantics |
 |---|---|---|

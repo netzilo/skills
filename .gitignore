@@ -17,3 +17,4 @@ venv/
 # ones under netzilo-admin/references/.
 /tmp/
 *.tmp
+.reviews/

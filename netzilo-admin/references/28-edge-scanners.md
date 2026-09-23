@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 10620
+chars: 11670
 sections:
 - id: '1'
   title: Model
-  chars: 1169
+  chars: 1575
 - id: '2'
   title: Field reference (Add / Edit Scanner)
   chars: 1801
@@ -20,7 +20,7 @@ sections:
   chars: 1328
 - id: '4'
   title: Testing with Replay
-  chars: 1110
+  chars: 1222
 - id: '5'
   title: API
   chars: 664
@@ -29,10 +29,10 @@ sections:
   chars: 576
 - id: '7'
   title: Diagnosis
-  chars: 1359
+  chars: 1534
 - id: '8'
   title: Limits to state before a customer discovers them
-  chars: 1497
+  chars: 1854
 ---
 # Admin Skill — Edge Scanners (detection rules)
 
@@ -66,9 +66,13 @@ match, paste its YAML into **Add Scanner**, adjust, and Replay it (§4).
 - Rule fields shown in the table are derived from the YAML: **Level** (`level` or
   `severity`: critical/high/medium/low), **Category** (from `tags`, e.g.
   `attack.initial-access` → "Initial Access"), routing contexts (`logsource.category`).
-- Evaluation order: rules in a filter are evaluated per event; the first rule that fires
-  with a terminal action (block/allow/redact/report) decides; explicit `allow` rules
-  should come first.
+- Evaluation order: all rules bound to the device (from every matching filter) are
+  evaluated per event, most severe `level` first, then by rule `id` ascending. The most
+  severe matching rule decides the verdict and is the one named as the blocker. After a
+  block only `redact` and `execute` rules still run. An `allow` rule never overrides a
+  block, and the position of a rule in a filter or list has no effect. The full contract,
+  and the supported ways to exempt traffic, are in `32-detection-rule-authoring.md`,
+  sections "Evaluation Order and Verdicts" and "Exempting traffic from a rule".
 - Verdict logging: `tool.blocked` (with `rule_name`, `filter_name`, scanned text),
   `tool.detected` (report-only match), `tool.allowed`, `semantic.event`, `aidr.graph`
   (session snapshot).
@@ -145,9 +149,10 @@ see what it would have done without deploying it.
 3. Optionally search events ("Search events…") and click graph nodes/edges to inspect
    payloads (Details → Copy JSON).
 4. **Play**. Results: chips `blocked`, `redacted`, `detected`, `unchanged`; per event the
-   diff `new_block`, `new_redact`, `new_detection`, `new_allow`, `new_report`,
-   `unchanged`; "No detections — all events passed unchanged" means the rule never
-   matched that snapshot.
+   diff `new_block`, `new_redact`, `new_detection`, `new_allow` (the rule no longer
+   blocks or redacts an event that was blocked or redacted live), `partial` (payload not
+   in the snapshot), `unchanged`; "No detections — all events passed unchanged" means the
+   rule never matched that snapshot.
 5. Iterate on the YAML until the intended events (and only those) fire.
 
 API: `POST /api/peers/{peerId}/aidr-snapshot/replay {"run_id":"…","rules_yaml":"…"}`;
@@ -187,14 +192,14 @@ Body: `{"name":"…","description":"…","severity":"high","context":["tool_inpu
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Rule saved, never fires | not in any filter (Used by = No Filters); filter does not match the device; wrong `logsource.category` for where the content is; an earlier `allow` in the same filter | bind it; check filter targets; Replay to see the real context/payload |
+| Rule saved, never fires | not in any filter (Used by = No Filters); filter does not match the device; wrong `logsource.category` for where the content is; a more severe rule already blocks the same events, so a lower-severity `report` rule is skipped | bind it; check filter targets; Replay to see the real context/payload |
 | Fires far too often | broad `contains`; no exclusions | tighten; add `excl` selection and `condition: sel and not excl`; report mode |
 | Redaction not visible | redaction applies to matched content only; streaming responses from some SDK wrappers are not redacted | Replay shows `new_redact`; check the event's scanned text |
 | AI button missing | no AI integration | Integrations → Artificial Intelligence |
 | Replay: "No peers with AIDR data" | no device has produced a session snapshot yet | generate traffic on a filtered device; wait for `aidr.graph` events |
 | Cannot delete | Premium, or used by filters | remove from filters |
 | Locked in catalog | plan | Enterprise |
-| Blocked call but wrong rule named in the event | first firing rule wins across all scanners in the filter | reorder/allow explicitly |
+| Blocked call but wrong rule named in the event | the named rule is the most severe match across all filters on the device (equal severity: lowest rule `id`) | correct the `level` values or narrow the other rule's conditions; reordering has no effect |
 | `scan` rules slow down the agent | AI classifier latency | narrow the `detection` upstream; use `on_timeout: report` |
 
 Events: `scanner.created/updated/deleted`, `tool.blocked`, `tool.detected`, `semantic.event`.
@@ -217,8 +222,12 @@ are to unbind it from the filter covering the affected group, or to write a cust
 with narrower matching. Editing the premium rule is refused. Do not promise a sensitivity
 setting.
 
-**Per-group exemption is done with filters, not with rules.** A rule has no group field.
-To exempt a population, give them a filter that does not bind that rule.
+**Per-group exemption is done with filters, not with rules.** A rule has no group field,
+and adding an `allow` rule does not exempt anyone. To exempt a population, give them a
+filter that does not bind that rule, and make sure no other filter matching those devices
+(for example a baseline `All` filter) binds it either. To exempt specific traffic for
+everyone, narrow the rule's own conditions with an exclusion. Prove every exception with
+Replay (§4) and then a live pilot before telling the customer it is in place.
 
 **Performance is not instrumented for customers.** There is no published overhead figure
 and no per-rule timing exposed in the product. When users report that AI tools feel slow,

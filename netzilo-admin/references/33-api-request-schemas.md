@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 68550
+chars: 68857
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -39,10 +39,10 @@ sections:
 - id: put-api-ai-providers-providerid
   title: '`PUT /api/ai/providers/{providerId}`'
   chars: 1345
-- id: delete-api-ai-providers-provider
+- id: delete-api-ai-providers-providerid
   title: '`DELETE /api/ai/providers/{providerId}`'
   chars: 261
-- id: post-api-ai-providers-providerid
+- id: post-api-ai-providers-providerid-verify
   title: '`POST /api/ai/providers/{providerId}/verify`'
   chars: 317
 - id: post-api-ai-scanprompt
@@ -60,13 +60,13 @@ sections:
 - id: post-api-dns-nameservers
   title: '`POST /api/dns/nameservers`'
   chars: 1367
-- id: get-api-dns-nameservers-nsgroupi
+- id: get-api-dns-nameservers-nsgroupid
   title: '`GET /api/dns/nameservers/{nsgroupId}`'
   chars: 352
-- id: put-api-dns-nameservers-nsgroupi
+- id: put-api-dns-nameservers-nsgroupid
   title: '`PUT /api/dns/nameservers/{nsgroupId}`'
   chars: 1466
-- id: delete-api-dns-nameservers-nsgro
+- id: delete-api-dns-nameservers-nsgroupid
   title: '`DELETE /api/dns/nameservers/{nsgroupId}`'
   chars: 346
 - id: get-api-dns-settings
@@ -81,13 +81,13 @@ sections:
 - id: delete-api-edge-discovered-tools
   title: '`DELETE /api/edge/discovered-tools/{discoveredToolId}`'
   chars: 293
-- id: post-api-edge-discovered-tools-d
+- id: post-api-edge-discovered-tools-discoveredtoolid
   title: '`POST /api/edge/discovered-tools/{discoveredToolId}/analyze`'
   chars: 312
-- id: post-api-edge-discovered-tools-d
+- id: post-api-edge-discovered-tools-discoveredtoolid-2
   title: '`POST /api/edge/discovered-tools/{discoveredToolId}/block`'
   chars: 293
-- id: post-api-edge-discovered-tools-d
+- id: post-api-edge-discovered-tools-discoveredtoolid-3
   title: '`POST /api/edge/discovered-tools/{discoveredToolId}/sanction`'
   chars: 434
 - id: post-api-edge-events
@@ -129,7 +129,7 @@ sections:
 - id: put-api-edge-scanners-scannerid
   title: '`PUT /api/edge/scanners/{scannerId}`'
   chars: 670
-- id: delete-api-edge-scanners-scanner
+- id: delete-api-edge-scanners-scannerid
   title: '`DELETE /api/edge/scanners/{scannerId}`'
   chars: 271
 - id: get-api-edge-tools
@@ -156,13 +156,13 @@ sections:
 - id: post-api-event-streaming
   title: '`POST /api/event-streaming`'
   chars: 371
-- id: get-api-event-streaming-getlogvi
+- id: get-api-event-streaming-getlogvideos
   title: '`GET /api/event-streaming/getLogVideos`'
   chars: 306
-- id: post-api-event-streaming-sign-ur
+- id: post-api-event-streaming-sign-urls
   title: '`POST /api/event-streaming/sign-urls`'
   chars: 313
-- id: delete-api-event-streaming-strea
+- id: delete-api-event-streaming-streamingid
   title: '`DELETE /api/event-streaming/{streamingId}`'
   chars: 288
 - id: get-api-events
@@ -201,16 +201,16 @@ sections:
 - id: post-api-integrations
   title: '`POST /api/integrations`'
   chars: 484
-- id: put-api-integrations-integration
+- id: put-api-integrations-integrationid
   title: '`PUT /api/integrations/{integrationId}`'
   chars: 547
-- id: delete-api-integrations-integrat
+- id: delete-api-integrations-integrationid
   title: '`DELETE /api/integrations/{integrationId}`'
   chars: 278
 - id: get-api-locations-countries
   title: '`GET /api/locations/countries`'
   chars: 269
-- id: get-api-locations-countries-coun
+- id: get-api-locations-countries-country-cities
   title: '`GET /api/locations/countries/{country}/cities`'
   chars: 333
 - id: get-api-lookup-account
@@ -246,16 +246,16 @@ sections:
 - id: delete-api-peers-peerid
   title: '`DELETE /api/peers/{peerId}`'
   chars: 306
-- id: get-api-peers-peerid-aidr-snapsh
+- id: get-api-peers-peerid-aidr-snapshot
   title: '`GET /api/peers/{peerId}/aidr-snapshot`'
   chars: 377
-- id: get-api-peers-peerid-aidr-snapsh
+- id: get-api-peers-peerid-aidr-snapshot-events
   title: '`GET /api/peers/{peerId}/aidr-snapshot/events`'
   chars: 547
-- id: post-api-peers-peerid-aidr-snaps
+- id: post-api-peers-peerid-aidr-snapshot-replay
   title: '`POST /api/peers/{peerId}/aidr-snapshot/replay`'
   chars: 506
-- id: get-api-peers-peerid-aidr-snapsh
+- id: get-api-peers-peerid-aidr-snapshot-search
   title: '`GET /api/peers/{peerId}/aidr-snapshot/search`'
   chars: 392
 - id: get-api-policies
@@ -279,13 +279,13 @@ sections:
 - id: post-api-posture-checks
   title: '`POST /api/posture-checks`'
   chars: 836
-- id: get-api-posture-checks-posturech
+- id: get-api-posture-checks-posturecheckid
   title: '`GET /api/posture-checks/{postureCheckId}`'
   chars: 352
-- id: put-api-posture-checks-posturech
+- id: put-api-posture-checks-posturecheckid
   title: '`PUT /api/posture-checks/{postureCheckId}`'
   chars: 943
-- id: delete-api-posture-checks-postur
+- id: delete-api-posture-checks-posturecheckid
   title: '`DELETE /api/posture-checks/{postureCheckId}`'
   chars: 349
 - id: get-api-profiles
@@ -360,13 +360,16 @@ sections:
 - id: get-api-summary
   title: '`GET /api/summary`'
   chars: 246
+- id: get-api-support-audit-sessions-sessionid
+  title: '`GET /api/support/audit/sessions/{sessionId}`'
+  chars: 307
 - id: get-api-support-devices-peerid
   title: '`GET /api/support/devices/{peerId}`'
   chars: 282
-- id: post-api-support-devices-peerid-
+- id: post-api-support-devices-peerid-invoke
   title: '`POST /api/support/devices/{peerId}/invoke`'
   chars: 700
-- id: get-api-support-devices-peerid-t
+- id: get-api-support-devices-peerid-tools
   title: '`GET /api/support/devices/{peerId}/tools`'
   chars: 395
 - id: get-api-support-openapi-yml
@@ -378,13 +381,13 @@ sections:
 - id: post-api-support-sessions
   title: '`POST /api/support/sessions`'
   chars: 225
-- id: get-api-support-sessions-session
+- id: get-api-support-sessions-sessionid
   title: '`GET /api/support/sessions/{sessionId}`'
   chars: 295
-- id: delete-api-support-sessions-sess
+- id: delete-api-support-sessions-sessionid
   title: '`DELETE /api/support/sessions/{sessionId}`'
   chars: 282
-- id: post-api-support-sessions-sessio
+- id: post-api-support-sessions-sessionid-messages
   title: '`POST /api/support/sessions/{sessionId}/messages`'
   chars: 735
 - id: get-api-templates
@@ -414,7 +417,7 @@ sections:
 - id: post-api-tenant-subscription
   title: '`POST /api/tenant/subscription`'
   chars: 472
-- id: post-api-tenant-subscription-con
+- id: post-api-tenant-subscription-confirm
   title: '`POST /api/tenant/subscription/confirm`'
   chars: 510
 - id: post-api-tokens-revoke
@@ -435,10 +438,10 @@ sections:
 - id: delete-api-users-userid
   title: '`DELETE /api/users/{userId}`'
   chars: 306
-- id: get-api-users-userid-auth-factor
+- id: get-api-users-userid-auth-factors
   title: '`GET /api/users/{userId}/auth-factors`'
   chars: 293
-- id: delete-api-users-userid-auth-fac
+- id: delete-api-users-userid-auth-factors
   title: '`DELETE /api/users/{userId}/auth-factors`'
   chars: 280
 - id: post-api-users-userid-invite
@@ -456,10 +459,10 @@ sections:
 - id: post-api-users-userid-tokens
   title: '`POST /api/users/{userId}/tokens`'
   chars: 485
-- id: get-api-users-userid-tokens-toke
+- id: get-api-users-userid-tokens-tokenid
   title: '`GET /api/users/{userId}/tokens/{tokenId}`'
   chars: 397
-- id: delete-api-users-userid-tokens-t
+- id: delete-api-users-userid-tokens-tokenid
   title: '`DELETE /api/users/{userId}/tokens/{tokenId}`'
   chars: 387
 - id: post-api-verify-recaptcha
@@ -1762,6 +1765,15 @@ Responses: `200` Event processed, `400` Bad Request, `404` Resource not found, `
 Retrieve activity summary
 
 Responses: `200` Summary of top users, top groups and total events, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/support/audit/sessions/{sessionId}`
+
+Read the log of any support session in the account
+
+Parameters:
+- `sessionId` (path, required)
+
+Responses: `200` The session with its messages and owner, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
 
 ## `GET /api/support/devices/{peerId}`
 

@@ -83,9 +83,15 @@ class Reference:
     def sections(self) -> list[Section]:
         out: list[Section] = []
         matches = list(HEADING_RE.finditer(self.body))
+        seen: dict[str, int] = {}
         for i, m in enumerate(matches):
             end = matches[i + 1].start() if i + 1 < len(matches) else len(self.body)
             sid = m.group(1) or slug(m.group(2))
+            # Two headings that slug alike (or a repeated number) would give an
+            # agent an ambiguous section to load; the later ones get a suffix.
+            seen[sid] = seen.get(sid, 0) + 1
+            if seen[sid] > 1:
+                sid = f"{sid}-{seen[sid]}"
             out.append(Section(id=sid, title=m.group(2).strip(), chars=end - m.start()))
         return out
 
@@ -94,7 +100,25 @@ class Reference:
 
 
 def slug(title: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:32] or "section"
+    # 48 characters keeps long headings apart that share their first words
+    # (e.g. three "Analyze …/Block …/Sanction …" variants), cut on a word
+    # boundary so the ID stays readable.
+    full = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    if len(full) > 48:
+        full = full[:48].rsplit("-", 1)[0]
+    return full or "section"
+
+
+# The device tools the support agents can call, by exact name. The validator
+# rejects any other `diag.*` / `mod.*` name in the prose, so a tool that was
+# renamed or never existed cannot be recommended.
+DEVICE_TOOLS = {
+    "diag.catalog", "diag.status", "diag.config", "diag.routes", "diag.route_match",
+    "diag.dns", "diag.probe", "diag.posture", "diag.system", "diag.loglevel",
+    "diag.logs", "diag.grep", "diag.bundle",
+    "mod.refresh", "mod.disconnect", "mod.loglevel",
+    "shell.run",
+}
 
 
 def load(path: Path) -> Reference:

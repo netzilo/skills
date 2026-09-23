@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 35753
+chars: 40017
 sections:
 - id: '1'
   title: Escalate only when the answer needs the source code
@@ -27,22 +27,22 @@ sections:
   - human-operator
 - id: '3'
   title: What the client debug bundle actually contains
-  chars: 1750
+  chars: 1945
 - id: '4'
   title: Collect
-  chars: 7778
+  chars: 8062
 - id: '5'
   title: Correlation keys — include these explicitly
   chars: 1030
 - id: '6'
   title: Remove credentials before anything leaves the machine
-  chars: 1875
+  chars: 2814
 - id: '7'
   title: Do not anonymize by default — decide deliberately
-  chars: 1096
+  chars: 1129
 - id: '8'
   title: If you cannot run the commands yourself
-  chars: 2506
+  chars: 2678
 - id: '9'
   title: Write the summary
   chars: 454
@@ -54,10 +54,10 @@ sections:
 - id: observed
   title: Observed
   chars: 76
-- id: expected-and-the-configuration-t
+- id: expected-and-the-configuration-that-says-so
   title: Expected, and the configuration that says so
   chars: 145
-- id: why-this-needs-code-level-analys
+- id: why-this-needs-code-level-analysis
   title: Why this needs code-level analysis
   chars: 415
 - id: correlation-keys
@@ -73,8 +73,8 @@ sections:
   title: Logging state
   chars: 290
 - id: '10'
-  title: Escalating with only the API
-  chars: 7697
+  title: Escalating from the dashboard assistant
+  chars: 8928
   requires:
   - api
   executable_on:
@@ -83,7 +83,7 @@ sections:
   - human-operator
 - id: '11'
   title: Package and send
-  chars: 4517
+  chars: 4680
 - id: '12'
   title: While it is open
   chars: 936
@@ -99,20 +99,28 @@ identifiers and timestamps, a precise statement of the contradiction, and enough
 correlation keys to join a client log line to a server log line. It is not a summary,
 and it is not a place to speculate about root cause.
 
-Two rules govern the whole procedure:
+Three rules govern the whole procedure:
 
-1. **The customer sends the package, not you.** You build it, show them what is in it,
-   and they decide. Never transmit their data anywhere yourself.
+1. **Nothing leaves without the customer's approval.** You build the summary or the
+   package, show them what is in it, and an administrator decides. How it is then sent
+   depends on your surface (below); on no surface do you send customer data anywhere the
+   administrator has not approved.
 2. **Credentials never leave the machine, identifiers must.** §6 lists what to strip;
-   §7 explains why over-redacting destroys the evidence you are shipping.
+   §7 explains why over-redacting destroys the evidence you are shipping. **A bundle is
+   always redacted before it goes anywhere, through any channel.**
+3. **An escalation never needs a credential from the person.** Do not ask for one to
+   move an escalation along, and never put one in a summary or a package.
 
-**Which path is yours.** If you have a shell on the affected device and, for self-hosted,
-on the server, work the file in order: §3–§8 collect, §9 writes the summary, §11 packages
-and sends it. If the management REST API is all you have — the Netzilo dashboard's AI
-assistant is that case — you cannot build the bundle at all, and half-following the
-collection sections wastes a support cycle. Go to §10: it lists what the API can prove,
-which of §8's blocks to ask the admin to run, and how the summary is sent when you cannot
-send it yourself.
+**Which path is yours — one procedure per surface.**
+
+| Surface | Who can escalate | Procedure |
+|---|---|---|
+| **Dashboard assistant** | an administrator's session only. A **regular user never escalates**: they hand the case to their administrator with the message in `39-end-user-self-service.md` §4 | You have the API and the device tools, but no shell or filesystem of your own. Collect with the API and the device tools, write the summary (§10), and **propose** the escalation; the administrator approves it, and it is then sent to Level 3 with its answer coming back into the chat — when the deployment has Level 3 escalation configured. If it does not, give the administrator the summary to send to support@netzilo.com themselves (§10.6) |
+| **Harness with a shell** | the operator, with the administrator's approval | Work the file in order: §3–§8 collect, §6 redact, §9 write the summary, §11 package and send to Level 3 after the administrator approves (§11). No Level 3 token → the customer sends the redacted summary to support@netzilo.com |
+| **Human operator** | the customer | The customer builds the package with §8's blocks, redacts it (§6), and sends it themselves: through Level 3 escalation if their deployment has it (§11), otherwise to support@netzilo.com |
+
+Half-following the collection sections without a shell wastes a support cycle; on the
+dashboard assistant go straight to §10.
 
 ---
 
@@ -184,7 +192,7 @@ What "every file in the log directory" means per platform:
 |---|---|---|
 | **Linux** | `/var/log/netzilo/` | also contains the service's stdout/stderr logs, because the installer points them here — good, include them |
 | **macOS** | `/var/log/netzilo/` | the launchd logs `/var/log/Netzilo.out.log` and `/var/log/Netzilo.err.log` are **outside** this directory and are **not** in the bundle. Panics can land there — collect them separately (`err.log` is normally thousands of benign `TLS handshake error` lines; grep it for `panic` or `goroutine`). The two system-extension logs `netzilofilter.log` and `netzilosecurity.log` **are** in the directory and ride along in the bundle |
-| **Windows** | `%PROGRAMDATA%\Netzilo\` | this is also the **configuration** directory, so the bundle sweeps in `config.json` (contains the WireGuard **private key**), `token.dat`, `pat.dat`, and `netzilo-ca-key.pem` (the TLS-inspection **CA private key**). These must be removed — see §6 |
+| **Windows** | `%PROGRAMDATA%\Netzilo\` | this is also the **configuration** directory, so the bundle sweeps in `config.json` (contains the WireGuard **private key**), `token.dat`, `pat.dat`, `netzilo-ca-key.pem` (the TLS-inspection **CA private key**), `usservice*.json` (the non-admin mode configuration, with its own private key), `mcp.db` (MCP OAuth tokens) and the per-workspace peer configurations `%PROGRAMDATA%\Netzilo\<workspace>.json`. All of these must be removed — see §6 |
 
 Also: the tray menu's **Support → Collect Data** produces a bundle with **no
 `status.txt` and no anonymization** — it sends an empty request. Always use the CLI so
@@ -236,8 +244,10 @@ netzilo debug log level trace     # or: debug
 sudo netzilo debug bundle          # omit -A unless §7 says otherwise
 ```
 
-Or capture a fixed window (this takes the client **down**, traces, brings it up, waits,
-and takes it down again — warn the customer, and start the service afterwards):
+Or capture a fixed window. This takes the client **down**, traces, brings it up, waits,
+and takes it down again. Each "down" is a full logout: the device's keys are reset and an
+SSO device needs an interactive sign-in before it comes back. It is a destructive step —
+get an explicit "yes" first — and the log-level approach above is preferred:
 
 ```bash
 sudo netzilo debug for 5m
@@ -265,7 +275,7 @@ subsystem — each needs the daemon restarted unless noted:
 
 | Area | Knob |
 |---|---|
-| ICE / NAT traversal | `PIONS_LOG_DEBUG=all` (ICE logging is fully suppressed below `debug` level) |
+| ICE / NAT traversal | client log level `debug` (`netzilo debug log level debug`, or `mod.loglevel` from the device tools); ICE lines then appear as `[pion: …]`. No separate environment variable is honoured |
 | WireGuard device | `NB_WG_DEBUG=true` |
 | gRPC to management/signal | `GRPC_GO_LOG_VERBOSITY_LEVEL=99 GRPC_GO_LOG_SEVERITY_LEVEL=info` |
 | Goroutine/heap dumps | `NB_DEBUG=1`, then fetch from `127.0.0.1:6060` |
@@ -394,14 +404,27 @@ exact client log line that produced it.
 | `config.json` — contains the WireGuard **private key** | inside the Windows debug bundle |
 | `netzilo-ca-key.pem` — TLS-inspection **CA private key** | inside the Windows debug bundle |
 | `token.dat`, `pat.dat` — session and API credentials | inside the Windows debug bundle |
+| `usservice*.json` — non-admin mode configuration, contains a private key | inside the Windows debug bundle |
+| `mcp.db` (and `mcpjungle.db` where present) — MCP OAuth tokens | inside the Windows debug bundle |
+| `<workspace>.json` — per-workspace peer configurations, each with its own private key | `%PROGRAMDATA%\Netzilo\`, inside the Windows debug bundle |
 | `management.json`, `zitadel.env`, `dashboard.env`, `.env`, `turnserver.conf` | server configuration directory — never collect them at all |
 | `CREDENTIALS`, `netzilo-state.env` | server state directory — never collect |
 | `certs/`, `machinekey/`, any `*.pem` / `*.key` | server configuration directory |
 | Database dumps | never needed for code-level analysis |
 | API tokens and setup keys in any file or e-mail body | `config/setup-keys.json`, logs, command history |
 
-Open the Windows bundle and delete those four items before including it, then note the
-removal in `MANIFEST.txt`. Then run a credential sweep over the package and prove it:
+Open the Windows bundle and delete every item in the first rows of that table —
+`config.json`, `netzilo-ca-key.pem`, `token.dat`, `pat.dat`, `usservice*.json`, `mcp.db`
+and each per-workspace `<workspace>.json` — before including it, then note the removal in
+`MANIFEST.txt`. Leave the logs in: they are the evidence.
+
+**Logs at `debug` or `trace` level can contain secrets.** Client logs and management logs
+written at debug level may include values such as database connection strings, keys and
+tokens. The sweep below catches the common shapes, not every one: read the lines around
+any match and any configuration dump before the package leaves, and redact by hand what
+the sweep missed.
+
+Then run a credential sweep over the package and prove it:
 
 ```bash
 find . -type f \( -name '*.json' -o -name '*.txt' -o -name '*.log' -o -name '*.md' -o -name '*.yml' \) -print0 \
@@ -434,7 +457,7 @@ is not, and it is weaker than it appears:
   the two.
 
 Guidance: for a normal escalation send the bundle **un-anonymized** and control exposure
-through the channel and the credential sweep in §6. Use `-A` only when the customer
+through the redaction in §6 — which is never optional, whether or not you anonymize. Use `-A` only when the customer
 requires it for public IPs or internal hostnames — and then say so in `MANIFEST.txt`, so
 the analyst knows why addresses do not line up.
 
@@ -480,11 +503,13 @@ netzilo debug bundle
 netzilo status -d | Out-File "$env:USERPROFILE\netzilo-status.txt"
 ```
 
-Then tell them, in plain words: *"the zip it printed contains your configuration file,
-which includes a private key — before sending, open the zip and delete `config.json`,
-`token.dat`, `pat.dat` and `netzilo-ca-key.pem`."* If they would rather not edit the
-archive, ask them to send it through a private channel and say in the summary that the
-bundle is unredacted.
+Then tell them, in plain words: *"the zip it printed contains your configuration files,
+which include private keys and tokens — before sending, open the zip and delete
+`config.json`, `token.dat`, `pat.dat`, `netzilo-ca-key.pem`, every `usservice*.json`,
+`mcp.db`, and any workspace `.json` file next to them."* If they cannot or would rather not
+edit the archive, **it is not sent** through any channel: send the summary, the pasted
+status output and the relevant log excerpts instead, and say in the summary that the
+bundle was withheld.
 
 **Self-hosted server** (SSH, as a user with docker access)
 
@@ -554,17 +579,23 @@ Negative results belong here; they are what stops the analyst repeating your wor
 
 ---
 
-## 10. Escalating with only the API
+## 10. Escalating from the dashboard assistant
 
 Not every agent has a shell. The Netzilo dashboard's AI assistant is the case this section
-exists for: its single capability is the management REST API, called with the signed-in
-admin's own token. No filesystem, no client device, no server login, no `netzilo` command
-and no `docker`. Sections §3–§8 are unreachable for it, and working them half-way produces
-a package with exactly the interesting parts missing.
+exists for: it has the management REST API as the signed-in administrator, and the
+**device tools** (`36-device-tools.md`) on the account's devices — but no filesystem of its
+own, no server login and no `docker`. It can read a device's status, configuration,
+routes and logs and write a debug bundle **on** that device; it cannot fetch the bundle,
+build an archive, or collect server logs. Working §3–§8 half-way produces a package with
+exactly the interesting parts missing.
 
 What follows is the whole of what such an agent can do. It is usually enough — most
-escalations are decided by the summary and the configuration, and the archive only settles
-the ones that turn on a single log line.
+escalations are decided by the summary, the configuration and a few log lines, and the
+archive only settles the ones that turn on something the device tools cannot reach.
+
+Only an administrator's session can escalate. In a regular user's session there is no
+escalation: write the message for their administrator (`39-end-user-self-service.md` §4)
+and stop there.
 
 ### 10.1 What the API can collect
 
@@ -580,6 +611,7 @@ wider sweep costs you rather than helps.
 | Account settings — login expiration, JWT groups, peer approval | `GET /api/accounts` |
 | Audit trail, narrowed to the incident | `GET /api/events/paginated?date_from=…&date_to=…&code=…&limit=…` |
 | AI cases — the bindings and the engine's own record | `GET /api/edge/filters`, `GET /api/edge/scanners`, `GET /api/edge/tools`, `GET /api/peers/{id}/aidr-snapshot` |
+| Device-side evidence, when the device is online | the device tools, not the API: `diag.status {full: true}`, `diag.config`, `diag.routes`, `diag.system`, `diag.logs`, `diag.grep` (§8, first paragraph) |
 | An activity summary over a window | `POST /api/reports` — a write, so read the schema in `references/33-api-request-schemas.md` first: `from` and `to` (both `YYYY-MM-DD`) are required, and a body assembled from memory without them is rejected |
 
 Versions: each affected device's client version is the `version` (and `ui_version`) field of
@@ -594,8 +626,8 @@ dump of the whole account is worse than a short answer.
 
 | Missing | What it would have shown | Who can produce it |
 |---|---|---|
-| Client debug bundle | `status.txt` plus the whole daemon log directory (§3) | the admin, §8 client block |
-| Device state — status detail, routes, firewall, resolver | what the device is actually doing, not what its enrolment record says (§4.2) | the admin, §8 client block |
+| Client debug bundle as a file | `status.txt` plus the whole daemon log directory (§3) | `diag.bundle` writes it on the device; the admin or the person at the device keeps it and, if the analyst asks, sends it **redacted** (§6) |
+| Device state the tools do not cover — firewall rules, resolver internals | what the device is actually doing beyond status, routes and logs (§4.2) | `diag.*` covers status, configuration, routes, DNS and logs; the rest is the admin, §8 client block |
 | Management and container logs | why the server refused a request (§4.3) | the admin, §8 server block, self-hosted only; on Cloud §4.3 says not to ask at all |
 | Server configuration files | nothing anyone may send — they hold secrets (§6) | — |
 
@@ -612,16 +644,17 @@ commands. The §8 blocks are the ones written against every supported platform, 
 command you improvise is one the admin has to debug on your behalf.
 
 Ask for the output **pasted back as text**. You have nowhere to put an archive and no way
-to open one, so for a debug bundle the admin keeps the zip and attaches it to the case
-themselves while you work from the pasted status detail and the log lines around the
-occurrence. Repeat §8's warning verbatim when you hand over the Windows block: that zip
-contains `config.json`, `token.dat`, `pat.dat` and `netzilo-ca-key.pem`, and those four come
-out before it goes anywhere.
+to open one, so for a debug bundle the admin keeps the zip and, only if the analyst asks
+for it, sends it redacted, while you work from `diag.status`, `diag.grep` and the pasted
+output. Repeat §8's warning verbatim when you hand over the Windows block: that zip
+contains `config.json`, `token.dat`, `pat.dat`, `netzilo-ca-key.pem`, `usservice*.json`,
+`mcp.db` and the workspace `.json` files, and all of them come out before it goes
+anywhere.
 
 ### 10.4 Assemble the summary
 
-§9 is still the deliverable, and it is the one part of an escalation an API-only agent can
-produce in full. Fill it from what you have:
+§9 is still the deliverable, and it is the one part of an escalation the dashboard
+assistant can produce in full. Fill it from what you have:
 
 - Severity and scope (§2) from the admin's account of the impact — the API does not know
   how many people cannot work.
@@ -631,8 +664,9 @@ produce in full. Fill it from what you have:
 - **Correlation keys** (§5) as far as the API carries them: peer id, peer name, Netzilo IP,
   `dns_label`/FQDN, the owning user's e-mail, account id, event timestamps, and the AIDR
   `correlation_id` from event metadata. The peer's **WireGuard public key is not in the peer
-  record** — if the case needs a client-to-server join, ask for it from the status output in
-  §8.
+  record** — if the case needs a client-to-server join, read it with `diag.status {full:
+  true}` (`localPeerState.pubKey`) while the device is online, or ask for the status output
+  in §8.
 - One line naming each item in §10.2 you could not collect, and why.
 
 Inline the small objects that carry the argument — the policy, the route, the three events —
@@ -653,25 +687,28 @@ summary that is then pasted into a case:
 | Setup-key and token names and ids in `meta` | `GET /api/events/paginated` — `setupkey.*` and token events carry them |
 
 Replace each with `REDACTED` and say in the summary that you did, so the analyst does not
-read a redaction as a missing field. Never ask the admin to paste a token, a setup key or a
-password into the conversation to move things along: you cannot un-see it, and the
-transcript outlives the case.
+read a redaction as a missing field. An escalation never needs a credential: do not ask
+the admin for a token, a setup key or a password to move one along. If one is pasted
+anyway, leave it out of the summary and tell them to revoke it; the transcript outlives
+the case.
 
 ### 10.6 Sending — what is honestly yours to do
 
 You compose the summary; the admin approves it and it is sent. That is not a formality. The
-approval in §11 is about the customer's data leaving their systems, and the decision is
-theirs.
+approval is about the customer's data leaving their systems, and the decision is theirs.
 
-You cannot make the Level 3 calls in §11 yourself. They read `DSH_L3_PAT` and `DSH_L3_URL`
-from a harness environment you do not have, and a token is never something you ask for,
-accept in the conversation, or hold. So:
+In the dashboard assistant you do not run §11's commands. You **propose the escalation**
+with the finished summary: your turn ends, the admin sees it under "Approve escalation",
+and only on **Approve** is it sent to Level 3. Level 3's answer is the first thing you see
+on your next turn; relay it. What is sent is the summary text alone — no archive — so
+everything the analyst needs must be in it, and no credential may be.
 
-- If the deployment has Level 3 escalation configured, hand the finished summary to the
-  admin, or to an operator who has a shell, and let them send it with §11.
-- If it does not — **Settings → Plugins → Level 3 escalation** is empty — say so plainly,
-  point the admin at that page, and give them the summary to send themselves. There is no
-  fallback address, and inventing one costs the customer a day.
+- If the deployment has no Level 3 escalation configured, the proposal is refused with a
+  message saying so. Tell the admin plainly, point them at **Settings → Plugins → Level 3
+  escalation**, and give them the finished summary to send to support@netzilo.com
+  themselves. Do not invent any other address.
+- You never send anything to support@netzilo.com yourself, and you never ask for the Level
+  3 token.
 
 Either way, put the case id on the summary's first line, so a follow-up lands on the same
 case rather than starting a second one (§12).
@@ -684,7 +721,7 @@ case rather than starting a second one (§12).
 cd ..
 find "$PKG" -type f | sort > "$PKG/MANIFEST.txt"
 { echo; echo "## Excluded"
-  echo "- config.json, token.dat, pat.dat, netzilo-ca-key.pem removed from the Windows bundle"
+  echo "- config.json, token.dat, pat.dat, netzilo-ca-key.pem, usservice*.json, mcp.db, <workspace>.json removed from the Windows bundle"
   echo "- server configuration files not collected (contain secrets)"
   echo "- bundle is NOT anonymized (preserves correlation)"
 } >> "$PKG/MANIFEST.txt"
@@ -722,7 +759,9 @@ and nothing changes.
 
 The token is verified against Netzilo Cloud on every call, so access is granted and
 revoked there, per deployment. If it resolves empty, say so plainly — point the customer
-at that Settings page — and stop. There is no fallback address to send a package to.
+at that Settings page — and stop sending. There is no other endpoint to send a package to;
+do not invent one. The customer's own route is then support@netzilo.com, with the redacted
+summary, sent by them.
 
 **A question with no package** — the common case, and the one to prefer. Send the summary
 inline; `user` is the case id, which is what ties follow-ups to the same case:

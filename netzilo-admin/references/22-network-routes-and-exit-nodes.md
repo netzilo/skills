@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 10806
+chars: 14723
 sections:
 - id: '1'
   title: Model
-  chars: 1437
+  chars: 1929
 - id: '2'
   title: Field reference
   chars: 2771
@@ -20,13 +20,13 @@ sections:
   chars: 835
 - id: '4'
   title: Procedures
-  chars: 2516
+  chars: 2818
 - id: '5'
   title: What the routing peer does (for verification)
   chars: 899
 - id: '6'
   title: Diagnosis
-  chars: 1883
+  chars: 5006
 ---
 # Admin Skill — Network Routes, Routing Peers and Exit Nodes
 
@@ -55,12 +55,18 @@ diagnosis.
   `100.64.0.0/10` back via the routing peer.
 - **Exit node** = a route for `0.0.0.0/0` (IPv4 only; IPv6 is blocked). Masquerade is
   always on for exit nodes.
-- **Domain routes**: the client resolves the domains every minute and installs routes
-  for the returned IPs; "Keep Routes" retains previously resolved IPs.
+- **Domain routes**: the client resolves the domains through the host's resolver about
+  every minute and installs routes for the returned IPs; "Keep Routes" retains previously
+  resolved IPs.
 - Routed traffic is still subject to **policies**: the client's group must be allowed to
   reach the routing peer's group for the protocol/ports; a rule's **Routes** field and the
-  route's **Policy Groups** narrow which CIDRs are reachable.
-- Clients can override selection with `netzilo routes select`.
+  route's **Policy Groups** narrow which CIDRs are reachable. The client computes this on
+  the device: a route whose routing peer it may not connect to, by policy or because the
+  client fails a posture check, is not given to it at all.
+- Clients can override selection with `netzilo routes select`. *Selected* is only that
+  choice. A selected route with no connected routing peer is removed from the client's
+  OS, and traffic for it falls back to the client's own default route: routes **fail
+  open**. For an exit node that means the person quietly uses their local internet.
 
 ---
 
@@ -162,12 +168,15 @@ egress IP that the SaaS allow-lists. Clients re-resolve every minute
 Peers → Linux peer → ⋮ → **Add Exit Node** → distribution group `travellers`. Then
 Network → DNS Servers → add a resolver **without match domains** for `travellers` so DNS
 also leaves through the exit node. Policy `travellers → <exit-node group>` ALL.
-IPv6 is dropped by design on exit-node clients.
+IPv6 is dropped by design on exit-node clients. While no exit node in the network is
+connected to a client, that client uses its local internet connection (§1); give the
+network two exit nodes (§4.2) where that matters.
 
 ### 4.6 Split overlapping networks
 Two sites both using `192.168.1.0/24`: give them different identifiers and distribution
 groups; clients in both groups must pick with `netzilo routes select <id>`. Better:
-renumber or publish narrower ranges.
+renumber or publish narrower ranges. The same collision happens with a client's own
+network: a home LAN numbered like the office route keeps its traffic local (§6.1).
 
 ### 4.7 Decommission a routing peer
 Add a replacement first (§4.2), confirm clients fail over (`netzilo status -d` →
@@ -200,9 +209,10 @@ Full procedure: `11-connectivity-diagnosis.md` §4–§5. Quick table:
 |---|---|---|
 | Client does not list the route (`netzilo routes list`) | client not in a distribution group; route disabled; not yet synced | groups; Active toggle; `netzilo refresh` |
 | Route listed as "Not Selected" | overlapping network with lower metric selected, or user deselected | `netzilo routes select <id>` / `select all` |
-| Route selected, packets never leave the client via `wt0` | conflicting local route on the client | `ip route show table all \| grep <prefix>` |
+| Route selected, packets never leave the client via `wt0` | conflicting local route on the client, or no routing peer connected (fail open) | §6.1 |
+| Exit node set, but the client's public IP is still its own | no exit node connected to the client (fail open), or the client does not program default routes in its current mode | §6.1 |
 | Client reaches the routing peer but not the LAN host | forwarding blocked on the router (host firewall / `ip_forward`), target firewall, masquerade off without return route, cloud security group | `sysctl net.ipv4.ip_forward`; tcpdump on `wt0` and the LAN interface; SG rules |
-| Works for some clients only | policy differs between groups; posture checks | resolve rules per client (`20` §6) |
+| Works for some clients only | policy differs between groups; posture checks (a client failing one does not receive the route at all) | resolve rules per client (`20` §6); on the client, grep the log for `Posture check .* FAILED` |
 | Whole network unreachable | routing peer offline / login expired / deleted | Peers page dot & badges; `netzilo status` on the router |
 | Exit node: browsing fails, ping works | DNS not routed | add resolver without match domains for the group |
 | Exit node: IPv6 sites unreachable | IPv6 blocked by design | disable IPv6 on the client or accept |
@@ -212,3 +222,42 @@ Full procedure: `11-connectivity-diagnosis.md` §4–§5. Quick table:
 | Route update refuses CIDR change | by design | delete and recreate (clients converge within ~30 s) |
 
 Events: `route.add/update/delete`, `peer.access.blocked`, `peer.access.target(.blocked)`.
+`peer.access.blocked` is recorded only while a destination peer is connected; its
+absence does not show that posture passed.
+
+### 6.1 Reading a route on the client
+
+The account says which routes a client should get; the client decides what it uses.
+Read it there (`netzilo status -d`, `netzilo routes list`, the client log, or the device
+tools `diag.routes`, `diag.route_match` and `diag.status {full: true}`):
+
+- **Is it given to the client?** `netzilo routes list` lists it. If not: distribution
+  groups, route disabled, or the client may not connect to the routing peer (policy, or a
+  failing posture check: `❌ Posture check '<name>' (ID=…) FAILED` in the log).
+- **Which routing peer carries it right now?** `Routes:` per peer in `netzilo status -d`
+  (`peers[].routes` in `diag.status`). The log records each choice: `New chosen route is
+  <id> with peer <key> with score … for network [<id>] (latency=…, direct=…,
+  relayed=…)`.
+- **None does.** `The network [<id>] has not been assigned a routing peer as no peers
+  from the list [<keys>] are currently connected`: the route is out of the OS and the
+  traffic takes the client's default route. The keys are the routing peers' WireGuard
+  public keys; find them in the Peers list and go to `11-connectivity-diagnosis.md` §2
+  for why they are not connected.
+- **Two networks claim the prefix.** `Prefix [<cidr>] is already routed by peer [<key>].
+  HA routing disabled` (for domain routes, `IP [<ip>] for domain [<domain>] is already
+  routed by peer [<key>]. HA routing disabled`).
+- **Domain route not resolving.** `Failed to resolve domains for route [<id>]: …`: the
+  client resolves the domains through its host resolver about every minute and retries
+  sooner after a failure; the host resolver must be able to answer for them.
+- **Exit node ignored.** `This agent version: <v>, doesn't support default routes,
+  received <prefix>, skipping this prefix`: the client does not program default routes
+  in its current mode: an older client, or one whose service environment sets
+  `NB_DISABLE_CUSTOM_ROUTING=true`. Update the client, or remove that setting.
+- **A local route wins.** Check the chosen path on the client: Linux `ip route get
+  <ip>`, macOS `route -n get <ip>`, Windows `Find-NetRoute -RemoteIPAddress <ip>`. It
+  must name `wt0` (`utun100` on macOS). On Linux Netzilo's routes are in table 7120
+  (`netzilo`) and rule 100 (`lookup main suppress_prefixlength 0`) is consulted before rule
+  110 (`not fwmark 0x1bd00 lookup netzilo`), so any main-table route covering the target
+  other than the default route wins, however broad. On macOS and Windows an identical
+  existing prefix is skipped: `Skipping adding a new route for network <cidr> because it
+  already exists`. The usual case is a home LAN numbered like the office route (§4.6).

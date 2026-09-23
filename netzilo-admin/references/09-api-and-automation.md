@@ -7,23 +7,23 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 21623
+chars: 22925
 sections:
 - id: '0'
   title: The server and an admin token come first
-  chars: 1310
+  chars: 1903
 - id: '1'
   title: Authentication
-  chars: 1475
+  chars: 1556
 - id: '2'
   title: Endpoint catalogue
-  chars: 3326
+  chars: 3739
 - id: '3'
   title: Field reference (request bodies)
-  chars: 4745
+  chars: 4947
 - id: '4'
   title: Recipes
-  chars: 3199
+  chars: 3212
 - id: '5'
   title: Client-side automation
   chars: 709
@@ -49,16 +49,23 @@ JSON. CORS is open.
 ## 0. The server and an admin token come first
 
 The REST API is how you read the customer's real configuration, change one thing at a
-time, and verify immediately. It is not optional: without it you can only advise.
+time, and verify immediately. Without it you can diagnose from a shell, device output or
+logs, but you cannot read or verify the account's configuration.
+
+**In the dashboard assistant, skip this section.** You already call the API as the
+signed-in user, with their role, on their server; there is no token to ask for and no
+service account to create. The steps below are for a harness or script with no session
+of its own. Installing a server and diagnosing one that is down never depend on them.
 
 1. **Establish which server.** Cloud is `https://srv.netzilo.com/api`; self-hosted is
    `https://<their-domain>/api`. Prove it with an unauthenticated `GET /api/users`, which
    returns `401` from a live management server.
-2. **Ask for an admin service account**, not a person's credentials: Dashboard →
-   **Team → Agents → Create Agent**, role **Admin** → open it → **Access Tokens → Create
-   Access Token**, 7–30 day expiry. Shown once. Admin is required because the admin-only
-   paths listed in §1 include everything needed to diagnose: groups, posture checks, DNS,
-   events, reports, Edge.
+2. **Ask for a token of the least role the task needs**, preferably a service account's
+   rather than a person's credentials: Dashboard → **Team → Agents → Create Agent**, role
+   **Admin** for diagnosing or changing the deployment → open it → **Access Tokens →
+   Create Access Token**, 7–30 day expiry. Shown once. The person may paste it into the
+   chat. Admin is needed for most diagnosis because the admin-only paths listed in §1
+   include groups, posture checks, DNS, events, reports and Edge.
 3. **Verify against that server** and confirm the tenant with the customer:
 
 ```bash
@@ -66,10 +73,10 @@ nz /users | jq '.[] | select(.is_current) | {role, is_service_user}'   # "admin"
 nz /accounts | jq '.[0] | {id, domain}'
 ```
 
-Keep the token in an environment variable for the session; never write it to a file, a
-script, or an escalation package. When finished, remind the customer to delete the token
-and the agent. Never ask for a password, SSO credentials, or the identity-provider master
-key.
+Credential handling follows `SKILL.md` rule 6: keep the token in an environment variable
+for the session; never echo it; never write it to a file, a script, a ticket or an
+escalation package. When finished, remind the customer to delete the token and the
+agent. Ask for a token rather than a password or SSO credentials.
 
 ---
 
@@ -89,7 +96,7 @@ Permissions follow the token owner's role. Regular users can only read (and mana
 own tokens); admins/owners and admin-role service users can write. Admin-only paths:
 `/reports`, `/posture-checks`, `/events`, `/dns/*`, `/stats`, `/summary`, `/edge/*`
 (except `GET /edge/filters`), `/tenant`, `/integrations`, `/event-streaming`, `/mfa`,
-`/groups`, `/templates`.
+`/groups`, `/templates`, `/ai/providers`, `/ai/models`, `/ai/protocols` (provider writes are owner only).
 
 Recommended: create a dedicated **Agent** (service user) with role **admin** for
 automation so tokens don't die with an employee's account.
@@ -123,7 +130,8 @@ nz /users | jq '.[] | {id,email,role,is_service_user}'
 | Reports | `GET/POST /reports`, `GET/DELETE /reports/{id}` |
 | Profiles (Enterprise) | `GET/POST /profiles`, `PUT/DELETE /profiles/{id}`, `GET /templates`, `GET /templates/{category}` |
 | Tenant | `GET/PUT /tenant`, `POST /tenant/subscription`, `POST /tenant/subscription/confirm`, `GET/POST/DELETE /tenant/logo`, `GET /tenant/logo/info` |
-| Integrations | `GET/POST /integrations`, `PUT/DELETE /integrations/{id}` (platforms `twilio`, `cloudflare`, `static`, `openai`, `anthropic`) |
+| Integrations | `GET/POST /integrations`, `PUT/DELETE /integrations/{id}` (platforms `twilio`, `cloudflare`, `static`; posting an AI platform here is refused) |
+| AI providers (Integrations → Artificial Intelligence) | `GET/POST /ai/providers`, `PUT/DELETE /ai/providers/{id}`, `POST /ai/providers/verify` (draft), `POST /ai/providers/{id}/verify`, `GET /ai/protocols`, `GET /ai/models?use=assistant\|log-analysis\|threat-analysis`, `GET /ai/capabilities` — OpenAI, Anthropic and any compatible endpoint; see `30-activity-reports-and-integrations.md` §4a |
 | Event streaming | `GET/POST /event-streaming`, `DELETE /event-streaming/{id}`, `GET /event-streaming/getLogVideos`, `POST /event-streaming/sign-urls` |
 | MFA | `GET/PUT/POST /mfa` |
 | AI Edge | `GET/POST /edge/tools`, `GET /edge/tools/catalog`, `GET/PUT/DELETE /edge/tools/{id}`; `GET/POST /edge/scanners`, `GET /edge/scanners/catalog`, `GET/POST /edge/scanners/generate`, `GET/PUT/DELETE /edge/scanners/{id}`; `GET/POST /edge/filters`, `GET/PUT/DELETE /edge/filters/{id}`; `GET /edge/discovered-tools`, `POST /edge/discovered-tools/{id}/sanction\|block\|analyze`, `DELETE /edge/discovered-tools/{id}`; `POST /edge/events` |
@@ -172,7 +180,7 @@ nz /support/openapi.yml | yq '.paths["/api/reports"].post.requestBody'     # liv
 
 **Posture check**: `{name, description, checks:{nb_version_check{min_version}, os_version_check{android|ios|darwin{min_version}, linux|windows{min_kernel_version}}, geo_location_check{locations[{country_code, city_name}], action}, peer_network_range_check{ranges, action}, date_time_checks{rules}, netzilo_check{peer_domain_check, security_settings_check, advanced_settings_check}}}`.
 
-**Integration**: `{platform, enabled, config:{…}}` — `openai|anthropic: {api_key, usage}`, `twilio: {accountSid, authToken}`, `cloudflare: {tokenId, apiToken}`, `static: {stun_servers: "<json array string>", turn_servers: "<json array string>"}`.
+**Integration**: `{platform, enabled, config:{…}}` — `twilio: {accountSid, authToken}`, `cloudflare: {tokenId, apiToken}`, `static: {stun_servers: "<json array string>", turn_servers: "<json array string>"}`. AI providers are not integrations: build their bodies from `POST /ai/providers` in `references/33-api-request-schemas.md`; the API key is never returned on read (`credential_set` only), and an empty `api_key` on `PUT` keeps the stored one.
 
 **Event streaming**: `{platform:"s3"|"min.io", enabled, config:{bucket, access_key, secret_key, region, endpoint?}}`.
 
@@ -207,7 +215,7 @@ nz /policies/$DEF | jq '.enabled=false | .rules |= map(.enabled=false)' > /tmp/d
 
 ### 4.3 Export everything (for backup or migration to a new server)
 ```bash
-mkdir -p export && for r in accounts users groups setup-keys policies posture-checks routes dns/nameservers dns/settings profiles edge/tools edge/scanners edge/filters integrations event-streaming; do
+mkdir -p export && for r in accounts users groups setup-keys policies posture-checks routes dns/nameservers dns/settings profiles edge/tools edge/scanners edge/filters integrations event-streaming ai/providers; do
   nz /$r > "export/$(echo $r | tr / _).json"; done
 nz "/events/paginated?limit=1000&offset=0" > export/events_page0.json
 ```

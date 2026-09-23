@@ -6,17 +6,17 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 21004
+chars: 24086
 sections:
 - id: '0'
   title: Facts you need before touching a device
-  chars: 3498
+  chars: 3683
 - id: '1'
   title: Enrollment methods (decide first)
   chars: 1313
 - id: '2'
   title: Windows
-  chars: 1694
+  chars: 3573
 - id: '3'
   title: macOS
   chars: 1983
@@ -31,7 +31,7 @@ sections:
   chars: 1554
 - id: '7'
   title: Upgrading clients
-  chars: 1056
+  chars: 1413
 - id: '8'
   title: Fleet deployment patterns
   chars: 2411
@@ -43,7 +43,7 @@ sections:
   chars: 1211
 - id: '11'
   title: Platform details that cause first-install tickets
-  chars: 2068
+  chars: 2729
 - id: '12'
   title: What Cloud customers must allow outbound
   chars: 718
@@ -81,7 +81,9 @@ mirror via `NETZILO_PKG_BASE_URL`, same paths):
 
 | Platform | URL |
 |---|---|
-| Windows x64 installer | `/download/windows/netzilo_setup.exe` |
+| Windows online installer (downloads the package at install time) | `/download/windows/netzilo_setup.exe` |
+| Windows x64 offline installer | `/download/windows/x64/nz_installer_64.exe` |
+| Windows x64 MSI | `/download/windows/x64/netzilo_x64.msi` |
 | macOS Intel pkg | `/download/macos/amd64/nz_installer_amd64.pkg` |
 | macOS Apple Silicon pkg | `/download/macos/arm64/nz_installer_arm64.pkg` |
 | Linux one-liner | `curl -fsSL https://pkg.netzilo.com/download/linux/install_netzilo_linux.sh \| sh` |
@@ -129,38 +131,61 @@ enrolled with it.
 
 ## 2. Windows
 
-**Interactive:** download `netzilo_setup.exe`, run as Administrator, accept. The NSIS
-installer puts files in `C:\Program Files\Netzilo` (`Netzilo.exe`, `Netzilo-ui.exe`,
-`wintun.dll`, `nwfilter.exe`, `nzcontainer.exe`), runs `Netzilo service install` and
-`service start`, adds the install dir to the system `PATH`, creates Start-menu/desktop
-shortcuts, and adds an inbound firewall rule named `Netzilo Client`. If a previous
-version exists it prompts: "Netzilo is already installed. We must remove it before
-installing upgrading Netzilo. Proceed?".
+Three installer forms deliver the same client (`40-windows-hosts.md` §2–3 has the full
+behaviour):
+
+| Form | File | Switches | Use |
+|---|---|---|---|
+| Online installer | `netzilo_setup.exe` | — | interactive install by a person with internet access; it downloads the package from `pkg.netzilo.com` at install time and fails offline with "failed to download installer." |
+| Offline installer | `nz_installer_64.exe` | `-s` silent, `-na` non-admin mode | scripted pushes, machines without direct internet |
+| MSI | `netzilo_x64.msi` | properties `NONADMIN=1`, `CONFIGFILE=<path>`; add `REBOOT=ReallySuppress` | Intune / SCCM / GPO software installation, in **device (system) context** |
+
+Installers named `netzilo_setup_<name>.exe` / `netzilo_x64_<name>.msi` apply that tenant's
+pre-seeded configuration at install time; the user only signs in.
+
+**Interactive:** download, run, accept the UAC prompt. There is no need to "run as
+Administrator": the installer starts unelevated and elevates itself. Files go to
+`%ProgramData%\Netzilo Client\` (`netzilo.exe`, `netzilo-ui.exe`, `installer.exe`,
+`nwfilter.exe`, `nzcontainer.exe`, drivers, `wintun.dll`); configuration and logs go to
+`%ProgramData%\Netzilo\`. The `Netzilo` service and its drivers are installed and started,
+the tray autostart is registered for the user, and the firewall rules `Netzilo` and
+`Netzilo Client` are created. Nothing is added to `PATH`; use the full path to
+`netzilo.exe`. An install that is denied elevation continues as a non-admin install (below).
 
 **Silent (SCCM/Intune/GPO):**
 
 ```powershell
-netzilo_setup.exe /S
-# then enroll (elevated PowerShell)
-& "C:\Program Files\Netzilo\Netzilo.exe" up --management-url https://<domain> --setup-key <KEY>
+nz_installer_64.exe -s
+msiexec /i netzilo_x64.msi /qn REBOOT=ReallySuppress
+# then enroll servers/kiosks (elevated PowerShell); user devices sign in from the tray
+& "$env:ProgramData\Netzilo Client\netzilo.exe" up --management-url https://<domain> --setup-key <KEY>
 ```
 
-`/S` auto-uninstalls an existing version first. For user devices with SSO, let the user
-click **Connect** in the tray; the installer starts the service, and the tray app starts
-at login.
+Deploy in device context: the MSI is per-user scoped and self-elevates, and a `SYSTEM`
+deployment context has no user proxy, so the online installer is the wrong form for a
+managed rollout. For user devices with SSO, let the user click **Connect** in the tray;
+the installer starts the service, and the tray app starts at login.
 
-**Non-admin install:** if `service install` runs unelevated it registers a per-user
-autostart (`--nonadmin=true`) and the daemon runs in userspace/netstack mode (no TUN
-adapter, SOCKS5 reachability only). Prefer elevated installs.
+**Non-admin install:** an unelevated install (or `-na` / `NONADMIN=1`) becomes non-admin
+mode: a per-user client with userspace networking (no TUN adapter, no drivers, no
+workspace, no AI network filter), a per-user daemon port, and
+`%ProgramData%\netzilo\usservice<N>.json` / `.log` instead of `config.json` /
+`client.log`. Switching non-admin → admin mode is a full uninstall followed by a fresh
+install. ARM64 devices always get the network client only (no drivers, workspace or AI
+network filter). Prefer elevated x64 installs.
 
-**Verify:** `sc query Netzilo` → RUNNING; `netzilo status`.
+**Verify:** `sc.exe query Netzilo` → RUNNING; `& "$env:ProgramData\Netzilo Client\netzilo.exe" status`.
 
-**Uninstall:** Settings → Apps → Netzilo, or
-`"C:\Program Files\Netzilo\netzilo_uninstall.exe" /S`. The uninstaller runs
-`service stop`, `service uninstall`, kills `Netzilo-ui.exe`, removes files and the PATH
-entry. `%PROGRAMDATA%\Netzilo` (config, logs, CA) is left behind; delete it for a clean
-wipe. The `Netzilo Edge CA` root certificate stays in the machine store; remove with
-`certutil -delstore Root "Netzilo Edge CA"` if desired.
+**Uninstall:** Settings → Apps → Netzilo Client, or
+`"%ProgramData%\Netzilo Client\installer.exe" -u` (silent: `-u -q`). This removes the
+program files, services and drivers **and deletes `%ProgramData%\Netzilo`** (config, the
+peer's identity, tokens, logs), `C:\Netzilo`, workspace containers, and
+`HKLM\Software\Netzilo` / `HKCU\Software\Netzilo`. A reinstall therefore becomes a **new
+peer**: SSO users sign in again, and the stale peer should be deleted in the dashboard.
+Collect any logs you need before uninstalling. A failed install rolls back the same way.
+If the `Netzilo Edge CA` root remains in the machine store afterwards
+(`certutil -store Root "Netzilo Edge CA"`), remove it with
+`certutil -delstore Root "Netzilo Edge CA"`.
 
 ---
 
@@ -294,7 +319,7 @@ gives HA automatically.
 
 | Platform | Procedure | Notes |
 |---|---|---|
-| Windows | run the new `netzilo_setup.exe` (or `/S`) | auto-uninstalls old version; config and enrollment kept |
+| Windows | run the new installer in any form (`netzilo_setup.exe`, `nz_installer_64.exe -s`, or the MSI) | in-place upgrade, no "already installed" prompt: services and drivers are stopped, old files set aside, config and enrollment kept. If a running driver cannot be replaced, `HKLM\System\CurrentControlSet\Control\NetziloPendingReboot` is set and the next install says "Please reboot computer and try again." — reboot, then run it again (`40-windows-hosts.md` §2) |
 | macOS | install the new pkg | postinstall re-installs the service; enrollment kept |
 | Linux | re-run the one-liner, or replace `/usr/bin/netzilo` and `sudo netzilo service restart` | **the one-liner runs `netzilo down` which logs the peer out and regenerates keys** — SSO devices must log in again; setup-key devices must re-run `netzilo up --setup-key` (a new peer entry may appear; delete the old one). Replacing the binary manually + `service restart` preserves enrollment |
 
@@ -398,11 +423,18 @@ nothing, which is then reported as "the AI features don't work". Under device ma
 pre-approving the two extensions does not cover Full Disk Access; that needs its own
 privacy preferences profile.
 
-**Windows ships an installer package as well as the executable installer.** Use the
-package form wherever the deployment tool requires one, which includes group-policy
-software installation and the usual application-wrapping workflows. The executable form
-takes a silent switch and suits scripted pushes. Choosing the wrong one is the usual
-cause of a deployment that never starts.
+**Windows has three installer forms, and the online one is wrong for managed rollouts.**
+`netzilo_setup.exe` downloads the real package from `pkg.netzilo.com` while it runs; from
+a deployment tool's system context, which has no user proxy, or on a machine without
+internet, it stops with "failed to download installer." and the tool reports a failed or
+silent install. Use the offline `nz_installer_64.exe -s` for scripted pushes and the MSI
+(`REBOOT=ReallySuppress`, device context) wherever the tool requires a package, including
+group-policy software installation and application wrapping. A deployment run in user
+context on a non-administrator account yields a non-admin install (userspace networking,
+no drivers or workspace), which is reported later as "the AI features are missing".
+Install logs for silent failures: `%ProgramData%\Netzilo\netzilo_online_install.log` and
+`netzilo_offline_nsis_install.log`; `installer_internal.log` in the same folder is
+encrypted and is for Netzilo support only. Details: `40-windows-hosts.md` §2–3.
 
 **Linux has an optional tray application** distributed separately from the command-line
 client. On desktop environments that do not show legacy tray icons, notably stock GNOME,

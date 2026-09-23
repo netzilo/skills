@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 7909
+chars: 9519
 sections:
 - id: '1'
   title: Model
@@ -20,10 +20,10 @@ sections:
   chars: 802
 - id: '4'
   title: Design patterns
-  chars: 1055
+  chars: 1565
 - id: '5'
   title: Diagnosis — "the filter is not applying"
-  chars: 2386
+  chars: 3486
 ---
 # Admin Skill — Edge Filters (binding AI policy to devices)
 
@@ -116,9 +116,15 @@ GET/POST /api/edge/filters ; GET/PUT/DELETE /api/edge/filters/{id}
 | Servers/agents enrolled with setup keys | group from the setup key's auto-groups; OS Linux; Tools/Scanners as needed (hooks/SDK path) |
 | High-assurance | posture checks (disk encryption, OS updates) with **All** |
 
-Precedence when several filters match: tools and scanners accumulate; any filter's
-block wins; posture checks are per filter. Keep one baseline filter for `All` and add
-group-specific filters on top.
+Precedence when several filters match: tools and scanners accumulate; posture checks are
+per filter. The scanners of all matching filters are merged into one list and evaluated
+together, most severe rule first; a block from any of them wins, and an `allow` rule in
+one filter never exempts traffic from another filter's rule. The full evaluation model is
+in `32-detection-rule-authoring.md`, section "Evaluation Order and Verdicts". Keep one
+baseline filter for `All` and add group-specific filters on top, but remember that a rule
+bound in the baseline filter reaches every device: to exempt a group from a rule, keep
+that rule out of the baseline and bind it only in the filters for the groups that need
+it.
 
 ---
 
@@ -130,10 +136,16 @@ Check in this order on the device:
    Targets. Group `All` is the only implicit membership.
 2. **Filter enabled**, has ≥1 tool and ≥1 scanner (a filter cannot be saved otherwise,
    but check disabled toggles).
-3. **Client connected and synced**: `netzilo status` shows Management Connected; the client
-   log contains `Successfully updated MCP Gateway filters: N filters applied` and
-   `Gateway static rules updated: N loaded` after each change; `netzilo refresh` forces
-   a sync.
+3. **Client connected and synced**: `netzilo status` shows Management Connected; after
+   each change the client log contains `Successfully updated MCP Gateway filters: N
+   filters applied` and `Gateway IPC: updating static rules (version: …, N rules, M
+   filter profiles)` (the per-load count `Gateway static rules updated: N loaded, F
+   failed` appears at debug log level). `Failed rules: [<rule-id>, …]` names rules that
+   did not load (a line `[partition] rule <rule-id>: parse error: <detail>` usually
+   precedes it): open each named scanner, fix its YAML and save; the rest of the rules
+   keep working. `Gateway static rules update failed: <reason>` means the device did not
+   accept the rule update at all: restart the client service, run `netzilo refresh`, and
+   re-check the log. `netzilo refresh` forces a sync.
 4. **Traffic actually reaches the engine**:
    - Desktop app: its executable path must match an **Agents** entry (Windows/macOS);
      Linux has no transparent per-app steering — use hooks/SDK or point the app at the
@@ -142,8 +154,14 @@ Check in this order on the device:
    - Browser: extension installed (force-installed only with a Browser Extension
      profile); or the browser executable in Agents.
    - SDK agent: enrolled with a setup key whose group is in the filter.
-5. **Posture checks** of the filter pass for the device (`tool.blocked` with posture
-   reason otherwise).
+5. **Posture checks** of the filter pass for the device. A failing check produces a
+   `tool.blocked` event with the posture reason and the client log line
+   `Posture check BLOCKED for domain <domain>: <reason>`. If the posture evaluation itself
+   cannot complete (for example it times out), the log shows
+   `Posture check failed for domain <domain>: …` and the request is denied: the posture
+   gate fails closed, and there is no filter setting to change that. Posture results are
+   cached for up to 5 minutes, so a device that has just been fixed may stay blocked for
+   that long; saving the filter clears the cache on the device's next sync.
 6. **Evidence**: Activity → Events, category AI Edge, filter by the user/peer:
    `tool.detected`/`tool.blocked` events name the **filter** and **rule**; `aidr.graph`
    snapshots on the peer page prove the engine sees traffic.

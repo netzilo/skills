@@ -7,12 +7,12 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 178043
+chars: 182793
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
   chars: 831
-- id: this-is-a-behavior-analysis-engi
+- id: this-is-a-behavior-analysis-engine
   title: This Is a Behavior Analysis Engine
   chars: 1972
 - id: how-you-think-about-rule-design
@@ -21,7 +21,7 @@ sections:
 - id: scripted-rule-patterns-use-these
   title: Scripted Rule Patterns — Use These
   chars: 6959
-- id: false-positive-prevention-non-ne
+- id: false-positive-prevention-non-negotiables
   title: False Positive Prevention — Non-Negotiables
   chars: 1100
 - id: rule-authoring-workflow
@@ -30,9 +30,9 @@ sections:
 - id: what-you-produce
   title: What You Produce
   chars: 1487
-- id: how-it-works-architecture-overvi
+- id: how-it-works-architecture-overview
   title: How It Works — Architecture Overview
-  chars: 4116
+  chars: 4290
 - id: what-are-rules
   title: What Are Rules?
   chars: 550
@@ -48,60 +48,60 @@ sections:
 - id: tagging-att-ck-atlas-and-owasp
   title: Tagging — ATT&CK, ATLAS and OWASP
   chars: 1984
-- id: logsource-category-what-traffic-
+- id: logsource-category-what-traffic-to-watch
   title: logsource.category — What Traffic to Watch
-  chars: 5539
+  chars: 5531
 - id: detection-what-to-look-for
   title: Detection — What to Look For
-  chars: 8518
-- id: metadata-filtering-moving-when-i
+  chars: 8405
+- id: metadata-filtering-moving-when-into-detection
   title: Metadata Filtering — Moving `when:` into Detection
   chars: 790
 - id: actions-what-to-do
   title: Actions — What to Do
-  chars: 46473
-- id: event-provenance-log-instance-re
+  chars: 46729
+- id: event-provenance-log-instance-resolved
   title: Event Provenance Log — Instance-Resolved Attribution
   chars: 17415
-- id: call-id-tracking-the-triggering-
+- id: call-id-tracking-the-triggering-event
   title: Call ID — Tracking the Triggering Event
-  chars: 1613
-- id: rule-store-per-rule-persistent-s
+  chars: 1616
+- id: rule-store-per-rule-persistent-storage
   title: Rule Store — Per-Rule Persistent Storage
   chars: 1428
-- id: best-practices-for-advanced-scri
+- id: best-practices-for-advanced-scripted-rules
   title: Best Practices for Advanced Scripted Rules
-  chars: 9821
-- id: the-behaviour-graph-complete-ref
+  chars: 9819
+- id: the-behaviour-graph-complete-reference
   title: The Behaviour Graph — complete reference
   chars: 17339
 - id: debug-http-api
   title: Debug HTTP API
   chars: 1447
-- id: evaluation-order
-  title: Evaluation Order
-  chars: 292
+- id: evaluation-order-and-verdicts
+  title: Evaluation Order and Verdicts
+  chars: 4442
 - id: semantic-events
   title: Semantic Events
-  chars: 19496
-- id: evaluation-order
-  title: Evaluation Order
-  chars: 292
+  chars: 19501
+- id: semantic-rules-and-evaluation-order
+  title: Semantic Rules and Evaluation Order
+  chars: 233
 - id: complete-schema-reference
   title: Complete Schema Reference
   chars: 8896
 - id: examples-standard-traffic
   title: Examples — Standard Traffic
-  chars: 3513
+  chars: 3509
 - id: what-replay-is
   title: What Replay Is
   chars: 418
-- id: runtime-environment-what-is-avai
+- id: runtime-environment-what-is-available
   title: Runtime Environment — What Is Available
   chars: 1009
 - id: meta-dict-field-availability
   title: '`meta` Dict — Field Availability'
-  chars: 785
+  chars: 772
 - id: netzilo-dict-field-accuracy
   title: '`netzilo` Dict — Field Accuracy'
   chars: 770
@@ -113,17 +113,17 @@ sections:
   chars: 1000
 - id: action-execute-starlark-scripts
   title: '`action: execute` — Starlark Scripts'
-  chars: 496
+  chars: 693
 - id: diff-values
   title: Diff Values
-  chars: 924
+  chars: 1088
 - id: unsupported-edge-types-in-replay
   title: Unsupported Edge Types in Replay
   chars: 534
 - id: session-size-limits
   title: Session Size Limits
   chars: 789
-- id: writing-rules-that-behave-consis
+- id: writing-rules-that-behave-consistently-in-both
   title: Writing Rules That Behave Consistently in Both Environments
   chars: 1172
 ---
@@ -492,7 +492,7 @@ Both paths feed the same AIDR behaviour graph and publish the same security even
 
 ### How scanner rules interact
 
-Rules run independently on every event. Either can block traffic. Rules run first; if a rule returns `block` or `allow`, subsequent rules still run on the same event (they do not short-circuit each other).
+Every rule that applies to an event is evaluated in one fixed order, and the most severe matching rule decides the verdict. The full contract — ordering, what a block skips, what still runs after a block, and what `allow` does — is defined once in [Evaluation Order and Verdicts](#evaluation-order-and-verdicts). Read it before relying on one rule to exempt traffic from another.
 
 Rules are for **content-based decisions**: "does this text contain a credit card number?", "does this tool name match `bash`?". They are fast and deterministic.
 
@@ -706,11 +706,11 @@ The `logsource.category` value controls which traffic events the rule evaluates 
 
 > ### ⚠️ The `file_*` categories do not fire on an endpoint
 >
-> This is deliberate, not a gap. `staticscanner/edr.go` scans process-exec events
-> and routes **file** events to AIDR ingest only: *"scanning every file I/O would
-> cause excessive CPU consumption. File-level detection is handled by Starlark
-> rules that traverse the AIDR behaviour graph, which receives all file events via
-> AIDR ingest."*
+> This is deliberate, not a gap. The endpoint evaluates rules on process-exec
+> events, but routes **file** events only into the AIDR behaviour graph: evaluating
+> every rule on every file I/O would cost too much CPU. File-level detection is
+> done by Starlark rules that traverse the behaviour graph, which records all file
+> events.
 >
 > A rule using `category: file_write` (or `file_read`, `file_op`, …) **loads
 > without error and never matches** during live evaluation. It will only ever fire
@@ -794,16 +794,16 @@ These are the fields available in detection conditions. They are populated autom
 | `response` | Tool output body or LLM response text | |
 | `message.content` | Concatenated LLM message texts | |
 | `system_prompt` | LLM system message | |
-| `source` | How content was loaded — **semantic events only** (`skill_acquired`, `external_message`, …). It does **not** exist on `tool_call`, `llm_request` or HTTP contexts: `BuildLogEntry()` only creates it by parsing a classifier payload. Pairing `source:` with `event_type: tool_call` in one selection makes that selection false forever, because selections are AND. To scope a rule to a framework or MCP server, use `server:` (e.g. `server: openclaw`). | `http`, `mcp`, `llm` |
+| `source` | How content was loaded — **semantic events only** (`skill_acquired`, `external_message`, …). It does **not** exist on `tool_call`, `llm_request` or HTTP contexts: the engine only creates it by parsing a classifier payload. Pairing `source:` with `event_type: tool_call` in one selection makes that selection false forever, because selections are AND. To scope a rule to a framework or MCP server, use `server:` (e.g. `server: openclaw`). | `http`, `mcp`, `llm` |
 | `agent_name` | Full path of the calling process | `/usr/bin/cursor` |
 
-For semantic events (`skill_acquired`, `external_message`, etc.), `content` is a `key=value\n` payload. `BuildLogEntry()` also flattens each pair into its own field, so `skill|contains: '…'`, `host: 'evil.com'`, `platform: 'slack'` and `format: '…'` work directly — you do not have to match against the packed `content` string, though `content|contains: "host=evil.com"` also works.
+For semantic events (`skill_acquired`, `external_message`, etc.), `content` is a `key=value\n` payload. The engine also flattens each pair into its own field, so `skill|contains: '…'`, `host: 'evil.com'`, `platform: 'slack'` and `format: '…'` work directly — you do not have to match against the packed `content` string, though `content|contains: "host=evil.com"` also works.
 
 #### Fields that exist in `meta` but NOT in a detection selection
 
 A script's `meta` dict is a superset of the LogEntry. These keys are **script-only** —
-a Sigma selection referencing them can never match, because `BuildLogEntry()` never
-copies them in:
+a Sigma selection referencing them can never match, because the engine never
+copies them into the LogEntry:
 
 | Key | Available as | Use instead |
 |---|---|---|
@@ -837,14 +837,13 @@ strictly more capable because it persists across restarts. See
 | `\|cidr` | CIDR network match (e.g. `10.0.0.0/8`) |
 | `\|windash` | Normalize Windows `-`/`/` flag prefixes |
 
-> **An unknown modifier is silently downgraded to `contains`.** `buildLeaf()` has a
-> `default:` branch, so a typo like `|re2:` or `|gte:` still loads and changes what
-> the rule means without any error. Only the modifiers in this table exist.
+> **An unknown modifier is silently treated as `contains`.** A typo like `|re2:` or
+> `|gte:` still loads and changes what the rule means without any error. Only the modifiers in this table exist.
 
 #### `|re` is RE2 — four things that silently kill a rule
 
-`|re:` patterns are compiled with Go's `regexp` package. On a compile failure
-`findRegex()` returns `nil` and **that leaf simply never matches** — no load error,
+`|re:` patterns are compiled as RE2. On a compile failure
+**that leaf simply never matches** — no load error,
 no log line, no indication the rule is dead. All four of these have shipped in this
 corpus and been caught only by running the engine:
 
@@ -852,7 +851,7 @@ corpus and been caught only by running the engine:
 |---|---|---|
 | `(?!…)`, `(?=…)`, `(?<=…)` | express the negation as a `filter` selection and `condition: sel and not filter` | RE2 has no lookaround at all |
 | `\1` … `\9` | restructure the pattern | RE2 has no backreferences |
-| `[​‮]` | `[\x{200b}\x{202e}]` | Go's regexp rejects `\u` as *"invalid escape sequence"*; `\x{…}` is the codepoint syntax |
+| `[​‮]` | `[\x{200b}\x{202e}]` | RE2 rejects `\u` as *"invalid escape sequence"*; `\x{…}` is the codepoint syntax |
 | a raw control byte in the YAML | `\x{001b}` inside a `\|re:` pattern | `gopkg.in/yaml.v3` fails the **entire file** with *"control characters are not allowed"* |
 
 Two more traps worth knowing:
@@ -981,7 +980,7 @@ action: block
 When `level: critical` or `level: high` and `action:` is absent, the default is `block`.
 
 ### `allow`
-Immediately passes the traffic and **skips all remaining rules**. Use this to whitelist known-safe patterns before stricter rules run.
+Records that the rule matched and changes nothing else. An `allow` rule does **not** stop other rules from running, does **not** lift a block set by another rule, and is not evaluated at all once a more severe rule has blocked the event. It is not an exemption mechanism: to exempt known-safe traffic from a rule, narrow that rule's own conditions or its filter scoping — see [Exempting traffic from a rule](#exempting-traffic-from-a-rule).
 
 ```yaml
 action: allow
@@ -1161,8 +1160,8 @@ Runs an embedded **Starlark script** to compute the verdict at runtime. Use this
 **The Sigma `detection:` section is a cheap pre-filter, not the actual detector.** For `action: execute` rules, the Starlark script is the authoritative decision-maker. The engine applies this contract:
 
 - **Sigma condition matches** → Starlark script is invoked
-- **Script returns `"allow"`** → rule is **invisible**: no `TriggeredRules` entry, no security event, no dashboard alert
-- **Script returns `"block"`, `"report"`, or `"redact"`** → rule fires: `TriggeredRules` is populated, security event published, dashboard alerted
+- **Script returns `"allow"`** → rule is **invisible**: not recorded as triggered, no security event, no dashboard alert
+- **Script returns `"block"`, `"report"`, or `"redact"`** → rule fires: recorded as triggered, security event published, dashboard alerted
 
 This means:
 - An execute rule that fires its Sigma pre-filter but whose script returns `"allow"` produces **zero noise** — no false-positive alerts
@@ -1199,7 +1198,7 @@ The fix: at the very top of `run()`, check if the **current event** (`meta["cont
 > **`meta["context_type"]` carries the raw context name, not the `event_type` value.**
 > The `detection:` section matches `event_type: tool_call`, but a script comparing
 > `ct == "tool_call"` never matches — the LogEntry's `event_type` is a *collapsed*
-> value (`contextToEventType()` maps six contexts onto `tool_call`), while `meta`
+> value (six contexts are mapped onto `tool_call`), while `meta`
 > carries the context itself. Use `tool_input`, `tool_output`, `tool_description`,
 > `gateway_description`, `prompt_request`, `sampling_request` — never `tool_call`
 > or `tool_response`. See the `meta` keys table for the full list.
@@ -1241,7 +1240,7 @@ def is_relevant_event():
     if ct == "skill_acquired":
         return True
     # There is NO file_read / file_write branch here, and there must not be:
-    # those contexts have no live producer (staticscanner/edr.go deliberately
+    # those contexts have no live producer (the endpoint deliberately
     # excludes file I/O from rule evaluation), so a periodic rule traversing
     # READ_FILE / WRITE_FILE graph edges is the only way to reach the file layer.
     # meta also has no "file_path" key — see the meta keys table.
@@ -1281,7 +1280,7 @@ if event_ts > 0 and s0_ts > 0 and (event_ts - s0_ts) > LOOK_BACK_NS:
     continue  # attack is stale — already handled
 ```
 
-`event_ts` is injected by the engine as the exact `time.Now()` nanosecond timestamp when the script is invoked. `s0_ts` is the timestamp of the first evidence step (the anchor of the attack window). If the gap exceeds the look-back window, the detection is a re-fire of an old attack. A genuinely new attack will have a fresh `s0_ts` close to `event_ts` and will pass the guard.
+`event_ts` is injected by the engine as the nanosecond timestamp of the moment the script is invoked. `s0_ts` is the timestamp of the first evidence step (the anchor of the attack window). If the gap exceeds the look-back window, the detection is a re-fire of an old attack. A genuinely new attack will have a fresh `s0_ts` close to `event_ts` and will pass the guard.
 
 #### Execution model
 
@@ -1592,7 +1591,7 @@ This produces a chain like:
 | Key | Available in | Value |
 |---|---|---|
 | `rule_id` | all | ID of the rule being evaluated |
-| `event_ts` | all | Unix nanosecond timestamp of the current triggering event (`time.Now()` when the script is invoked). Use this for look-back guards: `int(meta.get("event_ts","0"))`. |
+| `event_ts` | all | Unix nanosecond timestamp of the current triggering event (taken when the script is invoked). Use this for look-back guards: `int(meta.get("event_ts","0"))`. |
 | `context_type` | all | The specific context that fired — the **raw** context name, not the collapsed `event_type` the `detection:` section matches on. `tool_input`, `tool_output`, `tool_description`, `gateway_description`, `prompt_description`, `prompt_request`, `prompt_response`, `sampling_request`, `sampling_response`, `llm_request`, `llm_response`, `http_request`, `connects`, `execute_process`, `skill_acquired`, `external_message`, `file_upload`, `file_download`, `llm_tool_call`, `llm_tool_result`, `llm_reasoning`, `do_automation`, `periodic`. **Never** `tool_call` or `tool_response` — those are `event_type` values that six and three contexts respectively collapse onto. `file_read`/`file_write`/`file_create`/`file_delete`/`file_rename` appear only during server-side replay; no live producer emits them. |
 | `server_name` | all | MCP server name or LLM provider host |
 | `server_url` | MCP, LLM | Full URL of the upstream server |
@@ -2183,7 +2182,7 @@ def run():
     if not ev:
         return "allow"
     e = ev[0]
-    # e["actor_pid"]/e["actor_start"] → ProcLineage; e["target_id"] → the node.
+    # e["actor_pid"]/e["actor_start"] → proc_lineage(); e["target_id"] → the node.
     ...
 ```
 
@@ -2267,7 +2266,7 @@ script: |
 
 ### Accuracy & zero-FP — non-negotiable gates
 
-1. **Anchor on `caller_pid`, never on a graph node walk.** `for agent in graph(type="Process")` picks an owner in Go map-iteration order — non-deterministic, and a path-keyed node (one `curl`/`docker.cli` node, many parents) cannot tell you which instance acted. Resolve the instance with `proc_instance(caller_pid, event_ts)` and the owner with `proc_lineage`. Same input → same verdict, every run.
+1. **Anchor on `caller_pid`, never on a graph node walk.** `for agent in graph(type="Process")` picks an owner in an unspecified order — non-deterministic, and a path-keyed node (one `curl`/`docker.cli` node, many parents) cannot tell you which instance acted. Resolve the instance with `proc_instance(caller_pid, event_ts)` and the owner with `proc_lineage`. Same input → same verdict, every run.
 
 2. **Require a high-specificity anchor stage — never fire on a pile of individually-benign signals.** Reading `~/.aws/credentials` is benign (every `aws` CLI does it). Connecting to `169.254.169.254` is benign (every cloud SDK does it). Fetching an external URL is benign. The *combination* is only an attack when a **discriminating** stage is present and ordered — e.g. an **untrusted** (allowlist-excluded) fetch that *precedes* the credential access and the exfil. Make that anchor `REQUIRED`; without it, return `allow`.
 
@@ -2778,11 +2777,60 @@ Full-text BM25 search over all indexed request/response bodies. Same index as th
 
 ---
 
-## Evaluation Order
+## Evaluation Order and Verdicts
 
-Rules are evaluated in file order. **The first rule that fires wins.** Once a rule returns `block`, `allow`, `redact`, or `report`, the remaining rules are skipped.
+This section is the single authoritative description of how several rules combine on one event. Every other skill that mentions rule order refers here.
 
-Use `action: allow` rules first to whitelist known-safe patterns, then place stricter rules after.
+### Which rules are evaluated
+
+For each event, the client evaluates every enabled rule that is bound to the device through a matching filter and whose routing context (`logsource.category`, narrowed by `event_type`) fits the event. Rules from all filters that match the device are merged into one list. The filter a rule came from does not change its position in that list.
+
+### The order
+
+1. **Severity, most severe first:** `critical`, then `high`, `medium`, `low`. The rank comes from the rule's `level:`. A missing or `informational` level ranks with `low`.
+2. **Rule `id:` ascending** as a stable tie-break between rules of equal severity.
+
+The order is fixed when rules load and is identical on every device and after every reload. Where a rule appears in the dashboard, in a filter's scanner list or in a file has **no effect** on when it runs.
+
+### How matches combine
+
+- When several rules match, the verdict and the rule reported as the blocker come from the **most severe matching rule**, which is the first match in the order above.
+- Once a `block` verdict is set, ordinary rules later in the order are **skipped**: `report`, `allow`, `scan`, model-governance and HTTP-rewrite rules do not run for that event and produce no detection of their own.
+- Two kinds of rule still run after a block:
+  - **`redact`** rules, so matched content is redacted in what is logged and stored for the blocked request.
+  - **`execute`** (script) rules, which run their script and record their own verdict. A script that returns `block` also blocks.
+- `redact` rules chain: each operates on the text as already redacted by the rules before it, while every rule's conditions are matched against the original content.
+- **`report`** records a detection and never changes the verdict.
+- **`allow`** records that the rule matched and never changes the verdict. It does not stop evaluation, it cannot lift a block set by another rule, and a lower-severity `allow` is not evaluated at all once a block is set. A higher-severity `allow` does not prevent a lower-severity rule from blocking either.
+
+What follows from this:
+
+- **Rule placement never creates an exemption.** Putting an `allow` rule "first" does nothing to other rules.
+- **An unexpected rule named as the blocker** is more severe than the rule you expected (or equally severe with a lower `id:`). Correct the `level:` values or narrow the conditions; there is nothing to reorder.
+- **A `report` rule that never shows a detection** may be shadowed by a more severe `block` rule matching the same events. Replay the two rules together to see it.
+
+### Exempting traffic from a rule
+
+The supported ways to exempt traffic, most targeted first:
+
+1. **Narrow the rule's own conditions.** Add an exclusion selection and combine it with `and not`. The exclusion affects only this rule.
+
+   ```yaml
+   detection:
+     sel:
+       command|contains: "curl "
+     excl_internal_mirror:
+       command|contains: "https://mirror.internal.example.com/"
+     condition: sel and not excl_internal_mirror
+   ```
+
+2. **Scope the rule with filters.** A rule applies only to devices matched by a filter that binds it. To exempt a population, bind the rule in the filters for the groups that need it and give the exempt group a filter without it. A device matched by *any* filter that binds the rule, including a baseline filter for `All`, still gets the rule, because rules from all matching filters accumulate.
+3. **Disable the rule** (Edge → Scanners → Enable Scanner off) to exempt everyone. Premium scanners cannot be disabled or edited; use option 2, or unbind the premium rule for that population and bind a narrower custom rule in its place.
+
+Verify every exception in both of these ways before relying on it:
+
+- **Replay** the edited rule against snapshots that contain the traffic you meant to exempt (it should no longer match; events the old rule blocked come back `new_allow`) and the traffic that must still be caught (it should still match). Replay tests the rule's conditions only; it does not test which devices the filters reach.
+- **Live pilot:** deploy to a pilot group and confirm in Activity → Events that the exempted traffic has stopped producing events for that rule while the rest still does.
 
 ---
 
@@ -2818,7 +2866,7 @@ content|re: 'host=[^\n]*\.evil\.com'
 content|re: 'skill=[^\n]*exfiltrat'
 
 # Match a keyword anywhere in a field, even across newlines
-# (Go uses RE2 — no dotall mode; use [\s\S] instead of .)
+# (patterns are RE2 — no dotall mode; use [\s\S] instead of .)
 content|re: '(?i)skill=[\s\S]*?ignore all previous instructions'
 ```
 
@@ -3500,11 +3548,9 @@ script: |
 
 ---
 
-## Evaluation Order
+## Semantic Rules and Evaluation Order
 
-Rules are evaluated in file order. **The first rule that fires wins.** Once a rule returns `block`, `allow`, `redact`, or `report`, the remaining rules are skipped.
-
-Use `action: allow` rules first to whitelist known-safe patterns, then place stricter rules after.
+Rules on semantic events are ordered and combined exactly like every other rule; there is no separate order for them. See [Evaluation Order and Verdicts](#evaluation-order-and-verdicts).
 
 ---
 
@@ -3735,7 +3781,7 @@ status: stable
 level: critical
 description: |
   Detects curl/wget piped to a shell interpreter — the classic one-liner RCE pattern.
-author: AgentShield
+author: Netzilo
 date: "2026-02-04"
 tags:
   - attack.execution
@@ -3882,7 +3928,7 @@ Both live and replay provide the same Starlark global namespace:
 
 ## `meta` Dict — Field Availability
 
-Both live and replay populate `meta` with the same keys. All fields from `scanner_filter.go` are present:
+Both live and replay populate `meta` with the same keys. All live `meta` fields are present:
 
 | Key | Source in Replay |
 |-----|-----------------|
@@ -3942,7 +3988,7 @@ Scripts execute fully in replay with access to the complete snapshot graph and e
 
 - `print()` output **is captured** and shown in the Output tab (unlike live where it goes to client logs)
 - `http()` and `webhook()` are no-op stubs — side effects do not fire
-- The step budget (10M steps) and timeout (10s per script) are identical to live
+- The step budget (10M steps) is identical to live. The timeout is not: replay caps each script at 10 seconds, while live evaluation allows 30 seconds, so a script that times out in replay may still finish live, and a script close to 10 seconds should be tested in a live pilot
 - `on_error` and `on_timeout` fallback rules are honored exactly as in live
 
 ## Diff Values
@@ -3954,7 +4000,7 @@ The replay diff tells you what changed relative to the original live verdict:
 | `new_block` | Rule would now **block** traffic that was previously **allowed** |
 | `new_redact` | Rule would now **redact** content that was previously **allowed** |
 | `new_detection` | Rule would now **detect/report** traffic that was previously **allowed** or **unknown** |
-| `new_allow` | Rule would now **allow** traffic that was previously **blocked** or **redacted** |
+| `new_allow` | The replayed rules would no longer block or redact traffic that was previously **blocked** or **redacted** — the expected result on exempted events after you narrow a rule. A matching `allow` rule does not produce this; it counts as a detection |
 | `unchanged` | Same verdict as original |
 | `partial` | Content not available for this edge (headers, unsupported edge type, empty payload, AI scan skipped) — verdict cannot be determined |
 

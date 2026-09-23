@@ -5,20 +5,20 @@ requires:
 - dashboard-ui
 executable_on:
 - human-operator
-chars: 7400
+chars: 8736
 sections:
 - id: '1'
   title: The three plans
   chars: 642
 - id: '2'
   title: Every hard limit, and the exact message
-  chars: 2280
+  chars: 3106
 - id: '3'
   title: What has no limit
   chars: 305
 - id: '4'
   title: Changing plan
-  chars: 891
+  chars: 1165
 - id: '5'
   title: What happens when payment lapses
   chars: 683
@@ -27,7 +27,7 @@ sections:
   chars: 690
 - id: '7'
   title: Diagnosis
-  chars: 1338
+  chars: 1574
 ---
 # Plans, Limits and Billing — Why Something Is Blocked
 
@@ -63,8 +63,8 @@ of ten seats even if the account has fewer users. Both facts are shown at checko
 
 | Limit | Applies to | What the admin sees | Fix |
 |---|---|---|---|
-| 5 users | Free | `maximum number of users reached`, HTTP 409, when inviting the sixth | Delete a user or upgrade |
-| 100 devices | Free | `maximum number of personal peers reached`, HTTP 403, when enrolling the 101st | Remove peers or upgrade |
+| 5 users | Free | `maximum number of users reached`, HTTP 409, when creating or inviting the sixth (Agents count) | Delete a user or upgrade |
+| 100 devices | Free | `maximum number of personal peers reached` — returned to the **device** at enrolment, in its log as `failed to login to Management Service: rpc error: code = PermissionDenied desc = maximum number of personal peers reached` and on the terminal as `login failed: …`. Nothing is shown in the dashboard | Remove peers or upgrade |
 | Posture checks | Free | `free customers can't update posture checks`, HTTP 403. The dashboard shows **Upgrade Plan** instead of Save | Upgrade |
 | Profiles | Free, Professional | `only Enterprise customers can update profiles`, HTTP 403 | Upgrade to Enterprise |
 | Premium scanner rules | Free, Professional | `Enterprise subscription required to use premium scanner rule <id>`, HTTP 403, when saving a filter that binds one. In the scanner catalogue the rule shows a **Locked** badge | Upgrade to Enterprise, or bind a custom scanner instead |
@@ -75,6 +75,14 @@ of ten seats even if the account has fewer users. Both facts are shown at checko
 | Tenant logo | all | `file too large. Maximum size is 500KB`, HTTP 400 | Use a smaller PNG, JPG or SVG |
 | Scanner rule replay payload | all | Request rejected above 512 KB of rule YAML | Replay a smaller rule set |
 | Event batch from a device | all | `too many events: maximum allowed is 1024` | Not admin-actionable; devices batch automatically |
+
+**A limit is the cause only when its exact message is present.** A refused invite, a
+device that will not enrol, or a save that fails has many causes; the plan is one of them
+and it always names itself with one of the texts above. If the message is anything else
+(`setup key is invalid`, `account not found`, `peer login has expired`, a validation
+message, a `401`/`403` with another body), look elsewhere first —
+`24-peers-and-setup-keys.md` §6 for devices, `25-users-groups-and-account-settings.md`
+§7 for users, `13-log-interpretation.md` §4.8 for anything a device logged.
 
 **Two traps worth stating before the customer hits them.**
 
@@ -105,7 +113,10 @@ subscriptions`. Transfer ownership or have the owner do it.
 
 **A downgrade is blocked while the account is over the target plan's limits.** The
 dashboard says `Please reduce number of peers to 100 in order to be able to downgrade.`
-or the equivalent for users. Remove the excess first, then downgrade.
+or `Please reduce number of users to 5 in order to be able to downgrade.`; through the
+API the refusal is `Can't downgrade because of plan limitation. Please reduce the number
+of users or peers.` (HTTP 400). Remove the excess first, then downgrade. Any other
+failure of the downgrade button is not a limit — check that the caller is the Owner.
 
 A downgrade takes effect immediately and is charged pro rata for the current cycle. The
 dashboard states this before confirming.
@@ -152,8 +163,8 @@ billing one. The procedure is in `02-server-operations.md`.
 
 | Symptom | Cause | Action |
 |---|---|---|
-| Invite fails with a conflict | Free five-user limit, possibly consumed by Agents | Count users including Agents; delete one or upgrade |
-| New device refused | Free hundred-device limit | Remove stale peers, see `24-peers-and-setup-keys.md`, or upgrade |
+| Invite fails with `maximum number of users reached` | Free five-user limit, possibly consumed by Agents | Count users including Agents; delete one or upgrade. A conflict with any other text is not the limit (`25` §7) |
+| New device refused with `maximum number of personal peers reached` | Free hundred-device limit | Remove stale peers, see `24-peers-and-setup-keys.md`, or upgrade. Any other refusal text (`setup key is invalid`, `account not found`, …) is an enrolment problem, `24` §6 |
 | Save button reads **Upgrade Plan** | Feature gated on this plan | Check §2 for which plan is needed |
 | A scanner shows **Locked** | Premium catalogue rule on a non-Enterprise plan | Upgrade, or write an equivalent custom rule |
 | Upgraded but still blocked | Daily reconcile has not run | Wait up to twenty-four hours before investigating further |

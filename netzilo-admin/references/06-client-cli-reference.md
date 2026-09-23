@@ -6,20 +6,20 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 14710
+chars: 19217
 sections:
 - id: '1'
   title: Global flags (all commands)
   chars: 1473
 - id: '2'
   title: Commands
-  chars: 8121
+  chars: 9221
 - id: '3'
   title: Environment variables beyond flags
-  chars: 1388
+  chars: 3016
 - id: '4'
   title: Files and state
-  chars: 1780
+  chars: 2660
 - id: '5'
   title: Tray application (`netzilo-ui`)
   chars: 869
@@ -37,9 +37,21 @@ customer's (`SKILL.md` → "The Netzilo client on your own machine is a tool, no
 
 Elevation: on Linux/macOS the daemon socket is world-writable, so most commands work
 unprivileged; `service`, `ssh`, and a foreground `up -F` with a TUN device require root.
-A foreground run as a normal user uses userspace mode (as with `-U`) and needs a writable
+A foreground run as a normal user uses netstack mode (as with `-U`) and needs a writable
 `--config`; it is reachable only through its SOCKS5 proxy (`11-connectivity-diagnosis.md`
-§8). On Windows run an elevated terminal for `service`, `ssh`, and `up -F`.
+§8). On Windows run an elevated terminal for `service` and `ssh`. **A Windows `up -F` needs
+SYSTEM, not just an elevated shell**: run as an administrator but not as SYSTEM, the
+client skips the Windows components that only the service identity may start (the
+network filter and session features) and falls back to netstack mode.
+`references/40-windows-hosts.md` has the Windows detail.
+
+**Service safety.** `netzilo down`, `netzilo service stop`, `netzilo service restart`,
+`netzilo service uninstall`, `netzilo debug for`, and replacing the binary followed by a
+restart all perform a full client shutdown that **logs the device out and resets its
+keys**. A setup-key device then needs `netzilo up --setup-key <KEY>` again; an SSO device
+needs an interactive sign-in by the person at the device. A remote session to the device
+over Netzilo ends with it. To re-sync prefer `netzilo refresh` (device tool
+`mod.refresh`), and plan re-enrolment before any remote stop or restart.
 
 ---
 
@@ -88,7 +100,7 @@ legacy `WT_` prefix is also read; `NB_` wins.
 | `--proxy` | | upstream proxy for management/signal/TURN: `http://…`, `socks5://…`, or `auto` |
 | `--unified-proxy` | false | (daemon mode forces on) local SOCKS5+HTTP proxy |
 | `--mitm` | false | (daemon mode forces on) TLS inspection on the unified proxy |
-| `--socks5-port` | `41339` as root; a per-user port derived from the home directory otherwise | local SOCKS5 proxy port on `127.0.0.1` (`NB_SOCKS5_LISTENER_PORT` overrides); `netzilo status` does not show it |
+| `--socks5-port` | `41339` when the CLI reaches the system daemon; otherwise a per-user port derived from the home directory (the same applies to the defaults of `--wireguard-port` and `--web-server-port`) | local SOCKS5 proxy port on `127.0.0.1` (`NB_SOCKS5_LISTENER_PORT` overrides); `netzilo status` does not show it |
 | `--web-server-port` | `41336` | local control server port (hooks, browser extension) |
 | `--mcp-gateway-port` | `41338` | embedded MCP gateway port |
 | `--container-name`, `--parent-pid` | | internal (Windows workspace containers) |
@@ -96,8 +108,11 @@ legacy `WT_` prefix is also read; `NB_` wins.
 Behaviour: if the daemon is already `Connected` prints `Already connected`. If login is
 needed and no key/PAT is given, it starts SSO and prints
 `Please do the SSO login in your browser.` with a URL (and a code for the device flow).
-Flags given to `up` are persisted into `config.json` by the daemon, so they only need
-to be passed once.
+Flags given to `up` are persisted into `config.json` by the daemon and survive a reboot,
+but a logout (any of the operations under **Service safety** above) rewrites the file
+with only the management and admin URLs, so pass them again at the next `up`. Settings
+that must survive a logout go into the service arguments at `service install` (the
+global flags in §1).
 
 ### `netzilo login` — authenticate without connecting
 Same auth options as `up` (`--setup-key`, `--pat`, `--management-url`). With
@@ -107,8 +122,8 @@ Same auth options as `up` (`--setup-key`, `--pat`, `--management-url`). With
 Tears down the tunnel, restores DNS/routes/firewall, calls management `Logout`, opens
 the logout URL, deletes `token.dat` and **resets the local WireGuard keys** (config
 keeps only the URLs). The next `up` re-registers the peer (SSO devices must log in again;
-setup-key devices need the key again). Use `sudo netzilo service stop` if you only want
-to stop without logging out.
+setup-key devices need the key again). There is no way to stop the client without
+logging out: `service stop` and `service restart` run this same shutdown.
 
 ### `netzilo status`
 
@@ -125,7 +140,9 @@ to stop without logging out.
 Summary fields: `OS`, `Daemon version`, `CLI version`, `Management: Connected|Disconnected, reason: …`,
 `Signal: …`, `Relays: n/m Available`, `Nameservers: n/m Available`, `FQDN`,
 `Netzilo IP`, `Interface type: Kernel|Userspace|N/A`, `Quantum resistance`, `Routes`,
-`Peers count: n/m Connected`. Detail per peer: `Status`, `Connection type: P2P|Relayed`,
+`Peers count: n/m Connected`. `Interface type` is `Kernel` only when the Linux kernel
+WireGuard module is in use; it is always `Userspace` on macOS and Windows and does not
+indicate netstack mode, which `netzilo status` does not report. Detail per peer: `Status`, `Connection type: P2P|Relayed`,
 `Direct`, `ICE candidate (Local/Remote)` (`host`, `srflx`, `relay`, `prflx`),
 `ICE candidate endpoints`, `Last connection update`, `Last WireGuard handshake`,
 `Transfer status (received/sent)`, `Quantum resistance`, `Routes`, `Latency`.
@@ -139,7 +156,9 @@ JSON keys: `management{url,connected,error}`, `signal{…}`, `relays{total,avail
 iceCandidateType,iceCandidateEndpoint,lastWireguardHandshake,transferReceived,transferSent,latency,routes}]}`.
 
 ### `netzilo refresh` — force a network-map sync (bypasses the 30 s interval)
-Error `failed to refresh: client is not connected` when the engine is down.
+Error `failed to refresh: client is not connected` when the engine is down. Sends the
+current posture signals and applies the returned network map; it does not rebuild
+existing tunnels and never logs the device out. Device tool: `mod.refresh`.
 
 ### `netzilo routes` — client-side route selection
 - `netzilo routes list` (`ls`) → `ID`, `Network` or `Domains` + `Resolved IPs`, `Status: Selected|Not Selected`
@@ -158,9 +177,11 @@ IP, TCP 44338. Interactive shell only (no scp/port-forward).
 `Netzilo`, Windows SCM `Netzilo`), adds the Windows firewall rule `Netzilo Client`, and
 generates/trusts the `Netzilo Edge CA`. Any global flag passed to `install` is baked into
 the service arguments (e.g. `--log-level debug`, `--config`, `--management-url`,
-`--log-file`). `stop` first runs a graceful `Down`. `uninstall` also removes the macOS
-system extension, stale DNS state, force-installed browser extensions, and the
-`NODE_EXTRA_CA_CERTS` environment entry (the CA itself stays trusted).
+`--log-file`). `stop` (and therefore `restart`, and an OS-initiated service stop) runs the
+same shutdown as `netzilo down` and logs the device out; see **Service safety** above.
+`uninstall` also runs that shutdown, and removes the macOS system extension, stale DNS
+state, force-installed browser extensions, and the `NODE_EXTRA_CA_CERTS` environment entry
+(the CA itself stays trusted).
 
 ### `netzilo debug`
 - `netzilo debug bundle [-A]` → zip path (e.g. `/tmp/netzilo-debug-*/netzilo.debug.*.zip`,
@@ -172,7 +193,9 @@ system extension, stale DNS state, force-installed browser extensions, and the
 - `netzilo debug log level <panic|fatal|error|warn|info|debug|trace>` — runtime only;
   reverts at daemon restart.
 - `netzilo debug for <duration>` (e.g. `5m`) — down → trace → up → wait → down → bundle,
-  then restores the previous state and log level.
+  then restores the previous log level. Its `down` steps are real logouts, so the device
+  ends signed out; on a remote device raise the level with `netzilo debug log level`
+  (`mod.loglevel`) and bundle instead.
 Tray: **Support → Collect Data** / **Open Logs Folder**.
 
 ### `netzilo hook` — coding-agent hooks (Claude Code, Codex, Gemini CLI, OpenClaw)
@@ -204,15 +227,32 @@ Flags: `--fullname`, `--email`, `--groups a,b`, `--password`, `--tokenname`,
 | `NB_WG_KERNEL_DISABLED=true` | force userspace WireGuard on Linux |
 | `NB_USE_NETSTACK_MODE=true` | netstack mode (no TUN); `NB_SOCKS5_LISTENER_PORT` sets the SOCKS5 port |
 | `NB_USE_LEGACY_ROUTING=true` | Linux legacy routing (suggested when `rp_filter` sysctl fails on exit-node setups) |
+| `NB_DISABLE_CUSTOM_ROUTING=true` | do not install routes; the client then logs `doesn't support default routes … skipping this prefix` for any `/7`-or-wider prefix and exit nodes stop working (`07-client-troubleshooting.md` §7) |
 | `NB_DISABLE_ROUTE_CACHE=true` | Windows route cache off |
 | `NB_ENABLE_LOCAL_FORWARDING=true` | userspace-filter local forwarding |
 | `NZ_SKIP_NFTABLES_CHECK=true` | use iptables instead of nftables |
 | `NB_LOG_FORMAT=json` | JSON logs |
 | `NB_WG_DEBUG=true` | WireGuard-go debug logging |
-| `NB_CONN_RETRY_INTERVAL_TIME` (2m), `NB_CONN_MAX_RETRY_INTERVAL_TIME` (10m), `NB_CONN_MAX_RETRY_TIME_TIME` (14d), `NB_CONN_RETRY_MULTIPLIER` (1.7) | reconnect backoff |
-| `PIONS_LOG_DEBUG=all` / `PIONS_LOG_TRACE=all` | ICE library logging |
+| `NB_CONN_RETRY_INTERVAL_TIME` (2m), `NB_CONN_MAX_RETRY_INTERVAL_TIME` (10m), `NB_CONN_MAX_RETRY_TIME_TIME` (14d), `NB_CONN_RETRY_MULTIPLIER` (1.7) | the daemon's outer loop that restarts the engine after it exits (Go durations, e.g. `30s`, `5m`, `48h`). It is **not** the management/signal reconnect: while the engine runs, a lost management or signal connection is retried on its own backoff for up to 3 months and needs no tuning and no restart |
 | `GRPC_GO_LOG_VERBOSITY_LEVEL=99 GRPC_GO_LOG_SEVERITY_LEVEL=info` | gRPC logging |
 | `NETZILO_HOOK_URL`, `NETZILO_HOOK_TIMEOUT_MS`, `NETZILO_HOOK_POLICY`, `NETZILO_HOOK_SKIP`, `NETZILO_HOOK_STATE_DIR` | agent hook behaviour (see `10-ai-security-aidr.md`) |
+
+There is no environment variable for ICE / NAT-traversal detail: the connection library's
+lines are part of the client log at `debug` (tagged `[pion: …]`), so use
+`netzilo debug log level debug` (device tool `mod.loglevel`) at runtime; no restart is
+needed.
+
+**Where service environment variables live.** Variables in the shell that runs
+`netzilo up` reach a foreground client only; the daemon reads its own service environment,
+and every change to it takes effect at the next service start, which logs the device out
+(**Service safety**). Linux: a systemd drop-in, `sudo systemctl edit Netzilo` →
+`[Service]` / `Environment=NB_FORCE_WS=1`. macOS: an `EnvironmentVariables` dictionary in
+`/Library/LaunchDaemons/Netzilo.plist`. Windows: the service's `Environment` value at
+`HKLM\SYSTEM\CurrentControlSet\Services\Netzilo\Environment`, type `REG_MULTI_SZ`, one
+`NAME=value` per line, for example
+`reg add HKLM\SYSTEM\CurrentControlSet\Services\Netzilo /v Environment /t REG_MULTI_SZ /d "NB_FORCE_WS=1" /f`
+from an elevated prompt; machine-wide user variables set through System Properties do not
+reach the SYSTEM service until a reboot. Windows detail: `references/40-windows-hosts.md`.
 
 ---
 
@@ -227,8 +267,19 @@ Flags: `--fullname`, `--email`, `--groups a,b`, `--password`, `--tokenname`,
 | TLS-inspection CA | `/etc/netzilo/netzilo-ca.pem`, `netzilo-ca-key.pem` | same | `%PROGRAMDATA%\Netzilo\netzilo-ca.pem` |
 | Skip-domain config | — | — | `%PROGRAMDATA%\Netzilo\container.json` (fetched from `pkg.netzilo.com/download/configs/container.json`) |
 | Daemon socket | `/var/run/netzilo.sock` | same | `tcp://127.0.0.1:40836` |
-| Binary | `/usr/bin/netzilo` (installer) | `/Applications/Netzilo.app/Contents/MacOS/netzilo` | `C:\Program Files\Netzilo\Netzilo.exe` |
+| Binary | `/usr/bin/netzilo` (installer) | `/Applications/Netzilo.app/Contents/MacOS/netzilo` | `%PROGRAMDATA%\Netzilo Client\netzilo.exe` (install dir; `wintun.dll` sits beside it) |
 | Service | `Netzilo.service` | launchd `Netzilo` | SCM `Netzilo` |
+
+Two Windows folders are easy to confuse: `%PROGRAMDATA%\Netzilo Client\` is the **install**
+directory (binaries; the installer adds it to `PATH`), `%PROGRAMDATA%\Netzilo\` is the
+**state** directory (config, tokens, logs, CA). A **non-administrator (per-user) install**
+has no service and no TUN device: a per-user client runs in netstack mode as the signed-in
+user, with config `%PROGRAMDATA%\netzilo\usservice<N>.json` and log
+`%PROGRAMDATA%\netzilo\usservice<N>.log` (one `<N>` per user), and listens for the CLI on
+`tcp://127.0.0.1:<port>` where the port — like its SOCKS5 and WireGuard ports — is derived
+from the user's home directory rather than being `40836` / `41339` / `51820`. The CLI of
+the same user finds it without flags; `diag.config` shows the paths in use.
+`references/40-windows-hosts.md` has the Windows detail.
 
 `config.json` keys: `PrivateKey`, `PreSharedKey`, `ManagementURL`, `AdminURL`,
 `WgIface`, `WgPort`, `UseNetstack`, `Sock5Port`, `WebServPort`, `MCPGatewayPort`,

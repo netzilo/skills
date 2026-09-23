@@ -6,17 +6,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 6264
+chars: 9057
 sections:
 - id: '1'
   title: Tell people before you install, not after
   chars: 845
 - id: '2'
   title: The page to publish
-  chars: 2390
+  chars: 3412
 - id: '3'
   title: Translating what the employee says
-  chars: 1628
+  chars: 3399
 - id: '4'
   title: What to tell an employee who asks what is monitored
   chars: 808
@@ -105,6 +105,19 @@ and manage your own profile, from the web portal your administrator will link. I
 your devices and their connection quality. You can use it to check whether a device is
 connected without asking anyone.
 
+**If your company uses the Netzilo Workspace (Windows only).** Some applications may
+be set up to open inside a protected workspace. You start them from the shortcuts folder
+on your Desktop and in the Start menu, not from their usual icons. A few things are
+normal there: the windows may carry a watermark or a coloured border; copying text out of
+or pasting into them may be blocked; they may not show up in screen shares; and if the
+windows go **blurry**, a security check on your device is failing (a screen lock or disk
+encryption that is off, an out-of-date antivirus) — fix that and they clear on their own.
+If you see "**Your workspace will be restarted in N seconds**", your administrator
+changed a setting; save your work. Do not keep your own files in the shortcuts folder —
+it is rebuilt whenever your settings update. The Workspace exists only on 64-bit Windows
+with the standard company install; on Mac, Linux or an ARM laptop these applications
+work as before or the web page is blocked, which is expected.
+
 ---
 
 ## 3. Translating what the employee says
@@ -123,6 +136,13 @@ When an admin forwards a complaint, this maps it to a cause and the file that fi
 | "I got a scary red button on the dashboard" | The admin's system status widget | `16-onboarding-and-rollout.md` §0 |
 | "I can't see the page my colleague sees" | Role, not a fault. Most pages are admin-only | `25-users-groups-and-account-settings.md` |
 | "I was told to approve something on my Mac and I clicked no" | Extension approval declined; features silently inactive | `07-client-troubleshooting.md` |
+| "My work apps went blurry" | A workspace posture check is failing on the device (screen lock, disk encryption, antivirus…). The apps keep running; the blur clears when the check passes | `26-profiles-secure-workplace.md` §9 (blurred windows row), `21-posture-checks.md` |
+| "It says my workspace will restart in N seconds" | The admin saved a change to the workspace profile. Expected; save work and let it restart | `26-profiles-secure-workplace.md` §2 "Changing a live workspace", §9 |
+| "I can't paste into / copy out of the app" | Restrict Clipboard Access in the workspace profile (to / from / both), working as configured | `26-profiles-secure-workplace.md` §2, §9 |
+| "My screen share shows nothing where the app is" | Restrict Screen Sharing in the workspace profile | `26-profiles-secure-workplace.md` §2, §9 |
+| "The shortcut folder is missing" / "there's nothing in it" | No folder name in the profile, the application is not installed at the configured path, the service started before they signed in, or the workspace failed to create. Not available at all on Mac, Linux, ARM or a non-admin install | `26-profiles-secure-workplace.md` §9 (shortcuts and never-created rows) |
+| "The apps in the workspace have no internet" / "it just says Initializing Netzilo" | The workspace's own network identity (its setup key) is spent, expired or revoked, or its peer has no policy to the destination — the host being online proves nothing about the workspace peer | `26-profiles-secure-workplace.md` §9 first row, `24-peers-and-setup-keys.md` |
+| "The app closes as soon as I open it" (recording enabled) | Recording consent was declined or the recording storage is not configured; the workspace closes when it cannot record | `26-profiles-secure-workplace.md` §9 |
 
 ---
 

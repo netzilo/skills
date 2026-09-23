@@ -272,6 +272,49 @@ def check_links() -> None:
         warn(f"{name}: orphan — no other file links to references/{name}")
 
 
+# --- (e2) numbered "§n" pointers and device tool names -----------------------
+
+SECTION_POINTER_RE = re.compile(
+    r"(?:references/)?(\d{2})-[a-z0-9-]+\.md`?\)?\s*§\s*(\d+)"
+    r"|(?<![\w.])(\d{2}) §(\d+)"
+)
+TOOL_NAME_RE = re.compile(r"(?<![\w.])((?:diag|mod)\.[a-z_]+)")
+NEGATION_RE = re.compile(r"not exist|no such|isn't a tool|is not a tool|there is no", re.I)
+
+
+def check_section_pointers() -> None:
+    """A prose pointer like `36-device-tools.md` §11 or "38 §4.2" must name a
+    top-level numbered section that exists. The link checker only sees
+    #anchors, so these went stale silently."""
+    numbered: dict[str, set[str]] = {}
+    for p in sm.references(SKILL):
+        numbered[p.name[:2]] = {s.id.split(".")[0] for s in sm.load(p).sections()
+                                if re.fullmatch(r"\d+(?:\.\d+)*", s.id)}
+    files = [SKILL / "SKILL.md"] + sm.references(SKILL)
+    for path in files:
+        label = "SKILL.md" if path.name == "SKILL.md" else path.name
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for m in SECTION_POINTER_RE.finditer(line):
+                ref, sec = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))
+                if ref not in numbered:
+                    continue  # "30 §4" in prose that is not a file number
+                if sec not in numbered[ref]:
+                    error(f"{label}:{lineno}: points to reference {ref} §{sec}, "
+                          f"which has no section {sec}")
+
+
+def check_tool_names() -> None:
+    files = [SKILL / "SKILL.md"] + sm.references(SKILL)
+    for path in files:
+        label = "SKILL.md" if path.name == "SKILL.md" else path.name
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for name in TOOL_NAME_RE.findall(line):
+                if name in sm.DEVICE_TOOLS or NEGATION_RE.search(line):
+                    continue
+                error(f"{label}:{lineno}: names device tool '{name}', which does not exist "
+                      f"(known: {', '.join(sorted(sm.DEVICE_TOOLS))})")
+
+
 # --- (f) size budget, (g) H1 title ------------------------------------------
 
 
@@ -320,6 +363,8 @@ def main() -> int:
     check_signals(curated_map)
     check_versions()
     check_links()
+    check_section_pointers()
+    check_tool_names()
     check_size_and_titles()
 
     print_table()

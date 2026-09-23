@@ -6,26 +6,26 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 27840
+chars: 31931
 sections:
 - id: '0'
   title: What gets installed (all paths)
-  chars: 3820
+  chars: 4717
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
-  chars: 6121
+  chars: 8416
 - id: '2'
   title: Path B — AWS Marketplace (CloudFormation)
   chars: 3879
 - id: '3'
   title: Path C — Azure Marketplace (managed application)
-  chars: 2209
+  chars: 2245
 - id: '4'
   title: Variant — external PostgreSQL
   chars: 1093
 - id: '5'
   title: Variant — running the core engine directly (advanced / air-gapped)
-  chars: 2556
+  chars: 2636
 - id: '6'
   title: Installation failures — diagnosis table
   chars: 4998
@@ -34,10 +34,10 @@ sections:
   chars: 1054
 - id: '8'
   title: Teardown (before a re-install, or to remove)
-  chars: 479
+  chars: 751
 - id: '9'
   title: Reporting template
-  chars: 716
+  chars: 1227
 ---
 # Netzilo Server — Installation Runbook (all delivery paths)
 
@@ -57,11 +57,13 @@ companion; this document adds the cloud paths and the advanced variants.
 
 ## 0. What gets installed (all paths)
 
-One Ubuntu 22.04 host running nine Docker containers behind Caddy on 443:
-`caddy`, `dashboard`, `management`, `signal`, `zitadel` (identity), `coturn` (relay),
-`postgres`, `redis`, and `support-worker` — the AI Assistant's agent, reachable only by
-`management` over the compose network. See `02-server-operations.md` §1–2 for the
-layout and service map.
+One Ubuntu 22.04 host running nine Docker containers: `caddy`, `dashboard`,
+`management`, `signal`, `zitadel` (identity), `postgres`, `redis`, `support-worker` — the
+AI Assistant's agent, reachable only by `management` over the compose network — and
+`coturn` (relay). Dashboard, API, management, signal and identity are all served through
+Caddy on `443`; the relay is **not** — coturn runs in host network mode on its own ports
+(`3478`, `5349`, relay range `49152–65535/udp`). See `02-server-operations.md` §1–2 for
+the layout and service map and §11 for the firewall reference.
 
 **Three delivery paths, three pipelines.** The custom one-liner (wrapper + engine
 fetched from `pkg.netzilo.com`), the AWS AMI (Packer image + CloudFormation + first-boot)
@@ -105,8 +107,16 @@ Sizing: min 2 vCPU / 4 GB / 40 GB; recommended 2 vCPU / 8 GB.
 
 **On the minimum.** The published product documentation quotes a higher floor than the numbers above, which reflect what the marketplace images actually run on. Below the published minimum a server will start and work for a small pilot, but sizing questions during a support case will be judged against the published figure. For anything beyond a pilot, provision to the published minimum and treat the lower numbers as a lab floor, not a target.
 
-Firewall inbound: 22 (admin CIDR), 80, 443, 3478 tcp+udp, 5349 tcp+udp; cloud templates
-also open 49152–65535/udp for TURN relay allocations.
+Firewall inbound (`02-server-operations.md` §11 is the reference): **required** `443/tcp`
+(web, management, signal), `80/tcp` (Let's Encrypt validation + redirect), `3478/udp`
+(STUN/TURN) and `49152–65535/udp` (relay allocations — needed for every relayed
+connection); `5349/tcp` (TURN over TLS) is the fallback for clients on UDP-blocking
+networks and only completes once a certificate is mounted into coturn
+(`02-server-operations.md` §8.4); `3478/tcp` and `5349/udp` are **optional** (coturn
+listens, no client is given an address on them); `22/tcp` from the admin CIDR only. The
+AWS and Azure templates open all of these including the relay range; on a self-managed
+host the customer must, and a host firewall (`ufw`/`firewalld`) applies to coturn because
+it uses host networking. Never expose `6379` (Redis).
 
 The installer needs outbound HTTPS to `ghcr.io` (Netzilo images), Docker Hub (caddy,
 coturn, postgres, redis), `pkg.netzilo.com` (installer download) and Let's Encrypt.
@@ -145,30 +155,57 @@ asks `Continue anyway? [y/N]`.
 
 ### 1.3 Unattended install (preferred when an agent drives it)
 
+The wrapper takes every answer from environment variables and skips the prompts with
+`--yes`. Do **not** put the values on the command line (they would land in shell history
+and the process list, and quoting breaks on passwords containing `'`, `$`, `` ` `` or
+`!`). Put them in a root-only `0600` env file that bash sources — `printf '%q'`
+shell-quotes each value so it reaches the installer byte-for-byte — and delete the file
+after the install:
+
 ```bash
-curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh -o install-netzilo.sh
-sudo NETZILO_ASSUME_YES=1 \
-     NETZILO_DOMAIN=<fqdn> \
-     NETZILO_PUBLIC_IP=<ipv4> \
-     NETZILO_ADMIN_FIRST_NAME=<first> \
-     NETZILO_ADMIN_LAST_NAME=<last> \
-     NETZILO_ADMIN_EMAIL=<email> \
-     NETZILO_ADMIN_PASSWORD='<password>' \
-     NETZILO_TLS_MODE=letsencrypt \
-     bash install-netzilo.sh --yes
+sudo -n true                                    # unattended runs need passwordless sudo
+umask 077
+IFS= read -r -s -p 'Admin password: ' PW; echo
+{
+  printf '%s=%q\n' NETZILO_DOMAIN           '<fqdn>'
+  printf '%s=%q\n' NETZILO_PUBLIC_IP        '<ipv4>'
+  printf '%s=%q\n' NETZILO_ADMIN_FIRST_NAME '<first>'
+  printf '%s=%q\n' NETZILO_ADMIN_LAST_NAME  '<last>'
+  printf '%s=%q\n' NETZILO_ADMIN_EMAIL      '<email>'
+  printf '%s=%q\n' NETZILO_ADMIN_PASSWORD   "$PW"
+  printf '%s=%q\n' NETZILO_TLS_MODE         letsencrypt
+  printf '%s=%q\n' NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED true   # password came through chat: replace at first login
+} | sudo sh -c 'umask 077; cat > /root/netzilo-install.env'
+unset PW
+
+sudo sh -c 'umask 077; cat > /root/run-install.sh' <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+set -a; . /root/netzilo-install.env; set +a
+export NETZILO_ASSUME_YES=1
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh -o /root/install-netzilo.sh
+bash /root/install-netzilo.sh --yes
+EOF
 ```
 
-Provided certificate instead: `NETZILO_TLS_MODE=provided NETZILO_CERT_FILE=/path/fullchain.pem NETZILO_KEY_FILE=/path/privkey.pem`.
+Provided certificate instead: add `NETZILO_TLS_MODE=provided`, `NETZILO_CERT_FILE=/path/fullchain.pem`
+and `NETZILO_KEY_FILE=/path/privkey.pem` lines to the env file (same `printf '%q'` form).
 The fullchain must contain leaf + intermediates; the installer validates PEM syntax,
 key/cert match, expiry, chain completeness and (if a system CA bundle exists) trust.
 
-Run it detached so it survives SSH drops (it takes 3–8 minutes):
+Run it detached so it survives SSH drops (it takes 3–8 minutes), then poll for the marker
+lines only — the end of the log carries the admin credentials, so do not `tail`/`cat` it
+into a conversation:
 
 ```bash
 sudo bash -c 'nohup bash /root/run-install.sh > /root/install.log 2>&1 &'
-# then poll:
-sudo grep -E "Done\. Netzilo is starting|ERROR:|aborted" /root/install.log
+sudo grep -E "Done\. Netzilo is starting|ERROR:|aborted" /root/install.log   # repeat until one matches
+sudo rm -f /root/netzilo-install.env /root/run-install.sh                    # as soon as it has finished
 ```
+
+When the install is driven over SSH from another machine, follow
+`18-server-install-gated.md` §1.1–2.3: verify and pin the host key first, and stream the
+env file over stdin instead of building it on the host.
 
 Optional wrapper variables: `NETZILO_IMAGE_TAG` (default `latest`; applies to the five
 Netzilo images), `NETZILO_INSTALLER_URL` (where the core installer is downloaded from, default
@@ -223,13 +260,21 @@ A `502`/timeout in the first minute is warm-up, not failure.
 
 Open `https://<domain>`, sign in with the admin email + password. If the password was
 generated by the installer (no `NETZILO_ADMIN_PASSWORD` given) Zitadel forces a
-password change; with an operator-supplied password no change is forced (the
-CREDENTIALS file still says "You will be required to change this password" — that line
-is printed unconditionally). The first authenticated login creates the tenant row.
+password change; with an operator-supplied password no change is forced unless
+`NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED=true` was set (§1.3 sets it — a password that
+passed through chat must not stay in use). The CREDENTIALS file says "You will be
+required to change this password" in every case — that line is printed
+unconditionally. The first authenticated login creates the tenant row.
 
 Then hand the customer: dashboard URL, admin username, the location of
-`/opt/netzilo/CREDENTIALS`, and `02-server-operations.md` §6 (backups — nothing is
-backed up automatically).
+`/opt/netzilo/CREDENTIALS` (mode `600`; they read it on the host, you do not print it),
+and the backup arrangement. **Nothing is backed up automatically.** Install the
+fail-closed script and schedule from `02-server-operations.md` §6.2–6.3 and run it once
+by hand: it must end with `BACKUP OK`, and it exits non-zero and marks the run `.FAILED`
+if any required artifact (database dumps, `management.json`, `zitadel.env`,
+`docker-compose.yml`, `Caddyfile`, `dashboard.env`, `turnserver.conf`, provided
+certificates) is missing. Agree a date for the isolated restore rehearsal (§6.4); until
+one has passed the customer is not disaster-recovery ready, and say so in the handover.
 
 The **AI Assistant** is installed and healthy but stays hidden until an owner connects
 an AI provider and approves a model for Assistant under Integrations → Artificial
@@ -347,7 +392,8 @@ uses it to discover the managed-application resource id.
 Same as the AMI (§2.4): nine containers baked and digest-pinned, including
 `support-worker`; shared token generated at first boot; the worker is reachable only
 from `management` on the compose network, so the NSG is unchanged (22 admin CIDR;
-80, 443, 3478, 5349 public) and no wizard field concerns AI. Outbound `443` to the
+80, 443, 3478, 5349 and the relay range 49152–65535/udp public) and no wizard field
+concerns AI. Outbound `443` to the
 chosen AI provider and to `github.com` must be allowed (the default NSG outbound rule
 does). The Assistant appears only after an owner connects a provider. Images published
 before September 2026 run eight containers and cannot gain the worker in place — new
@@ -399,7 +445,7 @@ Engine variables not exposed by the wrapper:
 | `NETZILO_TLS_MODE` | `letsencrypt` | `selfsigned` generates a 1-year RSA-4096 cert in `./certs`; `provided` uses `NETZILO_CERT_DIR` |
 | `NETZILO_CERT_DIR` | `./certs` | must contain `fullchain.pem` + `privkey.pem` |
 | `NETZILO_IMAGE_SOURCE` | `cloud` | `disk` loads images from `NETZILO_IMAGES_DIR` (`*.tar.gz`/`*.tar`) — **air-gapped**; the nine archives must carry the expected tags |
-| `NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED` | `false` | force a password change at first login even with a supplied password |
+| `NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED` | `false` | force a password change at first login even with a supplied password; the wrapper passes it through unchanged, so it also works in the §1.3 env file |
 | `NETZILO_DB_*` | container | external DB (see §4) |
 | `NETZILO_ZITADEL_DB_MAXOPENCONNS` etc. | 20/20/30m/5m | Zitadel pool |
 | `NETZILO_MSP_KEY` | generated | non-empty enables MSP/Enterprise mode in management + dashboard |
@@ -483,10 +529,12 @@ Do not mix the two paths on one host. For new installs always use §1–3.
 ```bash
 C=$( [ -f /opt/netzilo/run/docker-compose.yml ] && echo /opt/netzilo/run || echo /opt/netzilo )
 cd "$C" && sudo docker compose down --volumes
-sudo rm -rf /opt/netzilo /root/run-install.sh /root/install.log
+sudo rm -rf /opt/netzilo /root/run-install.sh /root/install-netzilo.sh /root/netzilo-install.env /root/install.log
 ```
 
-This deletes everything. On a marketplace image also `sudo rm -f /opt/netzilo/.provisioned`
+This deletes everything. On a server that has ever held data, the backup gate
+(`02-server-operations.md` §6.3) must have passed first — a complete, checksum-verified
+backup less than an hour old — and the customer must have confirmed in writing. On a marketplace image also `sudo rm -f /opt/netzilo/.provisioned`
 only if you intend firstboot to run again on next boot (it will then re-install from the
 instance user-data).
 
@@ -504,5 +552,7 @@ and state the diagnosis:
 - [ ] Gate 5 trusted certificate (or waived: provided/self-signed)
 - [ ] Gate 6 OIDC discovery 200 with `issuer` = `https://<domain>`
 - [ ] Gate 7 `<title>Netzilo</title>`
-- [ ] Gate 8 `/opt/netzilo/CREDENTIALS` present and handed over
-- [ ] Backup schedule configured (`02-server-operations.md` §6) or customer explicitly declined
+- [ ] Gate 8 `/opt/netzilo/CREDENTIALS` present (mode `600`) and handed over without printing it
+- [ ] Firewall: required inbound rows of §0 open (`80`, `443`, `3478/udp`, `49152–65535/udp`; `5349/tcp` for UDP-blocked client sites) — on a self-managed host confirmed by the customer, on a marketplace image by the template
+- [ ] Backup: fail-closed script and schedule installed, first run ended `BACKUP OK`, restore rehearsal date agreed (`02-server-operations.md` §6.2–6.4) — or the customer explicitly declined, in writing
+- [ ] Admin password supplied through chat: `NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED=true` set and the customer told to replace it at first login

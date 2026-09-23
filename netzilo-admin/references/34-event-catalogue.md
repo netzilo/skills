@@ -6,11 +6,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 7854
+chars: 8294
 sections:
 - id: administration
   title: Administration
-  chars: 4795
+  chars: 5065
 - id: access-control
   title: Access Control
   chars: 454
@@ -22,7 +22,7 @@ sections:
   chars: 496
 - id: suspicious
   title: Suspicious
-  chars: 284
+  chars: 454
 - id: investigation
   title: Investigation
   chars: 79
@@ -33,7 +33,7 @@ sections:
 # Event catalogue — what each activity is called
 
 Generated from Netzilo Server's activity table on 2026-09-23 by
-`scripts/gen-event-codes.py`. 134 activities.
+`scripts/gen-event-codes.py`. 137 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
 name), `activity_code` (the stable identifier) and `activity_category`. **Say the
@@ -57,6 +57,9 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Account peer login expiration disabled | `account.setting.peer.login.expiration.disable` |
 | Account peer login expiration enabled | `account.setting.peer.login.expiration.enable` |
 | Account peer login expiration duration updated | `account.setting.peer.login.expiration.update` |
+| Account AI assistant disabled for users | `account.setting.user.ai.assistant.disable` |
+| Account AI assistant enabled for users | `account.setting.user.ai.assistant.enable` |
+| Account AI assistant groups updated | `account.setting.user.ai.assistant.groups.update` |
 | AI provider created | `ai.provider.create` |
 | AI provider deleted | `ai.provider.delete` |
 | AI provider updated | `ai.provider.update` |
@@ -191,7 +194,7 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Say this | Code |
 |---|---|
 | Prompt injection blocked | `browser.data.prompt.injection.blocked` |
-| User failed login | `user.failedlogin` |
+| User failed login | `user.failedlogin` (meta `error_type` = `expired`, `revoked`, `over_used` or `key_not_found`, plus `reason`, `setup_key_name`, `usage_limit`, `used_times`; `13-log-interpretation.md` §4.8) |
 | Code injection detected | `workspace.injection.detected` |
 | Self-defense activated | `workspace.selfdefense.activated` |
 

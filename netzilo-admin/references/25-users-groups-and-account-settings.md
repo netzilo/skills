@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12285
+chars: 13277
 sections:
 - id: '1'
   title: Roles and visibility
@@ -29,10 +29,10 @@ sections:
   chars: 930
 - id: '7'
   title: Diagnosis
-  chars: 1706
+  chars: 2270
 - id: '8'
   title: Rules that refuse a change, and why
-  chars: 2036
+  chars: 2464
 ---
 # Admin Skill — Users, Agents (Service Users), Groups and Account Settings
 
@@ -173,15 +173,16 @@ Agent: `{"name":"automation","role":"admin","auto_groups":[],"is_service_user":t
 | Symptom | Cause | Fix |
 |---|---|---|
 | Invited user never gets the e-mail | identity provider has no SMTP (self-hosted default) | configure SMTP (`04` §6) or use Create password |
+| Invite refused with `IdP manager must be enabled to send user invites` (HTTP 412) | the server has no identity-provider manager configured, so it cannot create the IdP user or send mail | use **Create password**; or configure the IdP manager (`04` §8) |
 | "If a user already has a Netzilo account, you can't invite them" | e-mail already exists | they log in; same-domain auto-join |
 | User logs in but sees only Workplace | role `user` | change role |
 | User sees `/install` only | Permissions → portal disabled, or `dashboard_view` blocked | toggle |
 | User's peers lack the groups | propagation off, or Save Changes answered "No" to applying to peers | enable propagation; save with Yes |
-| JWT groups not syncing | claim name wrong; group names differ from token values; groups don't exist | create groups with the exact names; check claim |
+| JWT groups not syncing | claim name wrong or **empty** (management log: `JWT groups are enabled but no claim name is set`, ERRO); group names differ from token values; groups don't exist | set the JWT claim; create groups with the exact names |
 | Everyone locked out after enabling JWT allow group | admins not in the group | fix IdP group; or `PUT /api/accounts/{id}` via an Agent token to clear `jwt_allow_groups` |
 | Cannot delete a group | still referenced | Settings → Groups usage counts |
 | Cannot delete/demote Owner | by design | transfer ownership first |
-| `maximum number of users reached` | Free plan (5 users) | upgrade |
+| `maximum number of users reached` (HTTP 409 on `POST /api/users`) | Free plan (5 users, Agents included) | delete a user or upgrade (`31` §2). Treat the plan as the cause **only** when this exact text is returned; a 409 with any other body (e.g. an existing e-mail) is not a limit |
 | Token creation fails for another human user | tokens can only be created on your own profile or on Agents | use an Agent |
 | Access token stopped working | expired (1–365 days) or deleted; user blocked | new token |
 
@@ -224,3 +225,9 @@ group cannot be deleted at all.
 
 **Plan and device counts reconcile once a day.** A plan change can take up to
 twenty-four hours to be reflected in every gate.
+
+**A downgrade is refused while the account is over the target plan's limits.** The
+dashboard says `Please reduce number of users to 5 in order to be able to downgrade.` or
+`Please reduce number of peers to 100 in order to be able to downgrade.`; the API answers
+`Can't downgrade because of plan limitation. Please reduce the number of users or peers.`
+(HTTP 400). Remove the excess first (`31-plans-limits-and-billing.md` §4).

@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 23468
+chars: 28115
 sections:
 - id: '1'
   title: Architecture in one page
   chars: 2577
 - id: '2'
   title: Rollout runbook
-  chars: 2541
+  chars: 2701
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
-  chars: 1937
+  chars: 2046
 - id: '4'
   title: Coding-agent hooks (`netzilo hook`)
   chars: 1465
@@ -32,10 +32,10 @@ sections:
   chars: 948
 - id: '8'
   title: Writing and testing rules (Edge Scanners)
-  chars: 3340
+  chars: 3913
 - id: '9'
   title: Troubleshooting
-  chars: 2630
+  chars: 6435
 - id: '10'
   title: Reporting and evidence
   chars: 584
@@ -108,7 +108,9 @@ Central policy objects (Dashboard → **Edge**):
      tool access.
    - Enable, name, save. Validation: name, ≥1 OS, ≥1 group, ≥1 tool, ≥1 scanner.
 4. **Verify on a device:** log shows `✓ Successfully updated MCP Gateway filters: N filters applied`
-   and `Gateway static rules updated: N loaded, 0 failed`. Use an AI app named in Agents;
+   and `Gateway IPC: updating static rules (version: …, N rules, M filter profiles)`, with
+   no `Failed rules:` line after it (the count `Gateway static rules updated: N loaded, 0
+   failed` is logged at debug level). Use an AI app named in Agents;
    Activity shows `tool.detected` / `semantic.event` / `aidr.graph` events and the peer
    page gets **Available Snapshots**.
 5. **Coding agents:** on each dev machine `curl -fsSL https://pkg.netzilo.com/download/plugin/install.sh | sh`
@@ -133,8 +135,8 @@ Central policy objects (Dashboard → **Edge**):
 | CA | `Netzilo Edge CA` (ECDSA P-256, 10 years) in `/etc/netzilo/netzilo-ca.pem` (`%PROGRAMDATA%\Netzilo\netzilo-ca.pem`); trusted in the OS store at `service install` and every start; `NODE_EXTRA_CA_CERTS` set system-wide; leaf certs 24 h |
 | Interception steering | Windows: `nwfilter.exe` (WFP) redirects TCP of matched processes (and their children) to the proxy; macOS: `com.netzilo.NetziloFilter` system extension (needs user approval once); Linux: **no per-app steering** — point apps at `HTTPS_PROXY=http://127.0.0.1:41339` / `ALL_PROXY=socks5h://127.0.0.1:41339`, or use hooks/SDK |
 | Skip list | Windows clients fetch `pkg.netzilo.com/download/configs/container.json` (`skip_domains`, e.g. Zoom); pinned/mTLS apps must be excluded there or removed from Agents |
-| Parsers | WASM modules hot-loaded hourly from `pkg.netzilo.com/download/llm-parsers` and `…/semantic-classifier` (checksum-verified); an embedded copy ships in the binary |
-| Rule delivery | management pushes expanded filters (tools, scanners, posture) to the peer on sync; log `Gateway static rules updated` |
+| Parsers | WASM modules hot-loaded hourly from `pkg.netzilo.com/download/llm-parsers` and `…/semantic-classifier` (checksum-verified); an embedded copy ships in the binary; a failed download or checksum keeps the previous version (§9) |
+| Rule delivery | management pushes expanded filters (tools, scanners, posture) to the peer on sync; log `Gateway IPC: updating static rules` (debug: `Gateway static rules updated`) |
 | Hook evaluation | `toolCall` is synchronous (can block); `toolResult` fire-and-forget; hooks are **fail-open** by default (`NETZILO_HOOK_POLICY=allow`); set `block` for fail-closed |
 | Verdict logging | `tool.allowed` (123), `tool.blocked` (124), `tool.sanctioned` (125), `tool.explicitly_blocked` (126), `semantic.event` (127), `tool.detected` (128), `aidr.graph` (129) |
 
@@ -292,9 +294,15 @@ tags: [attack.initial-access]
 - `logsource.category` (routing context): `tool_request|tool_response|tool_input|tool_output|llm_request|llm_response|http_request`; semantic `skill_acquired|llm_reasoning|external_message|file_upload|file_download|do_automation|llm_tool_call|llm_tool_result`; syscall `execute_process|connects|file_read|file_write|file_create|file_delete|file_rename|file_op`; `agent_events|all`; `periodic` (30 s background scripts).
 - Fields: `event_type, tool_name, server, provider, model, host, path, method, url.full, content, command, file_path, response, message.content, system_prompt, source, agent_name`. Modifiers: `|contains`, `|startswith`, `|endswith`, `|re` (RE2), `|all`, `|base64`, `|cidr`, `|windash`.
 - `level`: `low|medium|high|critical` (default action when `action` absent: high/critical → block, else report).
-- `action`: `block` (403 to the agent), `allow` (skip remaining rules), `report`, `redact` (`replace`, `keep_first`, `keep_last`), `scan` (ML/AI classifier; `prompt:` for an LLM judge; `on_timeout`, `on_error`), `blockmodel`/`allowmodel`/`replacemodel` (model governance), `redirect`, `inject`, `replace` (HTTP rewrites), `execute` (Starlark script over the behaviour graph: `graph()`, `node()`, `edges()`, `search()`, `re`, `http`, `webhook`, `meta`, `netzilo` identity, `store_*`; 30 s timeout; fail-open unless `on_error: block`; must assign `result`).
+- `action`: `block` (403 to the agent), `allow` (records the match only; never overrides a block), `report`, `redact` (`replace`, `keep_first`, `keep_last`), `scan` (ML/AI classifier; `prompt:` for an LLM judge; `on_timeout`, `on_error`), `blockmodel`/`allowmodel`/`replacemodel` (model governance), `redirect`, `inject`, `replace` (HTTP rewrites), `execute` (Starlark script over the behaviour graph: `graph()`, `node()`, `edges()`, `search()`, `re`, `http`, `webhook`, `meta`, `netzilo` identity, `store_*`; 30 s timeout; fail-open unless `on_error: block`; must assign `result`).
 - Semantic payloads are `key=value` lines (`content|contains: "host=evil.example"`).
-- Ordering: first firing rule wins; put explicit `allow` rules first.
+- Ordering: rules are evaluated most severe `level` first, then by rule `id`; the most
+  severe matching rule decides the verdict and is named as the blocker; after a block
+  only `redact` and `execute` rules still run. Position in a list or file has no effect,
+  and an `allow` rule is not an exemption. The authoritative model, and the supported ways
+  to exempt traffic (narrow the rule's conditions, scope it with filters, or disable it),
+  are in `32-detection-rule-authoring.md`, sections "Evaluation Order and Verdicts" and
+  "Exempting traffic from a rule". Prove any exception with Replay and a live pilot.
 
 Authoring in the dashboard: Edge → Scanners → **Add Scanner** → YAML editor (name and
 description sync from `title`/`description`); the sparkle button streams an AI-generated
@@ -321,7 +329,7 @@ keep `scan` rules narrow (latency); scope graph traversals to the current agent.
 | `MITM: CA trust install failed` / cancelled dialog | | manual trust commands in `07-client-troubleshooting.md` §9 |
 | Hook installed but nothing happens | `netzilo hook verify`; daemon running? device filtered? | start client; check filter; `NETZILO_HOOK_POLICY=block` to fail closed while testing |
 | Hook blocks everything when client is down | `NETZILO_HOOK_POLICY=block` set | expected fail-closed; start the client |
-| Rule never fires | wrong `logsource.category`; earlier `allow`; content not where expected | Replay against a snapshot and use its event search to see the real payload; move the rule up |
+| Rule never fires | wrong `logsource.category`; content not where expected; a more severe rule already blocks the same events, so a lower-severity `report` rule is skipped | Replay against a snapshot and use its event search to see the real payload; review the other rules that match (evaluation model: §8) |
 | Too many false positives | | tighten regex, add exclusion selection + `condition: sel and not excl`, switch to `report` |
 | AI rule generation returns 428 | no OpenAI/Anthropic integration | Integrations → Artificial Intelligence |
 | Discovered tool has risk "Unknown" and no Analyze button | no AI integration | same |
@@ -330,8 +338,25 @@ keep `scan` rules narrow (latency); scope graph traversals to the current agent.
 | Bedrock traffic visible but not redacted | SigV4-signed requests cannot be rewritten by the daemon | use SDK embedded mode, or Bedrock's OpenAI-compatible bearer endpoint |
 | Events show `peer="edge.netzilo.extension"` | events from the browser extension in standalone mode | normal |
 
-Log prefixes to search for on a device: `MITM:`, `Gateway static rules updated`, `NWFilter:`, `MacFilter:`,
-`[aidr]`, `[evaluate]`, `hook`.
+**Degradation lines in the client log.** Each of these means a part of AI governance is
+running in a reduced mode. None of them stops the client; each has a specific fix.
+
+| Log line | What it means | What to do |
+|---|---|---|
+| `MITM: engine init failed (…) — falling back to HTTP/1.1-only interception` | The HTTP/2-capable inspection engine did not start. Traffic is still inspected, but only over HTTP/1.1; some streaming AI tools that rely on HTTP/2 can stall or misbehave | restart the client service; if the line returns, collect an anonymized debug bundle (`netzilo debug bundle -A`; the text in the parentheses is the cause) and follow `12-escalation-package.md` |
+| `WASM [<name>]: download HTTP <code> from <url>` | a parser or classifier update could not be downloaded; the parser stays on its previous version (or the copy built into the client) | check that the device can reach the host in `<url>` (normally `pkg.netzilo.com`) through its proxy and firewall; the update is retried at the next hourly check |
+| `WASM [<name>]: checksum mismatch (got …, want …) — skipping update` | the downloaded file did not match its published checksum and was discarded; the parser stays on its previous version | usually a proxy or content filter altering the download: exempt the download host from content rewriting, then wait for the next check |
+| `Failed rules: [<rule-id>, …]`, often preceded by `[partition] rule <rule-id>: parse error: …` | the named rules did not load on this device; all other rules did | open each named scanner, fix its YAML, save (`29-edge-filters.md` §5 step 3) |
+| `Gateway static rules update failed: <reason>` | the device did not accept the rule update at all | restart the client service, run `netzilo refresh`, re-check the log |
+| `[OAuth Refresh] Token for server <server> expired … Re-authorization required.` | the saved sign-in for that MCP server is too old to refresh silently | the user signs in to that server again; registering or connecting the server again starts a browser sign-in (`A browser window will open for you to authorize the application`) |
+| `MCP proxy: client <client> not authorized to access MCP server <server>` | the local MCP gateway refused the call because that MCP client is not on the server's access list; the call fails with the same message | not expected with the default client setup: note the client and server names, collect an anonymized debug bundle and follow `12-escalation-package.md` |
+| `MCP server <server> has no bearer token or custom headers - connection may fail if OAuth is required` | the tool definition carries no credentials and no sign-in has been completed | if the server needs authentication, add the header to the tool (API: stored under `env`) or complete its OAuth sign-in |
+| `Posture check BLOCKED for domain <domain>: <reason>` | a posture check of the filter failed for this device, so that filter's tools are denied | fix the device condition named in `<reason>`; results are cached for up to 5 minutes (`29-edge-filters.md` §5 step 5) |
+| `evaluatellm: gateway IPC error (fail-open)` | a hook or plugin asked the client to check an LLM call, but the local gateway was not reachable, so the check did not run and the request was allowed | make sure the client is running and connected (`netzilo status`), then re-test |
+| `agentsdk: MCPGatewayPort not set — Evaluate will fail open (no in-process scanner)` | the SDK started with its local gateway disabled, so checks do not run and calls are allowed | remove `mcp_gateway_port: 0` (or give it a free port), restart the agent, then re-test |
+
+Log prefixes to search for on a device: `MITM:`, `Gateway IPC: updating static rules`, `Failed rules`, `WASM [`,
+`[OAuth Refresh]`, `MCP proxy:`, `Posture check`, `NWFilter:`, `MacFilter:`, `[aidr]`, `[evaluate]`, `hook`.
 
 ---
 

@@ -6,32 +6,32 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 7360
+chars: 9846
 sections:
 - id: step-1-check-the-prerequisites
   title: Step 1 — Check the prerequisites
-  chars: 1346
+  chars: 2078
 - id: step-2-run-the-installer
   title: Step 2 — Run the installer
   chars: 416
 - id: step-3-answer-the-prompts
   title: Step 3 — Answer the prompts
   chars: 732
-- id: step-4-choose-how-https-is-secur
+- id: step-4-choose-how-https-is-secured
   title: Step 4 — Choose how HTTPS is secured
   chars: 654
 - id: step-5-log-in
   title: Step 5 — Log in
   chars: 569
-- id: optional-unattended-scripted-ins
+- id: optional-unattended-scripted-install
   title: Optional — Unattended (scripted) install
-  chars: 846
+  chars: 1722
 - id: managing-your-server
   title: Managing your server
-  chars: 1195
+  chars: 1992
 - id: troubleshooting
   title: Troubleshooting
-  chars: 899
+  chars: 980
 - id: uninstall
   title: Uninstall
   chars: 170
@@ -76,15 +76,20 @@ install.** This is required so the server can obtain a free HTTPS certificate.
 
 **Open firewall ports**
 
-Make sure your server / cloud security group allows inbound traffic on:
+Make sure your server / cloud security group **and** any firewall on the server itself
+(`ufw`, `firewalld`) allow inbound traffic on:
 
-| Port(s) | Protocol | Purpose |
-|---------|----------|---------|
-| `80` | TCP | HTTPS certificate validation + redirect to HTTPS |
-| `443` | TCP | Dashboard, API, and login (all web traffic) |
-| `3478` | TCP & UDP | Secure networking (STUN/TURN) |
-| `5349` | TCP & UDP | Secure networking over TLS (TURN/TLS) |
-| `22` | TCP | SSH — your own administrative access |
+| Port(s) | Protocol | Needed? | Purpose |
+|---------|----------|---------|---------|
+| `443` | TCP | Required | Dashboard, API, login, and the connection every client keeps open to the server |
+| `80` | TCP | Required | HTTPS certificate validation + redirect to HTTPS |
+| `3478` | UDP | Required | Relay service (STUN/TURN) — how clients find each other |
+| `49152–65535` | UDP | Required for relayed connections | The relay hands each relayed connection a port from this range; without it, clients that cannot connect directly will not connect at all |
+| `5349` | TCP | Recommended | Relay over TLS — the fallback for clients on networks that block UDP (only active once a certificate is configured for the relay; ask support) |
+| `3478` TCP, `5349` UDP | — | Optional | The relay listens on them but clients are never sent there; opening or closing them changes nothing |
+| `22` | TCP | Your address only | SSH — your own administrative access |
+
+The relay is a separate service on its own ports; it does **not** run through `443`.
 
 ---
 
@@ -159,30 +164,42 @@ Your credentials are also saved on the server at:
 
 ## Optional — Unattended (scripted) install
 
-To install without any prompts — for automation — set the answers as environment
-variables and pass `--yes`:
+To install without any prompts — for automation — put the answers in a file that only
+`root` can read, run the installer with `--yes`, and delete the file afterwards. Do not
+type the password on the command line: it would be saved in your shell history, and
+passwords containing `'`, `$`, `` ` `` or `!` break there. Typing it at the hidden prompt
+below and storing it with `printf '%q'` keeps any password intact.
 
 ```bash
+umask 077
+IFS= read -r -s -p 'Admin password: ' PW; echo
+{
+  printf '%s=%q\n' NETZILO_DOMAIN           go.example.com
+  printf '%s=%q\n' NETZILO_PUBLIC_IP        203.0.113.10
+  printf '%s=%q\n' NETZILO_ADMIN_FIRST_NAME 'John'
+  printf '%s=%q\n' NETZILO_ADMIN_LAST_NAME  'Doe'
+  printf '%s=%q\n' NETZILO_ADMIN_EMAIL      admin@example.com
+  printf '%s=%q\n' NETZILO_ADMIN_PASSWORD   "$PW"
+  printf '%s=%q\n' NETZILO_TLS_MODE         letsencrypt
+} | sudo sh -c 'umask 077; cat > /root/netzilo-install.env'
+unset PW
+
 curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh -o install-netzilo.sh
-sudo NETZILO_ASSUME_YES=1 \
-     NETZILO_DOMAIN=go.example.com \
-     NETZILO_PUBLIC_IP=203.0.113.10 \
-     NETZILO_ADMIN_FIRST_NAME=John \
-     NETZILO_ADMIN_LAST_NAME=Doe \
-     NETZILO_ADMIN_EMAIL=admin@example.com \
-     NETZILO_ADMIN_PASSWORD='ChangeMe!2026' \
-     NETZILO_TLS_MODE=letsencrypt \
-     bash install-netzilo.sh --yes
+sudo bash -c 'set -a; . /root/netzilo-install.env; set +a; NETZILO_ASSUME_YES=1 bash install-netzilo.sh --yes'
+sudo rm -f /root/netzilo-install.env
 ```
 
-To use your own certificate instead, replace the last two lines with:
+To use your own certificate instead, replace the `NETZILO_TLS_MODE` line with:
 
 ```bash
-     NETZILO_TLS_MODE=provided \
-     NETZILO_CERT_FILE=/root/certs/fullchain.pem \
-     NETZILO_KEY_FILE=/root/certs/privkey.pem \
-     bash install-netzilo.sh --yes
+  printf '%s=%q\n' NETZILO_TLS_MODE  provided
+  printf '%s=%q\n' NETZILO_CERT_FILE /root/certs/fullchain.pem
+  printf '%s=%q\n' NETZILO_KEY_FILE  /root/certs/privkey.pem
 ```
+
+If someone else entered these values for you (for example through a support chat), add
+`printf '%s=%q\n' NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED true` to the file: you will then
+be asked to choose a new password at your first login.
 
 ---
 
@@ -200,6 +217,18 @@ sudo docker compose restart     # restart the platform
 sudo docker compose down        # stop the platform
 sudo docker compose up -d       # start it again
 ```
+
+**Back up:**
+
+Nothing is backed up automatically. Your data is in the database volumes and in the
+configuration files next to the compose file — `management.json`, `zitadel.env`,
+`docker-compose.yml`, `Caddyfile`, `dashboard.env`, `turnserver.conf`, and your certificate
+files if you provided your own. A backup that is missing any of these cannot be restored,
+so use a backup that **fails closed**: it captures every one of them or reports failure
+and exits non-zero. Netzilo support (or the operator who installed the server) will give
+you the backup script and daily schedule; run it once by hand and check that it ends with
+`BACKUP OK`. Keep copies off the server, and rehearse a restore onto a separate test
+machine at least once — until a restore has been proven, you do not have a backup.
 
 **Update to the latest version:**
 
@@ -229,7 +258,7 @@ to update: both erase the server.
 | Browser shows a certificate warning | The HTTPS certificate hasn't been issued yet, or DNS isn't pointing here | Confirm `A` record → server IP, ports 80/443 open, then wait a minute and refresh |
 | "Let's Encrypt will fail" warning during install | Domain doesn't resolve to this server yet | Fix the DNS `A` record (Step 1), then re-run the installer |
 | Can't reach the dashboard at all | Firewall/security group blocking 80/443 | Open the ports in Step 1 |
-| Clients can connect but relaying fails | TURN ports blocked | Open `3478` and `5349` (Step 1) |
+| Clients sign in but cannot reach each other | Relay ports blocked (in the cloud firewall or on the server itself) | Open `3478/udp`, `49152–65535/udp` and `5349/tcp` (Step 1) |
 | Password rejected during install | Doesn't meet the policy | Use 12+ chars with upper, lower, number, and a symbol |
 
 To see what happened during install, check the logs:

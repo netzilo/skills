@@ -209,5 +209,16 @@
       "api",
       "device-tools"
     ]
+  },
+  "40-windows-hosts.md": {
+    "requires": [
+      "device-tools"
+    ]
+  },
+  "41-remediation-workflows.md": {
+    "requires": [
+      "api",
+      "device-tools"
+    ]
   }
 }

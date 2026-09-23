@@ -8,29 +8,29 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 19339
+chars: 27719
 sections:
 - id: '0'
   title: Classify the target (2 minutes)
-  chars: 1091
+  chars: 1827
 - id: '1'
   title: Is the Netzilo layer up on both ends?
-  chars: 1038
+  chars: 1879
 - id: '2'
   title: Can A and the remote peer see each other?
-  chars: 1401
+  chars: 3678
 - id: '3'
   title: Does policy allow it? (resolve it, don't eyeball it)
-  chars: 2879
+  chars: 3653
 - id: '4'
   title: Is the route correct and delivered? (routed hosts and exit nodes)
-  chars: 1666
+  chars: 2740
 - id: '5'
   title: Verify the routing peer itself (run on R)
   chars: 3078
 - id: '6'
   title: Name resolution
-  chars: 1182
+  chars: 2464
 - id: '7'
   title: Server-side checks (self-hosted only)
   chars: 928
@@ -39,7 +39,7 @@ sections:
   chars: 3969
 - id: '9'
   title: Report template
-  chars: 684
+  chars: 1261
 ---
 # Netzilo — End-to-End Connectivity Diagnosis ("Host X is unreachable")
 
@@ -50,7 +50,17 @@ sections:
 > per peer, and `diag.probe` tests the port from the device. The routing-peer checks in §5
 > can run the same way on R. Playbook with stop conditions and OS branches:
 > `references/38-device-diagnosis-method.md` §4.2; each tool's arguments and output:
-> `references/37-device-tool-reference.md`.
+> `references/37-device-tool-reference.md`. Device tools reach a device only over its live
+> management connection: a device whose management or signal is down, or whose login has
+> expired, shows offline, and for it every step here is by hand or from the API.
+
+**How access is decided.** A current client receives from management the policies,
+groups, peers, routes and posture checks that concern it and computes on the device which
+peers it may connect to. The initiating side enforces; the receiving side accepts. When A
+fails a posture check, the peers and routes that policy would give it simply disappear
+from A: nothing on A says "denied". The API tells you what policy *should* allow (§3);
+A's `netzilo status -d` and its log tell you what A *computed* (`Policy evaluation
+complete: N connectable peers found`, `❌ Posture check '<name>' (ID=…) FAILED`).
 
 **Audience:** an AI operator who has been told "device A cannot reach host X over
 Netzilo" and must find the reason with evidence, not guesses. This runbook is the
@@ -83,8 +93,19 @@ getent hosts X ; dig +short X          # what X resolves to on A
 ip route get <X-ip>                    # Linux: which interface A would use (expect wt0)
 ```
 
-If `ip route get` does not choose `wt0` (macOS: `route -n get <X-ip>` → `utun100`), the
-problem is on A: no route (§4) or a conflicting local route (`ip route show table all | grep <prefix>`).
+If `ip route get` does not choose `wt0` (macOS: `route -n get <X-ip>` → `utun100`;
+Windows: `Find-NetRoute -RemoteIPAddress <X-ip>` → the `wt0` adapter), the problem is on
+A: no route (§4) or a conflicting local route. On Linux Netzilo's routes live in table
+7120 (`netzilo`), and policy rule 100 (`lookup main suppress_prefixlength 0`) is
+consulted before rule 110 (`not fwmark 0x1bd00 lookup netzilo`), so **any main-table
+route covering X other than the default route wins**, however broad (`ip route show
+table all | grep <prefix>`, `ip rule`). On macOS and Windows an identical local prefix
+makes the client skip its own route, logged as `Skipping adding a new route for network …
+because it already exists`. The typical case is a home LAN numbered like the office
+route.
+
+A peer's own Netzilo IP needs no route: `netzilo routes list` and `diag.route_match` do
+not list it, and that says nothing about peer-to-peer traffic.
 
 ---
 
@@ -97,16 +118,26 @@ machine's client is not A unless the customer enrolled it as a test peer (`SKILL
 On A (`netzilo status -d`):
 
 - `Management: Connected` and `Signal: Connected` — otherwise `07` §4 first; nothing
-  below will work.
+  below will work. Management and signal both use TCP 443. When gRPC over HTTP/2 is
+  broken on the path, the client falls back to WebSocket by itself (`grpc: connected to …
+  via WebSocket fallback` in the log is a success). A TLS-inspecting proxy shows as an
+  `x509: certificate signed by unknown authority` error (`07` §9).
 - `Relays: n/m Available` with at least one available — otherwise only direct P2P can
-  work; fix relay reachability (`07` §4, `03` §4 for self-hosted).
-- `Daemon status: NeedsLogin` → session expired; `netzilo up` (`07` §2).
+  work; fix relay reachability (`07` §4, `03` §4 for self-hosted, where the relay is
+  coturn on UDP 3478 for STUN/TURN and TCP 5349 for TURNS).
+- `Daemon status: NeedsLogin` → session expired. Management answers `peer login has
+  expired, please log in once more`, and the client stops retrying until the person runs
+  `netzilo up` or presses Connect in the app (`07` §2). Device tools cannot reach it in
+  this state.
 
 On the other end (X if it is a peer, R if it is a routing peer): same checks. If you
-cannot log in there, the dashboard tells you: Peers → search the name → green dot =
-online; "Login required" badge = expired session; "Approval required" = blocked until
-approved. An **offline routing peer** is the single most common cause of "the whole
-office network disappeared".
+cannot log in there, the API and dashboard tell you: `GET /api/peers` → `connected`,
+`last_seen`, `login_expired`; in the dashboard, Peers → search the name → green dot =
+online; "Login required" badge = expired session. An expired or offline remote looks the
+same from A: Disconnected, with no flag of its own. Do not rely on peer approval to hold
+a device off the network; to keep a device out, block its user or delete the peer. An
+**offline routing peer** is the single most common cause of "the whole office network
+disappeared".
 
 ---
 
@@ -116,11 +147,28 @@ On A, find the remote peer (X, or R for routed traffic) in `netzilo status -d`:
 
 | Observation | Meaning | Action |
 |---|---|---|
-| Peer **not listed** | no enabled policy connects A's groups with the peer's groups | §3 |
-| `Status: Disconnected`, handshake `-` | listed (policy OK) but no tunnel established | both sides need a relay or UDP path; compare `Relays` on both; check `Last connection update`; run `netzilo debug for 3m -A` on A while retrying |
+| Peer **not listed** | A's map does not include it: no enabled policy connects A's groups with the peer's groups, A fails a posture check that policy carries, or the peer's login has expired | §3; on A grep the log for `Posture check .* FAILED` |
+| `Status: Disconnected`, handshake `-` | listed but no tunnel established | read A's log for the peer's WireGuard public key (the table below); compare `Relays` on both; check `Last connection update`; run `netzilo debug for 3m -A` on A while retrying |
 | `Status: Connected`, `Connection type: Relayed` | works but via TURN | acceptable; if throughput is the complaint, open outbound UDP on both networks or set `--external-ip-map` on servers behind 1:1 NAT |
+| `Connected`, but nothing passes either way; `Quantum resistance: false (connection won't work without a permissive mode)` | one side runs Rosenpass in strict mode, the other does not run it; A's log has `remote peer with public key … does not support rosenpass` | permissive mode on the strict side, or enable Rosenpass on both |
+| `Connected`, `Last WireGuard handshake` older than 3 minutes | stale tunnel: a healthy one re-handshakes about every 2 minutes plus a 25 s keepalive, so up to about 2.5 minutes is normal | `netzilo down` then `netzilo up` on A; `netzilo refresh` only requests a sync and does not rebuild existing tunnels |
 | `Connected`, handshake recent, but `ping <peer-netzilo-ip>` fails | policy allows the connection but not ICMP, or the peer's OS firewall drops it | check the rule protocol (ALL or ICMP needed for ping); test the real port instead: `nc -vz -w3 <ip> <port>` |
 | `Connected`, ping OK, port refused/timeouts | policy port list or target service | `nc -vz`; §3 ports; on X `ss -ltnp` to confirm the service listens on all interfaces, and X's own firewall |
+
+**Why a listed peer stays Disconnected.** Connection lines in the client log are keyed by
+the peer's WireGuard public key (`netzilo status -d` shows it), not by IP or name; search
+for a prefix of it.
+
+| A's log for that key | Reading | Next |
+|---|---|---|
+| `failed to establish connection to peer <key>: connection to peer <key> timed out after 3…s` (30–45 s) | the remote never answered the offer: offline, login expired, signal down there, or it does not have A in its map | the remote's `connected` / `login_expired` in the API, then `netzilo status -d` on the remote |
+| `peer <key> ICE connection state changed to Failed - connection lost`, then `disconnected from peer <key>` | offers were exchanged but no usable path exists, including the relay: UDP blocked and TURN unreachable on at least one side | `Relays` on both ends; `07` §4 |
+| `error while handling message of Peer [key: <key>] … wrongly addressed message <key>`, then `Auto-sync triggered for unknown peer` | the sender (`<key>`) has A in its map; A does not have the sender. The two sides see policy differently, typically A is the source and fails posture | §3 with posture; A's `Posture check .* FAILED` lines |
+
+**After a network change** (Wi-Fi switch, sleep, docking): on macOS and Windows the
+client's network monitor restarts the connection on an interface change. On Linux it is
+off by default and each peer recovers when ICE fails and reconnects, which can take tens
+of seconds.
 
 A quick two-sided test: on X run `sudo tcpdump -ni wt0 host <A-netzilo-ip>` (macOS
 `utun100`) while A connects. Packets arriving on X but no reply → X's service/OS
@@ -159,19 +207,29 @@ least one of the destination peer's groups is a destination (or the reverse for
 bidirectional rules). Interpretation:
 
 - **No rule printed** → this is the cause. Either add A/destination to the right groups
-  or create a policy (`08` §4). Remember the `All` group covers everyone only while the
-  `Default` policy is enabled.
+  or create a policy (`08` §4). Group membership and policy permission are separate:
+  every peer is always in `All`, but membership grants nothing by itself. Access comes
+  only from an enabled policy that names the group, such as the `Default` policy
+  (`All → All`) while it exists and is enabled.
 - Rule printed but **protocol/ports** exclude the traffic (e.g. TCP 443 only, user tries
   SSH) → extend ports or add a rule. One-way TCP/UDP rules need explicit ports.
-- Rule printed with **posture checks** → check A against each (`nz /posture-checks/<id>`)
-  and look for `peer.access.blocked` events naming A:
+- Rule printed with **posture checks** → check A against each (`nz /posture-checks/<id>`).
+  The evidence is on A: its log has `❌ Posture check '<name>' (ID=<id>) FAILED` and
+  `Posture check '<name>' FAILED at <check type>` for the check it fails, and the peer
+  (or the route whose routing peer it is) is missing from `netzilo status -d`. The
+  account may also record `peer.access.blocked` events naming A:
   `nz "/events/paginated?limit=50&code=peer.access.blocked&q=<A-name>" | jq '.events[] | {timestamp,meta}'`
-  — the event meta names the failing check and reason.
+  — the event meta names the failing check and reason. It is recorded only while a
+  destination peer is connected, so no event proves nothing.
 - Rule has **`allowed_routes`** → routed destinations must fall inside those CIDRs (§4).
-- Policy just changed → peers pick up changes within ~30 s; `netzilo refresh` on A.
+- Policy just changed → peers pick up changes within ~30 s; `netzilo refresh` on A
+  requests a sync at once.
 
-Direction reminder: the initiating side enforces the rule, so after a policy fix the
-change must reach **A** (check `netzilo status` on A shows the peer listed).
+Direction reminder: the initiating side enforces the rule and the receiving side
+accepts, so after a policy or posture fix the change must reach **A** (check `netzilo
+status` on A shows the peer listed). The two ends can disagree: a destination lists A
+even while A, failing posture, does not list it; A's log then shows `wrongly addressed
+message <destination key>` (§2).
 
 ---
 
@@ -186,10 +244,17 @@ Checklist:
    does not cover X is a frequent miss).
 2. **Distribution groups** include a group A belongs to → A must show the route in
    `netzilo routes list` (`Status: Selected`). If A does not see it: A not in the group,
-   route disabled, or another route with the same prefix is selected — `netzilo routes select <id>`.
+   route disabled, A fails a posture check or has no policy to the routing peer (routes
+   whose routing peer A may not connect to are withheld, §3), or another route with the
+   same prefix is selected — `netzilo routes select <id>`.
 3. **Routing peer R** (or a peer in the routing group) is **Linux**, **online**, and
-   **connected to A** (§2 with R as the remote peer). With HA, at least one routing peer
-   must be connected; `netzilo status -d` on A shows `Routes:` per peer.
+   **connected to A** (§2 with R as the remote peer). *Selected* is only A's choice: with
+   no routing peer connected the route is removed from A's OS and traffic to X falls back
+   to A's own default route (for an exit node, A quietly uses its local internet). A's log
+   says so: `The network [<id>] has not been assigned a routing peer as no peers from the
+   list [...] are currently connected`; when one is picked, `New chosen route is <id> with
+   peer <key> …`. With HA, at least one routing peer must be connected; `netzilo status
+   -d` on A shows `Routes:` per peer, which is the peer carrying each network right now.
 4. **Policy A → R** exists (§3 with B = R) for the protocol/ports of the traffic to X.
    Routed traffic is checked against the policy between A's group and R's group; if the
    rule carries `allowed_routes`, X must be inside one of them. If the route has
@@ -198,7 +263,13 @@ Checklist:
    With masquerade **off** and no return route, packets reach X but replies never come
    back (tcpdump on R shows requests only).
 6. **Metric / HA**: two networks with overlapping prefixes → the lower metric wins;
-   `netzilo routes list` on A shows which is selected.
+   `netzilo routes list` on A shows which is selected. A's log shows `Prefix [<cidr>] is
+   already routed by peer [<key>]. HA routing disabled` when two networks cover the same
+   prefix.
+7. **Local route conflict on A**: §0 (`ip route get`, `route -n get`, `Find-NetRoute`).
+8. **Exit node not applied on A**: `doesn't support default routes … skipping this
+   prefix` in A's log means A does not program default routes in its current mode (an
+   older client, or `NB_DISABLE_CUSTOM_ROUTING=true` in its service environment).
 
 ---
 
@@ -261,11 +332,17 @@ getent hosts <internal-name>               # names behind a private DNS server
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| peer names do not resolve | Netzilo resolver not installed on A (backend problem) | `07` §6 |
+| peer names do not resolve | Netzilo resolver not installed on A (backend problem); on Linux in resolvconf or file mode with no primary nameserver group, the log has `unable to configure DNS for this peer using file manager without a nameserver group with all domains configured` | `07` §6; add a primary group (no match domains) for A's groups |
 | private names do not resolve | no nameserver group distributed to A's groups, or the DNS server is itself behind a route (needs route + policy allowing UDP/TCP 53 A → R) | Network → DNS Servers: distribution groups; add route/policy for the resolver |
-| match-domain resolver ignored | A's OS does not support match domains (Linux without systemd-resolved, older Windows) | add a primary (no match domains) nameserver group for `All` |
-| name resolves to a public IP while a private one is expected | split-horizon: match domain missing or wrong | add the domain to the nameserver group's Match Domains |
-| domain route not applied | domain routes are resolved on A every minute; the resolved IPs must be routable through R | wait / `netzilo refresh`; check "Keep Routes" |
+| match-domain resolver ignored | A's DNS manager cannot do match domains: on Linux, resolvconf or direct-file mode (`System DNS manager discovered: <x>` in the log); on Windows, a GPO-pushed NRPT policy overriding local rules (`Get-DnsClientNrptPolicy`) | add a primary (no match domains) nameserver group for `All`; on Linux move the host to systemd-resolved or NetworkManager |
+| name resolves to a public IP while a private one is expected | split-horizon: match domain missing or wrong; or the group was deactivated after upstream timeouts (next row) | add the domain to the nameserver group's Match Domains |
+| lookups take ~15–45 s, or work intermittently | each upstream gets 15 s; after 5 failures the group is deactivated (`all queries to the upstream nameservers failed with timeout`), its domains leave the host configuration, and a primary group stops being the catch-all, until `upstreams … are responsive again` | make the upstream reachable through the tunnel (route + policy for port 53) |
+| domain route not applied | domain routes are resolved on A through the host resolver about every minute; the resolved IPs must be routable through R; `Failed to resolve domains for route [<id>]` in A's log | wait / `netzilo refresh`; check "Keep Routes" |
+
+Testing peer names from the agent: `diag.dns` without `server` asks the nameserver
+group's upstream, which does not know peer names or custom zones; pass the address from
+the `DNS loopback listener started on <addr>` log line as `server` instead
+(`38-device-diagnosis-method.md` §4.3).
 
 ---
 
@@ -361,4 +438,10 @@ State the classification (§0), then the first failing check and its evidence, e
 > (router's private IP) on port 5432 in that security group.
 
 Always include the commands you ran and their output, what you changed, and how to
-revert it.
+revert it. Label each finding as observation, hypothesis, confirmed cause or verified
+recovery, and name what corroborates it (`38-device-diagnosis-method.md` §2). Common
+premature conclusions: high latency on a direct connection does not by itself exclude
+Netzilo; two events at the same time are not yet cause and effect; two resolvers that
+disagree do not prove the client's DNS is missing; a route lookup that misses does not
+exclude direct peer traffic. An HTTP endpoint that answers with an expected 401 is
+reachable; only a connection failure (refused, timeout, TLS error) is not.

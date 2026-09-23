@@ -6,7 +6,7 @@ requires:
 - server-shell
 executable_on:
 - human-operator
-chars: 20062
+chars: 24269
 sections:
 - id: '1'
   title: How users get into the account
@@ -22,7 +22,7 @@ sections:
   chars: 3008
 - id: '5'
   title: Login failure messages and what they mean
-  chars: 1827
+  chars: 6034
 - id: '6'
   title: E-mail (SMTP) — required for invitations and password-reset mails
   chars: 1371
@@ -213,6 +213,36 @@ password — resend init mail `POST /management/v1/users/{id}/_resend_initializa
 
 Login events (`user.login`, `user.failedlogin`, `user.logout`) are imported from Zitadel
 into Netzilo Activity every minute; use Activity → Events with the User filter.
+
+### 5.1 Device (client) login rejections that come from the identity layer
+
+These appear in the client log as `failed to login to Management Service: rpc error:
+code = <code> desc = <reason>` and on the terminal as `login failed: …` (the full shape
+table is `13-log-interpretation.md` §4.8). The identity-related reasons:
+
+| Reason | Meaning | Fix |
+|---|---|---|
+| `invalid jwt token: Error parsing token: Token is expired`, `… Token is not valid yet`, `… Token used before issued` | the token's time claims do not fit the server's clock. A token that is "expired" seconds after it was issued, or "not valid yet", is **clock skew** between the device (or the server) and the identity provider | set the device clock (then check the server's); run `netzilo up` again. Nothing to change in the IdP |
+| `invalid jwt token: invalid audience` / `invalid jwt token: invalid issuer` | the token was issued for another application, or by another issuer, than the server is configured to accept. Typical after editing the Dashboard/Cli app in Zitadel, pointing a client at the wrong server, or a legacy (§8) server whose `HttpConfig` audience/issuer differ from the IdP application | compare the server's authentication audience and issuer with the IdP application the client uses; self-hosted: `03-server-troubleshooting.md` §3 |
+| `invalid jwt token: Error parsing token: … unable to find appropriate key` | the token is signed with a key the server cannot find at its configured key location (server points at a different IdP, or keys rotated and the server has not reloaded) | verify `HttpConfig.AuthKeysLocation` / the OIDC discovery endpoint (§8); restart management to reload keys |
+| `invalid jwt token: token has been revoked` | the token was revoked by a logout before the device used it | run `netzilo up` again |
+| `no pkce authorization flow information available` / `no device authorization flow information available` (client also logs `server couldn't find pkce flow, contact admin: …` or `server couldn't find device flow, contact admin: …`) | the server has no PKCE / device-code flow configured for this hostname, so interactive login cannot start | self-hosted: restore the `PKCEAuthorizationFlow` / `DeviceAuthorizationFlow` sections (the installer fills them from OIDC discovery; §8, `03` §3). Use a setup key meanwhile |
+| `the management server, <url>, does not support SSO providers, please update your server or use Setup Keys to login` | the server offers no interactive login at all | upgrade the server, or enrol with a setup key |
+| `validate access token failed with error: invalid JWT token audience field` | the token the IdP returned does not carry the audience the login flow told the client to expect — the IdP application and the server's flow settings disagree | align the audience in the IdP application (§3: the `Cli` app) with the server's flow configuration |
+| `client session authentication not configured` | the dashboard tried to log the device in through the browser session, but the server has no client-session audience configured | self-hosted `03` §3; `netzilo up` (PKCE or setup key) still works |
+| `user does not belong to any of the allowed JWT groups` | *JWT allow group* is set and the user's claim does not contain it | §1; `25-users-groups-and-account-settings.md` §7 |
+| `invalid user` / `can't login with this credentials` | the SSO user is not the owner of this peer — the device was enrolled by someone else | log in as the owner, or delete the peer and re-enrol as the new user |
+
+Two admin-side messages belong to the same layer:
+
+- `IdP manager must be enabled to send user invites` (HTTP 412 on `POST /api/users`
+  without a password, or on `POST /api/users/{id}/invite`): the management server has no
+  identity-provider manager (`IdpManagerConfig.ManagerType` is `none` or missing, §8), so
+  it cannot create the IdP user or send the mail. Use **Create password** instead, or
+  configure the IdP manager.
+- `JWT groups are enabled but no claim name is set` (management log, ERRO): Settings →
+  Groups has **Enable JWT group sync** on with an empty **JWT claim**; no groups are synced
+  for anyone until the claim is set (or sync is turned off).
 
 ---
 

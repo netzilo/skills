@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 6826
+chars: 9968
 sections:
 - id: '1'
   title: Model
-  chars: 1359
+  chars: 2478
 - id: '2'
   title: Field reference
   chars: 1226
@@ -20,10 +20,10 @@ sections:
   chars: 871
 - id: '4'
   title: Procedures
-  chars: 1329
+  chars: 2085
 - id: '5'
   title: Diagnosis
-  chars: 1667
+  chars: 2934
 ---
 # Admin Skill — DNS Management
 
@@ -48,8 +48,21 @@ diagnosis.
 - **No match domains** = the group is the peer's **primary** resolver for everything
   that is not a Netzilo name.
 - **With match domains** = only those domains go to these servers (split DNS). Works on
-  macOS, Windows 10+, and Linux with systemd-resolved; other Linux resolvers cannot do
-  per-domain routing, so always ship one primary group for `All`.
+  macOS, Windows 10+ (as NRPT rules), and Linux with systemd-resolved or NetworkManager.
+  Linux hosts on which the client uses resolvconf or edits `/etc/resolv.conf` directly
+  cannot do per-domain routing, and without a primary group they get **no** Netzilo DNS
+  at all, not even peer names. Always ship one primary group for `All`.
+- **Which Linux DNS manager the client uses** is decided at start from `/etc/resolv.conf`:
+  its header comments name the owner. systemd-resolved is used only when `resolv.conf`
+  points at its `127.0.0.53` stub; NetworkManager only when it runs in a supported mode;
+  a resolvconf header uses resolvconf; anything else is edited as a file. The client log
+  says which: `System DNS manager discovered: <systemd | networkManager | resolvconf |
+  file | netzilo>` (`netzilo` = a file the client already wrote).
+- **Upstream failure** is per group. Each upstream gets 15 s, so a group of three dead
+  upstreams can hold a lookup for about 45 s. After 5 failed queries in a row the group is
+  **deactivated**: its match domains are removed from the host's configuration and a
+  primary group stops being the catch-all, so queries go to the OS's other resolvers
+  (internal names may then resolve publicly) until the upstreams answer again.
 - **Search domains**: with `example.corp` marked as search domain, `ping host-a` resolves
   `host-a.example.corp`.
 - **DNS Settings → Disable DNS management for these groups**: peers in those groups keep
@@ -135,6 +148,18 @@ Linux `resolvectl query host.netzilo.network` or `dig host.netzilo.network`; mac
 `dscacheutil -q host -a name host.netzilo.network`; Windows
 `Resolve-DnsName host.netzilo.network`. `netzilo status` shows `Nameservers: n/m Available`.
 
+Peer names and custom zones are answered by the client's local resolver on the device,
+never by an upstream. With the device tool `diag.dns`, a lookup without `server` goes to
+the nameserver group's upstream, which does not know them, and can falsely suggest the
+tunnel's DNS is broken. Read the local resolver's address from the log line `DNS loopback
+listener started on <addr>` and pass it as `server`.
+
+Windows specifics: the primary resolver is set on the `wt0` adapter
+(`Get-DnsClientServerAddress -InterfaceAlias wt0`), match domains are NRPT rules under
+`HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig\Netzilo-Match`
+(`Get-DnsClientNrptPolicy`), and the local resolver needs UDP 53 free. More in
+`40-windows-hosts.md`.
+
 ---
 
 ## 5. Diagnosis
@@ -142,10 +167,13 @@ Linux `resolvectl query host.netzilo.network` or `dig host.netzilo.network`; mac
 | Symptom | Cause | Fix |
 |---|---|---|
 | `Nameservers: 0/1 Available` on a peer | upstream unreachable through the tunnel (route/policy for port 53 missing), or resolver down | test `dig @<resolver-ip> example.com` from the peer; add route/policy |
-| Peer names never resolve | peer is in a disabled-management group; OS resolver integration failed (`07-client-troubleshooting.md` §6); on Linux `/etc/resolv.conf` overwritten by another tool | check DNS Settings; check backend; `broken params in resolv.conf, repairing it...` in log |
-| Internal names resolve to public IPs | split-DNS group missing the domain, or the OS ignores match domains | add domain; ship a primary group |
+| Peer names never resolve | peer is in a disabled-management group; OS resolver integration failed (`07-client-troubleshooting.md` §6); on Linux `/etc/resolv.conf` overwritten by another tool; Linux in resolvconf or file mode with no primary group | check DNS Settings; check backend; `broken params in resolv.conf, repairing it...` in log; add a primary group |
+| `unable to configure DNS for this peer using file manager without a nameserver group with all domains configured` (or `… using resolvconf manager …`) | Linux host in file or resolvconf mode and the peer receives only match-domain groups | add a primary group (no match domains) for the peer's groups, or move the host to systemd-resolved or NetworkManager |
+| Internal names resolve to public IPs | split-DNS group missing the domain; the OS ignores match domains (Linux resolvconf/file mode; on Windows a GPO-pushed NRPT policy that overrides local rules); or the group was deactivated after upstream timeouts | add domain; ship a primary group; `Get-DnsClientNrptPolicy`; next row |
+| Lookups take 15–45 s or fail intermittently | upstreams time out (15 s each); after 5 failures `all queries to the upstream nameservers failed with timeout` and `Temporarily deactivating nameservers group due to timeout`, until `upstreams … are responsive again. Adding them back to system` | make the upstream reachable through the tunnel (route + policy for UDP/TCP 53) or replace it |
 | Only some peers resolve internal names | distribution groups | add the group |
-| `the DNS manager of this peer doesn't support custom port. Disabling primary DNS setup.` | something else owns port 53 on the peer | free port 53 or `netzilo up --dns-resolver-address 127.0.0.1:5053` where the OS resolver supports custom ports |
+| `the DNS manager of this peer doesn't support custom port. Disabling primary DNS setup.` | something else owns port 53 on the peer | free port 53, or `netzilo up --dns-resolver-address 127.0.0.1:5053` on macOS or Linux with systemd-resolved (the only managers that accept a custom port) |
+| `diag.dns` says the tunnel cannot resolve `<peer>.netzilo.network` | the lookup went to the upstream, not to the local resolver | repeat with `server` set to the `DNS loopback listener started on` address (§4.6) |
 | Search domain ignored | toggle off, or no match domains | enable "Mark match domains as search domains" |
 | Save fails: "Name should be less than 40 characters" / invalid IP | validation | fix |
 | Peers lose DNS after `netzilo down` or crash | client restores OS DNS on shutdown; unclean shutdown repaired on next start | `sudo netzilo service restart`; macOS `service uninstall` cleans stale entries |

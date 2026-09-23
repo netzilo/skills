@@ -6,29 +6,29 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 24725
+chars: 29913
 sections:
 - id: '1'
   title: Nothing loads / certificate problems
   chars: 1839
 - id: '2'
   title: A container is unhealthy or restarting
-  chars: 3549
+  chars: 3613
 - id: '3'
   title: Cannot log in to the dashboard
-  chars: 2439
+  chars: 2763
 - id: '4'
   title: Clients cannot connect to the server
-  chars: 1815
-- id: 4a-signal-and-relay-stun-turn-de
+  chars: 1882
+- id: 4a-signal-and-relay-stun-turn-dedicated
   title: 4a. Signal and relay (STUN/TURN) — dedicated diagnosis
-  chars: 8361
+  chars: 9109
 - id: '5'
   title: Performance and load
   chars: 1069
 - id: '6'
   title: Disk full
-  chars: 556
+  chars: 569
 - id: '7'
   title: After a host reboot / cloud maintenance
   chars: 517
@@ -40,7 +40,10 @@ sections:
   chars: 1030
 - id: '10'
   title: When to escalate to Netzilo
-  chars: 787
+  chars: 883
+- id: '11'
+  title: 'Management log level: what `info` shows, and running at debug'
+  chars: 3313
 ---
 # Netzilo Server — Troubleshooting Runbook
 
@@ -61,6 +64,14 @@ cannot be granted, send the customer the copy-paste blocks in
 To read a management or signal log without a known symptom — healthy start-up order,
 steady-state families such as `NOOP` and `FILTER_DIAG`, which `WARN`/`ERRO` lines are
 benign, what `debug`/`trace` add — use `13-log-interpretation.md` §5.
+
+**Management runs at `info` level by default.** At that level it logs start-up, warnings
+and server-side (5xx) failures. Several lines this runbook and `13` refer to appear
+**only at debug level**: the `FILTER_DIAG` and `NOOP` families, tenant/subdomain matching
+(`found matching tenant with subdomain=…`), token validation failures (`invalid issuer`,
+`invalid audience`), and every 4xx API response. If a step below expects one of those
+lines and the log is at `info`, their absence proves nothing; raise the level first (§11)
+and turn it back down afterwards.
 
 Standard first pass (on the server):
 
@@ -107,10 +118,10 @@ and rotate per `02-server-operations.md` §8.2.
 | `management` | `failed creating Store: …` / `NETBIRD_STORE_ENGINE_POSTGRES_DSN is not set` | DSN env missing/edited, DB down | check `docker-compose.yml` management env; `docker compose ps db` |
 | `management` | `failed retrieving a new idp manager with err: … configuration is incomplete, X is missing` | `management.json` `IdpManagerConfig` broken | restore from backup (`config.tgz`); fields required: ClientID, ClientSecret, TokenEndpoint, ManagementEndpoint, GrantType |
 | `management` | `failed fetching OIDC configuration from endpoint https://<domain>/.well-known/openid-configuration` | Zitadel not up yet, or Caddy not resolving the domain internally | wait for Zitadel; check `extra_hosts` in compose maps `<domain>` to the host IP / `172.20.0.1`; `docker exec management getent hosts <domain>` |
-| `management` | `failed creating datadir` | volume permission | `docker volume inspect netzilo_management`; permissions on `/var/lib/docker` |
+| `management` | `failed creating datadir` | volume permission | `sudo docker volume ls \| grep netzilo_management`, then `docker volume inspect <name>`; permissions on `/var/lib/docker` |
 | `management` | `auto migrate: …` | schema migration failed (upgrade) | note exact error; roll management back to the recorded digest (`02-server-operations.md` §4.7); if the new schema is partially applied, restore the pre-upgrade dump together with the old image |
 | `management` | `TrustedPeers are configured to default value '0.0.0.0/0', '::/0'. This allows connection IP spoofing.` | informational warning | ignore (single-host deployments) |
-| `management` | `could not initialize geo location service: … we proceed without geo support` | GeoLite2 DB missing (no internet at first start) | geo posture checks unavailable until the DB downloads; retry with internet or copy `GeoLite2-City.mmdb` + `geonames.db` into the `netzilo_management` volume and restart |
+| `management` | `could not initialize geo location service: … we proceed without geo support` | GeoLite2 DB missing (no internet at first start) | geo posture checks unavailable until the DB downloads; retry with internet or copy `GeoLite2-City.mmdb` + `geonames.db` into the management data volume (`…netzilo_management`) and restart |
 | `zitadel` | `masterkey must be 32 bytes, but is N` / `No master key provided` | `ZITADEL_MASTERKEY` edited/lost in `zitadel.env` | restore the original value from backup — there is no recovery without it |
 | `zitadel` | `unable to decrypt key` | masterkey does not match the database | same as above; the DB was created with a different key |
 | `zitadel` | `DB CONNECTION ERROR` (`/debug/ready` → 412) | Postgres down or credentials changed | `docker compose ps db`; compare `ZITADEL_DATABASE_POSTGRES_*` in `zitadel.env` with `POSTGRES_PASSWORD` in compose |
@@ -132,8 +143,8 @@ Get full logs for the failing service: `docker compose logs --since 30m <service
 | Login page loops back to the dashboard login button | OIDC redirect URI mismatch — accessing via a different hostname than installed | use the exact domain; check the browser URL bar |
 | Zitadel page: `The requested redirect_uri is missing in the client configuration.` | same as above, or the Dashboard app's redirect URIs were edited in the Zitadel console | Zitadel console → Projects → NETZILO → Dashboard → Redirect URIs must contain `https://<domain>/nb-auth`, `/nb-silent-auth`, `/nb-auth-x`; post-logout `https://<domain>/`, `/nb-logout` |
 | Zitadel page: `code_challenge required` / `invalid client_id / client_secret` | Dashboard app auth method changed from **None (PKCE)** | set back to None |
-| Dashboard: "Oops, something went wrong — There was an error logging you in." | token could not be validated by the dashboard/management | `curl https://<domain>/.well-known/openid-configuration` must return `"issuer":"https://<domain>"`; management log `invalid issuer` / `invalid audience` → `management.json` `HttpConfig.AuthIssuer`/`AuthAudience` vs Zitadel Dashboard client id |
-| Infinite spinner after login | dashboard cannot reach the API: `/api/users` failing (CORS, 5xx) | `curl -sS https://<domain>/api/users -H "Authorization: Bearer x"` should be 401 not 5xx; check management logs |
+| Dashboard: "Oops, something went wrong — There was an error logging you in." | token could not be validated by the dashboard/management | `curl https://<domain>/.well-known/openid-configuration` must return `"issuer":"https://<domain>"`. The API only answers `{"message":"token invalid","code":401}`; the reason is logged **at debug level only** as `Error when validating JWT claims: … invalid issuer` / `… invalid audience` (§11). Either one → `management.json` `HttpConfig.AuthIssuer`/`AuthAudience` vs Zitadel Dashboard client id |
+| Infinite spinner after login | dashboard cannot reach the API: `/api/users` failing (CORS, 5xx) | `curl -sS https://<domain>/api/users -H "Authorization: Bearer x"` should be 401 not 5xx. A 5xx is logged at `info` as `got a handler error: <reason>` (level `error`); a 4xx (401, 403, 404, 422) is logged only at debug (§11). Error bodies are lowercased, so match them with `grep -i` |
 | `User could not be found` / `User is locked` / `User is not active` | Zitadel user state | see `04-identity-and-sso.md` §5 (unlock/reactivate/reset) |
 | Password reset email never arrives | **no SMTP is configured by the installer** | configure SMTP in the Zitadel console (`04-identity-and-sso.md` §6) or reset the password from the dashboard/console instead |
 | `user.failedlogin` events pile up in Activity | expected audit of failed IdP logins | investigate the user/IP |
@@ -148,11 +159,11 @@ Get full logs for the failing service: `docker compose logs --since 30m <service
 |---|---|---|
 | `Management: Disconnected` | `curl -sS -o /dev/null -w "%{http_code}" https://<domain>/api/users` → 401 means management is fine | client network/proxy; certificate not trusted by the client OS (provided cert with missing intermediates → installer warns `fullchain.pem contains only the leaf certificate.`) |
 | `Signal: Disconnected` while management connected | `docker compose logs signal` | Caddy route `/signalexchange.SignalExchange/*` → `signal:10000`; restart signal |
-| `Relays: 0/2 Available` | `docker compose logs coturn`; `ss -lunp \| grep 3478` | open 3478 tcp/udp and 5349 tcp/udp inbound; relay range 49152–65535/udp for relayed sessions; behind 1:1 NAT add `external-ip=` to `turnserver.conf` (`02-server-operations.md` §12.4) |
+| `Relays: 0/2 Available` | `docker compose logs coturn`; `ss -lunp \| grep 3478` | open the required relay ports inbound: 3478/udp, 5349/tcp and the relay range 49152–65535/udp (`02-server-operations.md` §11 has the full required/optional list); behind 1:1 NAT add `external-ip=` to `turnserver.conf` (`02-server-operations.md` §12.4) |
 | TURN test from a browser (WebRTC trickle-ICE sample) shows no `relay` candidates | | same port problem, or the TURN credential in `management.json` (`TURNConfig.Turns[].Password`) differs from `turnserver.conf` `user=self:<pw>` (only if someone edited one of them) |
 | `peer is not registered` for all clients after a restore | restored DB is older than the peers' registrations | re-enrol the affected peers |
 | Setup keys rejected: `setup key is invalid` | key expired/revoked/over limit in Dashboard → Setup Keys | new key |
-| Peers connect but cannot see each other | policies (`08-network-administration.md` §4); management log `NB_DISABLE_PEER_BROADCASTS` is `true` in the shipped compose — clients pull updates every ~30 s | wait 30 s or `netzilo refresh` on the client |
+| Peers connect but cannot see each other | policies (`08-network-administration.md` §4); the shipped compose sets `NB_DISABLE_PEER_BROADCASTS=true` on management, so clients pull updates every ~30 s | wait 30 s or `netzilo refresh` on the client |
 | gRPC works only on port 33073 for old clients | management also listens on legacy 33073 internally, but Caddy exposes only 443 | clients must use `https://<domain>` (443) |
 
 ---
@@ -170,8 +181,11 @@ which one before touching anything.
 
 Shipped configuration (the installer writes it; know it before diagnosing):
 
-- coturn runs in **host network mode**, so its ports belong to the host: `3478` tcp+udp
-  (STUN/TURN), `5349` tcp+udp (TURN over TLS), relay allocations `49152–65535/udp`.
+- coturn runs in **host network mode**, so its ports belong to the host and a host
+  firewall applies to them. It listens on `3478` tcp+udp (STUN/TURN), `5349` tcp+udp
+  (TURN over TLS/DTLS), and allocates relay addresses from `49152–65535/udp`. Of these,
+  clients use `3478/udp`, `5349/tcp` and the relay range; `3478/tcp` and `5349/udp` are
+  not advertised to clients (`02-server-operations.md` §11).
 - Peers receive from management: `stun:<domain>:3478`, `turn:<domain>:3478` (UDP) and
   `turns:<domain>:5349?transport=tcp`, with a **static** username `self` and a password
   that must match `user=self:<password>` in `turnserver.conf`. Credentials are not
@@ -265,8 +279,12 @@ Browser test (documented for Netzilo): open the WebRTC **trickle ICE** sample pa
 remove the default servers, add `turn:<domain>:3478` with username `self` and the
 password from `management.json`, and gather candidates. Expect `host`, `srflx` (STUN
 worked) and `relay` (TURN worked). `srflx` missing → UDP 3478 blocked between that site
-and the server. `relay` missing with `srflx` present → credentials, or the relay range
-`49152–65535/udp` blocked inbound to the server.
+and the server. `relay` missing with `srflx` present → the allocation was refused:
+credentials (`401` in the coturn log) or coturn could not allocate. A `relay` candidate
+proves only the allocation on 3478; it does not prove traffic can reach the allocated
+port. Candidates complete but relayed peers still pass no traffic → the relay range
+`49152–65535/udp` is blocked inbound to the server, or the server sits behind 1:1 NAT
+without `external-ip` (§4a.5).
 
 From a Linux/macOS machine outside the server's network, the same image works as a
 client: `docker run --rm coturn/coturn turnutils_stunclient -p 3478 <public-ip-or-domain>`.
@@ -276,8 +294,9 @@ client: `docker run --rm coturn/coturn turnutils_stunclient -p 3478 <public-ip-o
 | Evidence | Cause | Fix |
 |---|---|---|
 | coturn `Cannot bind` / restart loop | 3478 or 5349 already used on the host | `sudo ss -lunp \| grep 3478`; stop the other service |
-| Relays unavailable from everywhere; `ss` shows listeners | inbound 3478/5349 blocked by cloud security group or host firewall | open them; on marketplace images they are open by default |
-| `srflx` present, `relay` absent for all sites | relay range `49152–65535/udp` not open inbound; or credentials | open range; run the consistency check |
+| Relays unavailable from everywhere; `ss` shows listeners | inbound 3478/udp (and 5349/tcp) blocked by cloud security group or host firewall | open them; on marketplace images they are open by default |
+| `srflx` present, `relay` absent for all sites | allocation refused: credentials | run the consistency check (§4a.3) |
+| `relay` candidates present, relayed peers pass no traffic | relay range `49152–65535/udp` not open inbound (host firewall or security group), or 1:1 NAT without `external-ip` | open the range; see the next row |
 | relay works from the host, fails externally | cloud 1:1 NAT: candidates carry the private IP | add `external-ip=<public>/<private>` to `turnserver.conf`, `docker compose restart coturn` |
 | `turns:5349` unavailable, `turn:3478` fine | expected in Let's Encrypt mode | leave it, or mount a certificate (`02` §8.4); ensure client sites allow UDP 3478 |
 | relays fine, peers still `Disconnected`, signal `Connected` | ICE cannot complete: both sites block UDP and TCP TURN also blocked | at minimum allow outbound TCP 5349 or UDP 3478 from client sites |
@@ -307,14 +326,14 @@ plus `netzilo status -d` from one affected peer at each site.
 
 ```bash
 df -h /
-sudo du -sh /var/lib/docker/containers /var/lib/docker/volumes/netzilo_* /var/lib/docker/overlay2 2>/dev/null
+sudo du -sh /var/lib/docker/containers /var/lib/docker/volumes/*netzilo_* /var/lib/docker/overlay2 2>/dev/null
 sudo docker system df
 ```
 
 Safe reclaim: `sudo docker image prune -f` (old images), truncate container logs
 (`sudo truncate -s 0 /var/lib/docker/containers/*/*-json.log`) then configure rotation,
 delete old backups under `/var/backups/netzilo`. **Never** `docker volume prune` on this
-host — `netzilo_db_data` is the database. After freeing space `docker compose restart
+host — the `…netzilo_db_data` volume is the database. After freeing space `docker compose restart
 postgres redis management zitadel`.
 
 ---
@@ -379,4 +398,63 @@ Escalate (support@netzilo.com) with the first-pass output when:
 Do not send an ad-hoc e-mail. Build the support package with
 `12-escalation-package.md` — it defines what to collect, the mandatory redaction pass,
 and the summary/timeline documents support needs. Never include `zitadel.env`,
-`management.json`, `CREDENTIALS`, or database dumps in a ticket.
+`management.json`, `CREDENTIALS`, or database dumps in a ticket. Logs captured at debug
+level need a line-by-line review before they leave the host (§11).
+
+---
+
+## 11. Management log level: what `info` shows, and running at debug
+
+The shipped management command line sets `"--log-level", "info"`. What that means for
+diagnosis:
+
+| You are looking for | Level it is logged at |
+|---|---|
+| start-up lines (`management server version …`, `running HTTP server and gRPC server on the same port`), cache warm-up, fatal start errors (`failed creating Store`, `auto migrate:`) | `info` and above: always visible |
+| API server-side failures (5xx) | `error`: `got a handler error: <reason>` — always visible |
+| API client errors (4xx: 400, 401, 403, 404, 409, 412, 422) | **debug only**, same `got a handler error:` text |
+| token validation reasons (`invalid issuer`, `invalid audience`, expired or malformed tokens) | **debug only** (`Error when validating JWT claims: …`); the client sees only `token invalid`. One exception is a `warning`: `token signed with a key the IdP does not publish` |
+| `NOOP` sync lines, `FILTER_DIAG` lines | **debug only** |
+| tenant/subdomain matching (`found matching tenant with subdomain=…`) | **debug only** |
+
+API error bodies are lowercased versions of the server's message (for example
+`{"message":"token invalid","code":401}`); search for them case-insensitively.
+
+**Before raising the level, tell the customer:** debug output is much larger and can
+contain sensitive values, such as database connection details, tokens, user e-mail
+addresses and group membership. Keep the debug window short, and capture only what the
+diagnosis needs.
+
+**Compose deployments (on-premises installer, AWS image, Azure image, legacy
+`infrastructure_files` compose).** The level is only a command-line flag; there is no
+setting in `management.json` or the dashboard. Recreating management interrupts the
+dashboard and API for a few seconds; tunnels are not affected.
+
+```bash
+C=$( [ -f /opt/netzilo/run/docker-compose.yml ] && echo /opt/netzilo/run || echo /opt/netzilo ); cd "$C"
+sudo cp docker-compose.yml "docker-compose.yml.$(date -u +%Y%m%dT%H%M%SZ).bak"
+sudo sed -i -E 's/("--log-level",[[:space:]]*")info(")/\1debug\2/' docker-compose.yml
+grep -n -- '--log-level' docker-compose.yml          # expect "--log-level", "debug"
+sudo docker compose up -d --force-recreate --no-deps management
+sudo docker inspect management --format '{{join .Args " "}}' | grep -o -- '--log-level [a-z]*'
+```
+
+Reproduce the problem, then save only the lines you need to a root-only file
+(`sudo sh -c 'umask 077; docker compose logs --since 15m management > /root/mgmt-debug.log'`).
+**Turn debug off as soon as you have them**, with the same edit reversed:
+
+```bash
+cd "$C"
+sudo sed -i -E 's/("--log-level",[[:space:]]*")debug(")/\1info\2/' docker-compose.yml
+sudo docker compose up -d --force-recreate --no-deps management
+sudo docker inspect management --format '{{join .Args " "}}' | grep -o -- '--log-level [a-z]*'   # expect info
+```
+
+Recreating the container also discards its old log, including the debug lines. Review the
+saved file before sharing it: redact connection strings, tokens, keys and personal data
+as described in `12-escalation-package.md`, and delete the file once the case no longer
+needs it.
+
+**Netzilo Cloud (hosted).** The customer cannot change the management log level. Collect
+the client-side evidence and escalate (`12-escalation-package.md`).
+

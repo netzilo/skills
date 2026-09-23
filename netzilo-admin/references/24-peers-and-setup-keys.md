@@ -7,26 +7,26 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 11188
+chars: 13833
 sections:
 - id: '1'
   title: Peer lifecycle
-  chars: 1104
+  chars: 1311
 - id: '2'
   title: Peers page — field and action reference
   chars: 2304
 - id: '3'
   title: Setup keys — reference
-  chars: 1675
+  chars: 2100
 - id: '4'
   title: API
   chars: 1406
 - id: '5'
   title: Procedures
-  chars: 1342
+  chars: 1520
 - id: '6'
   title: Diagnosis
-  chars: 1831
+  chars: 3666
 - id: '7'
   title: Limits that reject a change
   chars: 1081
@@ -47,7 +47,7 @@ key design, and diagnosis of enrolment and peer-state problems.
 | Stage | What happens | Admin control |
 |---|---|---|
 | Enrolment | device runs `netzilo up` with SSO (bound to a user), a **setup key** (no user; joins the key's auto-groups), or a PAT (bound to the token's user) | setup keys; user auto-groups; group propagation |
-| Approval (Cloud) | with peer approval enabled the peer shows **Approval required** until an admin approves | Peers → Approve |
+| Approval (Cloud) | with peer approval enabled a new peer shows **Approval required** and an admin clears it with **Approve**. Treat this as a review queue, not as a gate: **do not rely on peer approval to keep a device off the network**. To keep a device out, block its user or delete the peer | Peers → Approve; Block User; Delete |
 | Active | connected/disconnected status, last seen, security posture | groups, SSH, login expiration, rename |
 | Login expiration (SSO peers) | after the account's expiration period the peer needs re-login (**Login required** badge) | Settings → Authentication; per-peer toggle |
 | Inactivity expiration (SSO peers) | idle peers are expired after the configured period | Settings → Authentication |
@@ -123,6 +123,12 @@ with it; a one-off key is consumed by the first device; an ephemeral key marks p
 ephemeral for their lifetime; setup-key peers are exempt from login expiration and have
 no owner (they appear as "Setup Key Peers" / "Serverless" in AI reports).
 
+What a device sees when a key is refused (details and the activity fields in §6): a key
+that **exists here but is expired, revoked or over-used** is refused with
+`couldn't add peer: setup key is invalid`; a key **unknown to this server** (wrong server,
+wrong URL, typo) is refused with `failed adding new peer: account not found`. The two are
+told apart by that text alone — the dashboard shows nothing for the second case.
+
 ---
 
 ## 4. API
@@ -175,6 +181,8 @@ when their current period ends. Immediate: delete the peers (devices re-enrol on
 
 ### 5.5 Approve pending peers (Cloud)
 Peers → **Pending Approvals** → **Approve** per peer (`PUT … {"approval_required":false}`).
+If a pending device should *not* be on the network, do not leave it pending: delete the
+peer (and block its user if it was SSO-enrolled). Pending is a review state, not a block.
 
 ### 5.6 Clean stale peers
 Filter Offline, sort by Last seen, multi-select → Delete All. API recipe in
@@ -186,8 +194,11 @@ Filter Offline, sort by Last seen, multi-select → Delete All. API recipe in
 
 | Symptom | Cause | Check / fix |
 |---|---|---|
-| New device does not appear | wrong management URL on the client; key invalid; approval pending | `grep ManagementURL` in the client config; client error `setup key is invalid`; Pending Approvals |
-| `setup key is invalid` on the client | expired, revoked, over usage limit, or a key from another account/server | Setup Keys table state; create a new key |
+| New device does not appear | wrong management URL on the client; key not known here or invalid; the device never finished `netzilo up` | `grep ManagementURL` in the client config; read the client's `login failed:` / `login backoff cycle failed:` text and use the two rows below; Pending Approvals (Cloud) |
+| `login backoff cycle failed: rpc error: code = FailedPrecondition desc = couldn't add peer: setup key is invalid` (after ~30 s of retries) | the key **exists on this server** but is expired, revoked, or over its usage limit | Activity → Events → `user.failedlogin`: `auth_method: setup_key`, `setup_key_name`, `peer_hostname`, and `error_type` = `expired`, `revoked` or `over_used` (with `usage_limit`/`used_times`); `reason` reads `Setup key expired: <key>`, `Setup key revoked: <key>` or `Setup key usage limit exceeded: <key>`. Create a new key, or raise the limit on a reusable one |
+| `login failed: rpc error: code = NotFound desc = failed adding new peer: account not found` (immediate) | the key is **not known to this server at all**: typo, a key from another server or tenant, or the client points at the wrong management URL | check the management URL on the device first; then create a key on the right server. Where the server can attribute the attempt to an account, `user.failedlogin` carries `error_type: key_not_found` and `reason: Setup key not found: <key>` |
+| Device that was working shows **Needs login**, log has `… unrecoverable error: rpc error: code = PermissionDenied desc = peer is not registered` | the peer was **deleted on the server while the device was running** (delete, bulk clean-up, user deleted, ephemeral expiry) | re-enrol: `netzilo up` with SSO or a new setup key. Later automatic attempts show `no peer auth method provided…` until then (`13` §4.8) |
+| `peer has been already registered` | two registrations of the same key crossed (`netzilo up` twice at once) | `netzilo status`; usually already registered. Otherwise `netzilo down` then `netzilo up` once |
 | Peer shows **Login required** and users complain | login expiration period elapsed | user runs `netzilo up`; extend the period; for servers use setup keys |
 | Peer keeps disappearing | enrolled with an **ephemeral** key and goes offline > 10 min | use a non-ephemeral key for permanent devices |
 | Two entries for the same device | device re-enrolled after `netzilo down` or a Linux one-liner upgrade (which logs out) | delete the stale entry; upgrade by binary replacement |
@@ -197,7 +208,7 @@ Filter Offline, sort by Last seen, multi-select → Delete All. API recipe in
 | Version column says "Update available" | client older than latest release | upgrade (`05` §7) |
 | Security score low / F | posture flags red on detail page | fix device settings; the score is informational unless a posture check uses those items |
 | Bulk delete fails | > 1000 selected | batch |
-| `maximum number of personal peers reached` | Free plan (100 peers) | upgrade or remove peers |
+| `rpc error: code = PermissionDenied desc = maximum number of personal peers reached` on the device | Free plan (100 peers) | upgrade or remove peers (`31` §2). Treat the plan as the cause **only** when this exact text is returned; any other refusal is one of the rows above |
 
 Events: `user.peer.add`, `setupkey.peer.add`, `user.peer.delete`, `peer.rename`,
 `peer.group.add/delete`, `peer.ssh.enable/disable`, `peer.login.expiration.enable/disable`,
