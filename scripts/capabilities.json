@@ -220,5 +220,10 @@
       "api",
       "device-tools"
     ]
+  },
+  "42-ai-assistant-self-hosted.md": {
+    "requires": [
+      "server-shell"
+    ]
   }
 }

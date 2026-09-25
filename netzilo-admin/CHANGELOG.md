@@ -7,6 +7,28 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.12.0 — 2026-09-25
+
+The AI Assistant on a self-hosted server, in one place.
+
+- **New `references/42-ai-assistant-self-hosted.md`.** How Management, the support worker
+  and the AI provider fit together and how a turn flows; the prerequisites and the outbound
+  destinations, required and optional; every `SupportConfig` field in `management.json` with
+  the `NB_SUPPORT_*` environment overrides; every worker environment variable (the token,
+  the tracing refusal, turn limits and timeouts, reasoning, long conversations); where the
+  agent's runbooks come from (baked into the image, synced from `netzilo/skills`), how to
+  pin them, how to see which copy is serving through `/healthz`, and air-gapped servers;
+  compose installs, including proxies and TLS-inspecting proxies; Kubernetes and other
+  orchestrators, with the container contract and minimal manifests; turning it on for
+  administrators, regular users and Level 3; operating it (state, logs, restart order,
+  rotating the shared token); the security posture; and a troubleshooting table built from
+  the messages the chat and the logs actually print.
+- `SUPPORT_SKILLS_REFRESH_MINUTES=0` now means no GitHub request at all, including at
+  start, on current worker images; the reference documents that behaviour.
+- `01-server-install.md`, `02-server-operations.md` and `SKILL.md` point to the new
+  reference; `02` §11 lists `codeload.github.com` and `l3.netzilo.com` among the optional
+  outbound destinations.
+
 ## 2.11.0 — 2026-09-23
 
 Two new references, one rewritten rulebook, and a sweep that corrects every procedure

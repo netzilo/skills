@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 65125
+chars: 65323
 sections:
 - id: '1'
   title: Know which layout you are on
   chars: 2140
 - id: '2'
   title: Service inventory and health
-  chars: 4520
+  chars: 4605
 - id: '3'
   title: Start / stop / restart
   chars: 832
@@ -40,7 +40,7 @@ sections:
   chars: 1203
 - id: '11'
   title: Firewall reference
-  chars: 2516
+  chars: 2629
 - id: '12'
   title: Marketplace-specific items
   chars: 2828
@@ -147,7 +147,7 @@ healthchecks, the worker from the `HEALTHCHECK` in its image; the others show pl
 | `coturn` | `coturn/coturn:latest` | **host network**: `3478` tcp/udp, `5349` tcp/udp, relay `49152–65535/udp` | STUN/TURN relay |
 | `postgres` | `postgres:16` | internal `5432` | databases `netzilo` (management) and `zitadel` |
 | `redis` | `redis:latest` | **published on host `6379`, no password** | management store cache + Zitadel caches |
-| `support-worker` | `ghcr.io/netzilo/net-support-worker` | internal `:8080`, **no ingress** | AI Assistant agent: management calls it with the shared token, it calls management back at `http://management:80`, and reaches the owner-configured AI provider outbound; stateless, runbooks baked into the image |
+| `support-worker` | `ghcr.io/netzilo/net-support-worker` | internal `:8080`, **no ingress** | AI Assistant agent: management calls it with the shared token, it calls management back at `http://management:80`, and reaches the owner-configured AI provider outbound; stateless, runbooks baked into the image. Configuration, token rotation and troubleshooting: `42-ai-assistant-self-hosted.md` |
 
 Redis on marketplace deploys is shielded by the cloud security group/NSG (6379 is not
 opened there). On an on-prem host with no host firewall port 6379 is reachable
@@ -1105,7 +1105,8 @@ relay is coturn, on its own ports. coturn runs in host network mode, so a host f
 Outbound: `443` to `ghcr.io`, Docker Hub, Let's Encrypt, `pkg.netzilo.com`
 (dashboard download links are client-side; the server itself needs the registries), and —
 for the AI Assistant — to the AI provider endpoint the owner connected, plus optionally
-`github.com` for `support-worker` runbook refresh.
+`github.com` and `codeload.github.com` for `support-worker` runbook refresh and
+`l3.netzilo.com` when a Level 3 token is set (`42-ai-assistant-self-hosted.md` §2).
 
 Clients need **no inbound** ports. They need outbound `443/tcp` to the server domain
 (management and signal), outbound `3478/udp` to it (STUN/TURN), and outbound UDP (any)

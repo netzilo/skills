@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 31931
+chars: 32389
 sections:
 - id: '0'
   title: What gets installed (all paths)
-  chars: 4717
+  chars: 4891
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
   chars: 8416
@@ -28,7 +28,7 @@ sections:
   chars: 2636
 - id: '6'
   title: Installation failures — diagnosis table
-  chars: 4998
+  chars: 5282
 - id: '7'
   title: Legacy path — `infrastructure_files` docker-compose
   chars: 1054
@@ -122,7 +122,9 @@ The installer needs outbound HTTPS to `ghcr.io` (Netzilo images), Docker Hub (ca
 coturn, postgres, redis), `pkg.netzilo.com` (installer download) and Let's Encrypt.
 At run time `support-worker` needs outbound HTTPS to whichever AI provider the owner
 connects (Integrations → Artificial Intelligence) and, optionally, to `github.com` to
-refresh its runbooks — it works from the copy baked into its image without it.
+refresh its runbooks — it works from the copy baked into its image without it. Everything
+about configuring, deploying and operating the Assistant after install, including
+Kubernetes, proxies and air-gapped servers, is `42-ai-assistant-self-hosted.md`.
 
 ---
 
@@ -492,6 +494,7 @@ sudo docker compose ps; sudo docker compose logs --tail=60 zitadel caddy
 | Gate: `support-worker` `Restarting`/`Exit`, log `refusing to start: SUPPORT_WORKER_TOKEN is empty` | the shared token was not rendered into `docker-compose.yml` (hand-edited compose, or an engine older than the worker) | `SUPPORT_WORKER_TOKEN` in `docker-compose.yml` must equal `SupportConfig.WorkerToken` in `management.json`; fix both or re-install on a clean host |
 | Dashboard has no AI Assistant button after login | no AI provider approved for Assistant — **expected on a fresh install** | owner connects a provider under Integrations → Artificial Intelligence (`30 §4a`) |
 | Assistant message fails: `support agent is not configured on this deployment` | `SupportConfig` missing from `management.json` (engine older than the worker) | re-install with the current engine, or add the `SupportConfig` block and restart `management` |
+| Any other Assistant failure after install (`support agent is unavailable`, `support worker returned HTTP 401`, provider errors, stale runbooks) | worker down, token mismatch, provider or egress trouble, old runbook copy | the symptom table in `42-ai-assistant-self-hosted.md` §11 |
 | Gate: dashboard 200 but login loops back / "Oops, something went wrong" | browser reached the server by a different name than the installed domain (e.g. IP or alias) | always use `https://<domain>` exactly; OIDC redirect URIs are bound to it |
 | Gate: TLS issuer is Caddy/self-signed instead of Let's Encrypt | HTTP-01 challenge failed (80 blocked, DNS) or LE rate limit | open 80/443, fix DNS; Caddy retries. If rate-limited (`too many certificates`) wait or use `provided` |
 | Port 80/443 already in use | another web server on the host | stop/disable it (nginx/apache) before install |
