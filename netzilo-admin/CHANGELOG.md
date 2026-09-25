@@ -23,6 +23,16 @@ The AI Assistant on a self-hosted server, in one place.
   administrators, regular users and Level 3; operating it (state, logs, restart order,
   rotating the shared token); the security posture; and a troubleshooting table built from
   the messages the chat and the logs actually print.
+- **§6.1 adds the worker to a server installed without it, in place.** A compose install
+  from an engine published before the worker has eight containers and no `SupportConfig`;
+  until now the only documented route was backup, reinstall and restore. The new procedure
+  backs up both files, inserts the `support-worker` service (copying Management's
+  `extra_hosts` when the install pinned the domain), adds the `SupportConfig` block to
+  `management.json` in place so the bind mount keeps working, validates the compose file,
+  starts the worker and restarts Management. It refuses to run twice, has two gates (the
+  worker healthy, then a probe from the worker to Management with the shared token
+  answering 200), and a rollback. `01-server-install.md` §0, §3.3 no longer say a
+  reinstall is required.
 - `SUPPORT_SKILLS_REFRESH_MINUTES=0` now means no GitHub request at all, including at
   start, on current worker images; the reference documents that behaviour.
 - `01-server-install.md`, `02-server-operations.md` and `SKILL.md` point to the new

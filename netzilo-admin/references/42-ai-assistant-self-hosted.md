@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 23174
+chars: 28752
 sections:
 - id: '1'
   title: What it is made of
@@ -25,7 +25,7 @@ sections:
   chars: 2410
 - id: '6'
   title: Compose installs (one-liner, AWS, Azure)
-  chars: 1313
+  chars: 6891
 - id: '7'
   title: Kubernetes and other orchestrators
   chars: 3253
@@ -225,6 +225,120 @@ sudo docker compose ps support-worker        # (healthy) within about 30 seconds
 Recreating the worker interrupts only a turn in flight; the person asks again. Upgrading
 the worker image follows the same rules as the other images, including the digest pinning
 on AWS and Azure images (`02-server-operations.md` §4).
+
+### 6.1 Adding the worker to a server installed without it
+
+A compose install made from an engine published before the worker existed runs eight
+containers and has no `SupportConfig`. The check is `01-server-install.md` §0: zero
+`support-worker` lines in `$C/docker-compose.yml`. Re-running the installer is not the
+way to add it, because that wipes the server. The worker joins in place: it is a stateless
+container that needs only a network name, a shared token and a `SupportConfig` block, and
+Management reads that block at start.
+
+What the procedure below does, so it can be checked before it runs: backs up both files
+with a timestamp; generates a 40-character token; inserts a `support-worker` service into
+`docker-compose.yml` before the top-level `volumes:` or `networks:` section, copying
+Management's `extra_hosts` when the install pinned the domain that way; adds the
+`SupportConfig` block to `management.json` **in place**, because the file is bind-mounted
+into the Management container by path and a rename would leave the container reading the
+old inode; validates the compose file; starts the worker; restarts Management. It refuses
+to run twice. Management is down for the few seconds of its restart; clients reconnect on
+their own.
+
+```bash
+if [ -f /opt/netzilo/run/docker-compose.yml ]; then C=/opt/netzilo/run; else C=/opt/netzilo; fi
+cd "$C"
+sudo grep -q '^  support-worker:' docker-compose.yml && echo "support-worker is already present; stop here"
+stamp=$(date +%s)
+sudo cp -a docker-compose.yml "docker-compose.yml.bak-$stamp"
+sudo cp -a management.json "management.json.bak-$stamp"
+TOKEN="$(openssl rand -base64 32 | tr -d '=+/' | head -c 40)"
+sudo TOKEN="$TOKEN" python3 - <<'EOF'
+import os, re
+tok = os.environ["TOKEN"]
+p = "docker-compose.yml"; text = open(p).read()
+if re.search(r"^  support-worker:", text, re.M): raise SystemExit("support-worker already present")
+mgmt = re.search(r"^  management:\n(?:(?!^  \S).*\n)*", text, re.M)
+if not mgmt: raise SystemExit("no management service in docker-compose.yml")
+extra = re.search(r"^    extra_hosts:\n(?:^      .*\n)+", mgmt.group(0), re.M)
+block = (
+    "  # AI Assistant agent, added after install. No ingress: management calls it\n"
+    "  # over the compose network with the shared token, and it calls management\n"
+    "  # back at http://management:80.\n"
+    "  support-worker:\n"
+    "    image: ghcr.io/netzilo/net-support-worker:latest\n"
+    "    container_name: support-worker\n"
+    "    restart: unless-stopped\n"
+    "    networks:\n"
+    "      - netzilo\n"
+    + (extra.group(0) if extra else "")
+    + "    environment:\n"
+    f"      - SUPPORT_WORKER_TOKEN={tok}\n"
+    "      - SUPPORT_MAX_AGENT_STEPS=16\n"
+    "      - SUPPORT_TOOL_TIMEOUT_SEC=30\n"
+)
+top = re.search(r"^(volumes|networks):", text, re.M)
+if not top: raise SystemExit("no top-level volumes:/networks: section in docker-compose.yml")
+open(p, "w").write(text[:top.start()] + block + text[top.start():])
+EOF
+sudo TOKEN="$TOKEN" python3 - <<'EOF'
+import json, os
+p = "management.json"; cfg = json.load(open(p))
+if cfg.get("SupportConfig", {}).get("WorkerURL"): raise SystemExit("SupportConfig already set")
+cfg["SupportConfig"] = {
+    "WorkerURL": "http://support-worker:8080",
+    "WorkerToken": os.environ["TOKEN"],
+    "ManagementURL": "http://management:80",
+    "TurnTimeoutSec": 900,
+    "L3URL": "https://l3.netzilo.com",
+    "L3Token": "",
+}
+with open(p, "w") as f:
+    json.dump(cfg, f, indent=2); f.write("\n")
+EOF
+unset TOKEN
+sudo docker compose config -q
+sudo docker compose pull -q support-worker
+sudo docker compose up -d support-worker
+sudo docker compose restart management
+```
+
+Gates, in order. Each one must pass before the next:
+
+```bash
+sudo docker compose ps                         # every service Up; support-worker (healthy) within ~1 minute
+sudo docker compose exec -T support-worker python -c "
+import json, os, urllib.request
+req = urllib.request.Request('http://management:80/api/internal/support/runs/probe/steps',
+    data=json.dumps({'seq': 1, 'text': 'probe'}).encode(),
+    headers={'Authorization': 'Bearer ' + os.environ['SUPPORT_WORKER_TOKEN'], 'Content-Type': 'application/json'},
+    method='POST')
+print('HTTP', urllib.request.urlopen(req, timeout=10).status)"
+                                               # HTTP 200: management loaded the token and the worker reaches it
+```
+
+A `401` from that probe means Management did not read the new block: check that
+`management.json` parses (`sudo python3 -m json.tool management.json > /dev/null`) and that
+Management was restarted after the edit. A `404` means Management started from a file
+without `SupportConfig`, which on this layout means the edit went to a different file than
+the one mounted. Then, in the dashboard, an owner connects a provider and approves a model
+(§8); the Assistant button appears and the first question answers.
+
+Rollback, if a gate fails and the cause is not obvious:
+
+```bash
+cd "$C"
+sudo docker compose rm -sf support-worker
+sudo cp -a "$(ls -t docker-compose.yml.bak-* | head -1)" docker-compose.yml
+sudo cp -a "$(ls -t management.json.bak-* | head -1)" management.json
+sudo docker compose restart management
+```
+
+On AWS and Azure images the same procedure applies in `/opt/netzilo/run`, with one
+difference: those images pin every image to a digest and the worker is not in the local
+image store, so the `pull` step needs outbound access to `ghcr.io`, which the default
+security group and NSG allow. Delete the backup files once the Assistant works: they hold
+the same secrets as the live files.
 
 **Behind a corporate proxy.** Add `HTTPS_PROXY` to the worker's environment for the
 provider and GitHub. The worker's calls to Management use plain HTTP on the compose network

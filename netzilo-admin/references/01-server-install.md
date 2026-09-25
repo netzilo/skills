@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 32389
+chars: 32352
 sections:
 - id: '0'
   title: What gets installed (all paths)
-  chars: 4891
+  chars: 4894
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
   chars: 8416
@@ -19,7 +19,7 @@ sections:
   chars: 3879
 - id: '3'
   title: Path C — Azure Marketplace (managed application)
-  chars: 2245
+  chars: 2205
 - id: '4'
   title: Variant — external PostgreSQL
   chars: 1093
@@ -88,10 +88,10 @@ grep -c 'support-worker' /opt/netzilo/run/docker-compose.yml    # AWS / Azure im
 # >0 = worker engine (nine containers): continue with the gates.
 ```
 
-A pre-worker install cannot gain the worker in place: `docker compose pull` only
-refreshes images that are already in the compose file, and re-running the installer
-wipes the server (§1.4, §8). Move by backup → new install → restore
-(`02-server-operations.md` §6–7).
+A pre-worker install gains the worker in place, without a reinstall:
+`42-ai-assistant-self-hosted.md` §6.1 adds the service, the shared token and the
+`SupportConfig` block, with gates and a rollback. Do not re-run the installer for this: it
+wipes the server (§1.4, §8).
 
 Inputs every path needs:
 
@@ -398,9 +398,9 @@ from `management` on the compose network, so the NSG is unchanged (22 admin CIDR
 concerns AI. Outbound `443` to the
 chosen AI provider and to `github.com` must be allowed (the default NSG outbound rule
 does). The Assistant appears only after an owner connects a provider. Images published
-before September 2026 run eight containers and cannot gain the worker in place — new
-managed application from the current image, then restore (`02-server-operations.md`
-§6–7). Gate 3 reads 9 Up with `postgres`, `redis` and `support-worker` healthy.
+before September 2026 run eight containers; add the worker in place with
+`42-ai-assistant-self-hosted.md` §6.1 rather than redeploying. Gate 3 reads 9 Up with
+`postgres`, `redis` and `support-worker` healthy.
 
 ---
 
