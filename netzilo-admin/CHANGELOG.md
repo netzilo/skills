@@ -7,6 +7,18 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.15.0 — 2026-09-27
+
+Private access status for browser users.
+
+- **Workplace:** on a computer without the Netzilo client, when the user's routing is on,
+  the Devices tab is replaced by a **Private access · Online / Suspended** status with the
+  session's gateway, name, browser and connection time on hover; polled every 30 seconds
+  while the page is visible, never in a background tab. `43` §3.5, two new rows in §11.3.
+- **API:** `GET /api/users/{userId}/gateway-sessions`: a user's gateway sessions with live
+  `connected`, browser, OS and `matches_request`; own sessions for a user, any user of the
+  account for an administrator. `43` §10.3, `39` §1.
+
 ## 2.14.0 — 2026-09-27
 
 The Netzilo Gateway posture check, and what a browser session looks like in Peers.

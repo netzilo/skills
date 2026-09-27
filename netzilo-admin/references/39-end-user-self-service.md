@@ -8,11 +8,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 13049
+chars: 13326
 sections:
 - id: '1'
   title: What a regular user can see through the API
-  chars: 3430
+  chars: 3707
 - id: '2'
   title: What you may do on their device
   chars: 2164
@@ -65,6 +65,7 @@ here is what the person's devices themselves hold, no more.
 | `GET /api/profiles` | The profiles their peers receive |
 | `GET /api/support/devices/{id}`, `/tools` | The device summary for the tools (`online`, `tools_supported`, `owned_by_caller: true`) and the tool catalog |
 | `GET /api/edge/filters` | The Edge filters that apply to them |
+| `GET /api/users/{their id}/gateway-sessions` | Their browser sessions through a Netzilo gateway (`vp-<n>-PROXY`) with `connected`, browser and OS: the Workplace page's **Private access** status (`43-clientless-access-gateway.md` §3.5, §10.3). Another user's id answers 403 |
 
 When the administrator has **disabled the portal for regular users** (Settings → Permissions),
 every list above is empty: the person's client still works,

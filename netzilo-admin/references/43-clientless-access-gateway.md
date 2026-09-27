@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 52299
+chars: 54876
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 7189
+  chars: 8336
   requires:
   - api
   executable_on:
@@ -43,10 +43,10 @@ sections:
   chars: 2443
 - id: '10'
   title: Operating it
-  chars: 6219
+  chars: 6934
 - id: '11'
   title: Troubleshooting
-  chars: 8116
+  chars: 8831
 - id: '12'
   title: Introducing it to existing installations
   chars: 2301
@@ -250,7 +250,22 @@ The popup's **Private access** row: the gateway address (the PAC is installed; c
 shows it, the copy icon copies it with "Settings copied to clipboard"); **off** (logged in,
 but no routing for this user); **unavailable** (the PAC could not be installed; hovering
 shows the reason, §11.2); **On/Off** (a Netzilo client is installed; the row shows its
-state). Sessions appear in **Endpoint → Peers** as `vp-<n>-PROXY` (§10.3).
+state). Only a *connected* client takes this row; a client that is installed but stopped
+or logged out leaves routing to the gateway (extension 5.0.456 and later; before, a client
+seen within seven days blocked the PAC). Sessions appear in **Endpoint → Peers** as
+`vp-<n>-PROXY` (§10.3).
+
+The dashboard's **Workplace** page: on a computer without the Netzilo client, when the
+user's routing is on (auto or custom), the **Devices** tab is replaced by a **Private
+access** status for **this browser's own session** (the page asks the extension for the
+session's device id and matches on it; without an answer it falls back to the session
+from the same public IP and browser): **Online** (green) while that session is connected,
+**Suspended** (amber) when it is not, even if the same user is online from another
+browser or computer (the hover says so). Hovering shows the gateway, the session's name,
+its browser and OS, and since when it is connected (or when it was last seen). The page
+asks every 30 seconds while it is visible and not at all in a background tab; a new
+session can take up to 30 seconds to appear, while online/offline follows at the next
+poll. With the client running, the Devices tab is back as before.
 
 ## 4. Where the gateway can run
 
@@ -754,6 +769,14 @@ management` (node mode), `session limit reached`, `no TLS certificate yet`, `dra
 - **No device tools.** A session runs no device-tool executor: every tool request returns
   `unsupported` with *remote support tools are not available on this client*. Diagnose a
   session with §11, never with `36-device-tools.md`.
+- **Online or not, per user:** `GET /api/users/{userId}/gateway-sessions` lists a user's
+  sessions: `id`, `name`, `connected`, `connected_since`, `last_seen`, `browser`,
+  `browser_version`, `os`, `connection_ip`, `device_id`, and `matches_request` (the session
+  with the caller's public IP and browser). A user may read their own; an administrator any
+  user of the account (another user's answers 403 for a regular user, 404 across accounts).
+  It takes a user's token or a dashboard login. This is what the Workplace page polls
+  (§3.5); it is built to be polled and never slows the account down. `connected` is live;
+  a new or deleted session shows within 30 seconds, a role or token change within a minute.
 
 ### 10.4 Upgrades
 
@@ -849,6 +872,9 @@ matching enabled profile for the OS, or the profile is Disabled).
 | a policy with the Netzilo Gateway item admits nobody | the posture check's other items | an endpoint item in the same check fails every session; keep the gateway item alone in its check (§3.4) |
 | desktop or mobile clients lose a domain, a workspace or MCP tools after a posture check was attached | whether it carries the Netzilo Gateway item | clients evaluate profile and filter checks themselves and are never gateway sessions; attach the gateway item to network policies only (§3.4) |
 | the activity log fills with *Peer access blocked* for `vp-<n>-PROXY` peers | the reasons | expected for policies with endpoint checks (§3.4); scope those policies' source groups, or leave it |
+| Workplace shows **Private access · Suspended** | the popup's Private access row; §10.3 for the user | no session connected: the extension is off, logged out or paused, or the gateway is down (`/readyz`); a session ended by the idle timeout comes back on the next internal request |
+| Workplace still shows **Devices** on a browser-only computer | the popup | the user's routing is off for this browser (§3.2), so no private access is expected; or a Netzilo client answers on this computer |
+| popup says **Off** and no PAC although the client is not running | the extension version | before 5.0.456 a client seen within seven days blocked the gateway PAC; update the extension, or wait for the marker to expire |
 | every new session refused, log `the gateway's service credential was refused` | the service token | expired or revoked: rotate (§10.5) |
 
 ### 11.4 Debugging the extension
