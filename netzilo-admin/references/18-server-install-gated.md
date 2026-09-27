@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 27123
+chars: 27922
 sections:
 - id: '0'
   title: Gather inputs from the user (mandatory — do not assume)
   chars: 2795
 - id: '1'
   title: Pre-flight (run on the host)
-  chars: 4131
+  chars: 4368
 - id: '2'
   title: Install (non-interactive)
   chars: 6200
@@ -22,7 +22,7 @@ sections:
   chars: 1030
 - id: '4'
   title: End-to-end verification
-  chars: 3393
+  chars: 3819
 - id: '5'
   title: Login smoke test (optional but preferred)
   chars: 656
@@ -34,10 +34,10 @@ sections:
   chars: 829
 - id: '8'
   title: Success criteria (report this)
-  chars: 1448
+  chars: 1572
 - id: appendix-a-provisioning-a-throwaway-test-vm
   title: Appendix A — Provisioning a throwaway test VM
-  chars: 941
+  chars: 953
 - id: appendix-b-environment-variables
   title: Appendix B — Environment variables
   chars: 1011
@@ -164,13 +164,13 @@ rssh '
   . /etc/os-release; echo "OS=$PRETTY_NAME"
   echo "arch=$(uname -m)  nproc=$(nproc)"; free -h | awk "/Mem/{print \"RAM=\"\$2}"
   df -h / | awk "NR==2{print \"disk_avail=\"\$4}"
-  ss -ltnup 2>/dev/null | grep -E ":(80|443|3478|5349) " || echo "ports 80/443/3478/5349 free"
+  ss -ltnup 2>/dev/null | grep -E ":(80|443|3478|5349|8443) " || echo "ports 80/443/3478/5349/8443 free"
 '
 ```
 
 **Gate 1 — environment:** OS is Ubuntu 20.04/22.04/24.04, arch `x86_64`, ≥ 2 CPU,
-≥ 4 GB RAM, ≥ 20 GB free disk, and nothing already listens on 80, 443, 3478 or
-5349. If not, stop and report.
+≥ 4 GB RAM, ≥ 20 GB free disk, and nothing already listens on 80, 443, 3478,
+5349 or 8443. If not, stop and report.
 
 **Firewall / ports.** Management and signal are served through Caddy on `443`;
 the relay is a separate coturn container in **host network mode**, on its own
@@ -186,6 +186,7 @@ security group / NSG. Inbound rules the host needs
 | `49152–65535/udp` | **Required for relayed connections** | coturn allocates each relayed session's address from this range; the AWS and Azure templates open it, and a self-managed host must too |
 | `5349/tcp` | **Required** for clients on UDP-blocking networks | TURN over TLS fallback; completes only when a certificate is mounted into coturn (`02-server-operations.md` §8.4), which the Let's Encrypt mode does not do |
 | `3478/tcp`, `5349/udp` | Optional | coturn listens but no client is given an address on them; the cloud templates open them, closing them breaks nothing |
+| `8443/tcp` | **Required for clientless access** | the gateway: browsers with only the Netzilo extension connect here (`43-clientless-access-gateway.md`); open it from the users' networks when the customer will use it |
 | `22/tcp` | Admin source CIDR only | SSH |
 
 Outbound `443/tcp` must reach `pkg.netzilo.com`, `ghcr.io`, Docker Hub and Let's
@@ -365,13 +366,15 @@ curl -sS -o /dev/null -w "dashboard  -> HTTP %{http_code}\n" "https://$D/"
 curl -sS -o /dev/null -w "oidc       -> HTTP %{http_code}\n" "https://$D/.well-known/openid-configuration"
 curl -sS "https://$D/.well-known/openid-configuration" | grep -o '"issuer":"[^"]*"'
 curl -sS "https://$D/" | grep -oiE '<title>[^<]*</title>'
+curl -sS -o /dev/null -w "gateway    -> HTTP %{http_code}\n" --proxy "https://$D:8443" http://example.com/
 echo | openssl s_client -connect "$D:443" -servername "$D" 2>/dev/null \
   | openssl x509 -noout -issuer -dates
 ```
 
 | Gate | Check | Expected |
 |------|-------|----------|
-| **3** | `docker compose ps` | **9 services Up**: `caddy`, `coturn`, `dashboard`, `management`, `signal`, `zitadel`, `support-worker` (healthy), `postgres` (healthy), `redis` (healthy). Only 8 and no `support-worker` line = pre-worker engine; report it, the Assistant cannot be enabled on this install (`01-server-install.md` §1) |
+| **3** | `docker compose ps` | **10 services Up**: `caddy`, `coturn`, `dashboard`, `management`, `signal`, `zitadel`, `gateway`, `support-worker` (healthy), `postgres` (healthy), `redis` (healthy). No `gateway` on a plain-HTTP install (9 Up) or on an engine that predates it (add it with `43-clientless-access-gateway.md` §6). Only 8 and no `support-worker` line = pre-worker engine; report it, the Assistant cannot be enabled on this install (`01-server-install.md` §1) |
+| **3b** | gateway | `HTTP 407` (it wants a credential); run from a machine that can reach `8443`. A timeout means `8443/tcp` is not open yet. Skipped when there is no gateway |
 | **4** | dashboard | `HTTP 200` |
 | **5** | TLS cert | `issuer=… Let's Encrypt …`, and `notAfter` is in the future (waived if `TLS_MODE=provided`) |
 | **6** | OIDC discovery | `HTTP 200`, `"issuer":"https://<DOMAIN>"` |
@@ -486,15 +489,15 @@ exists (`rm -f "$KH"`) and make sure no shell variable still holds the password
 Report PASS only if **all** are true:
 
 - [ ] Gate 0 — host key fingerprint confirmed by the operator and pinned; no `StrictHostKeyChecking=no` used
-- [ ] Gate 1 — host meets Ubuntu + sizing requirements; nothing else on 80/443/3478/5349
+- [ ] Gate 1 — host meets Ubuntu + sizing requirements; nothing else on 80/443/3478/5349/8443
 - [ ] Gate 2 — installer completed (`Done. Netzilo is starting …`); `/root/netzilo-install.env` removed
-- [ ] Gate 3 — all 9 containers Up (postgres + redis + support-worker healthy)
+- [ ] Gate 3 — all 10 containers Up (9 on a plain-HTTP install; postgres + redis + support-worker healthy); Gate 3b gateway answers `407` on 8443
 - [ ] Gate 4 — dashboard returns HTTP 200
 - [ ] Gate 5 — trusted Let's Encrypt cert (or explicitly waived for self-signed)
 - [ ] Gate 6 — OIDC discovery 200 with correct issuer
 - [ ] Gate 7 — dashboard serves `<title>Netzilo</title>`
 - [ ] Gate 8 — `/opt/netzilo/CREDENTIALS` present and `600`; `/root/install.log` `600`; no credential printed into the conversation
-- [ ] Firewall — required inbound rows of §1.2 confirmed open by the customer (`3478/udp`, `49152–65535/udp`, `5349/tcp`, plus 80/443)
+- [ ] Firewall — required inbound rows of §1.2 confirmed open by the customer (`3478/udp`, `49152–65535/udp`, `5349/tcp`, plus 80/443, and `8443/tcp` when clientless access will be used)
 - [ ] Backup — fail-closed script installed and first run ended `BACKUP OK`; restore rehearsal date agreed (`02-server-operations.md` §6.2–6.4), or the customer declined in writing
 - [ ] Password rotation — customer told the chat-supplied password is exposed and will be replaced at first login
 - [ ] Teardown done (if this was a throwaway test)
@@ -512,7 +515,7 @@ practice:
 - **Ubuntu 22.04 LTS**, `x86-64`, a size with ≥ 2 vCPU / 8 GB (e.g. AWS
   `t3.large`, Azure `Standard_D2s_v5`/`_v7`).
 - Open inbound `22/tcp` (your address only), `80/tcp`, `443/tcp`, `3478/udp`,
-  `5349/tcp` and `49152–65535/udp` (§1.2). Record the VM's SSH host-key
+  `5349/tcp`, `8443/tcp` and `49152–65535/udp` (§1.2). Record the VM's SSH host-key
   fingerprint from the provider's console right after creation — that is what
   Gate 0 (§1.1) is confirmed against.
 - Set `DOMAIN="<public-ip>.nip.io"` so Let's Encrypt works with no DNS.

@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 13833
+chars: 14301
 sections:
 - id: '1'
   title: Peer lifecycle
-  chars: 1311
+  chars: 1779
 - id: '2'
   title: Peers page — field and action reference
   chars: 2304
@@ -52,6 +52,7 @@ key design, and diagnosis of enrolment and peer-state problems.
 | Login expiration (SSO peers) | after the account's expiration period the peer needs re-login (**Login required** badge) | Settings → Authentication; per-peer toggle |
 | Inactivity expiration (SSO peers) | idle peers are expired after the configured period | Settings → Authentication |
 | Ephemeral (setup-key option) | peer is deleted 10 minutes after going offline | key setting |
+| Browser session (clientless access) | a gateway registers one peer per user per browser, named `vp-<n>-PROXY`, platform *browser*, showing the browser's OS, the extension version and the browser's public IP; always ephemeral. Only that exact name with the browser platform is treated this way; any other device, whatever its name, is an ordinary peer. Two gateways can each have a `vp-1-PROXY`: tell them apart by peer id | `43-clientless-access-gateway.md` §10.3 |
 | Deletion | peer removed; device must re-enrol | Delete / bulk delete; deleting a user deletes their peers |
 
 Peer IPs come from `100.64.0.0/10`; the DNS label derives from the name.

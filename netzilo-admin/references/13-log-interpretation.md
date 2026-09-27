@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 58338
+chars: 59079
 sections:
 - id: '1'
   title: Method
@@ -23,7 +23,7 @@ sections:
   chars: 37692
 - id: '5'
   title: The management log
-  chars: 10660
+  chars: 11401
 - id: '6'
   title: Correlating client and server
   chars: 1342
@@ -549,6 +549,18 @@ device reconnects without pause (a restart loop or a flapping network — read i
 log), or two devices run with a copy of the same configuration and take turns. This is a
 different fault from the client's `wrongly addressed message` (§4.5), which is about
 network-map disagreement, although a flapping peer can produce both.
+
+### 5.7 Gateway (clientless access)
+
+One process, two kinds of lines. Its own lines start with `gateway:` (start, certificate,
+binding, one `session vp-<n>-PROXY (<email>) ready|stopped: <reason>` per browser
+session, refused credentials, device limits). Everything else comes from the sessions'
+guests, which run the client engine: `connected to the Management Service stream`,
+`Building network map`, `Posture check '<name>' FAILED at <check>`, and the other §4.5
+families, read exactly like a client log but for many users at once. Tie a guest line to
+a session by the session's peer address or FQDN in its `ready` line. Healthy start,
+every line's meaning and the troubleshooting table: `43-clientless-access-gateway.md`
+§10.1 and §11.
 
 ---
 

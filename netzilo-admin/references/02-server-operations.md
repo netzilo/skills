@@ -6,20 +6,20 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 65323
+chars: 67705
 sections:
 - id: '1'
   title: Know which layout you are on
-  chars: 2140
+  chars: 2182
 - id: '2'
   title: Service inventory and health
-  chars: 4605
+  chars: 5290
 - id: '3'
   title: Start / stop / restart
-  chars: 832
+  chars: 1203
 - id: '4'
   title: Upgrading
-  chars: 12734
+  chars: 13064
 - id: '5'
   title: Configuration changes
   chars: 2332
@@ -31,7 +31,7 @@ sections:
   chars: 8686
 - id: '8'
   title: TLS certificates
-  chars: 2862
+  chars: 3490
 - id: '9'
   title: Changing the server domain
   chars: 965
@@ -40,7 +40,7 @@ sections:
   chars: 1203
 - id: '11'
   title: Firewall reference
-  chars: 2629
+  chars: 2955
 - id: '12'
   title: Marketplace-specific items
   chars: 2828
@@ -112,7 +112,7 @@ Files in `$C` and what they hold:
 
 | File | Purpose | Secrets inside |
 |---|---|---|
-| `docker-compose.yml` | 9 services, images, volumes, management env/command | Postgres admin password, `NETZILO_MSP_KEY`, `SUPPORT_WORKER_TOKEN` |
+| `docker-compose.yml` | 10 services (9 without the gateway), images, volumes, management env/command, gateway options | Postgres admin password, `NETZILO_MSP_KEY`, `SUPPORT_WORKER_TOKEN` |
 | `Caddyfile` | reverse proxy + TLS; all routes for dashboard, API, gRPC, Zitadel | — |
 | `management.json` | management server config | `DataStoreEncryptionKey`, `InternalAPIToken`, IdP client secret, TURN password, `SupportConfig.WorkerToken` |
 | `zitadel.env` | Zitadel runtime config | **`ZITADEL_MASTERKEY`** (irreplaceable), DB passwords |
@@ -132,8 +132,10 @@ Treat `$C` as a secrets directory (it is `root`-owned; keep it that way).
 cd "$C" && sudo docker compose ps
 ```
 
-Expected: 9 containers — `caddy`, `coturn`, `dashboard`, `management`, `signal`,
-`zitadel`, `support-worker` (healthy), `postgres` (healthy), `redis` (healthy). Only
+Expected: 10 containers — `caddy`, `coturn`, `dashboard`, `management`, `signal`,
+`zitadel`, `gateway`, `support-worker` (healthy), `postgres` (healthy), `redis` (healthy).
+Nine on a plain-HTTP install and on installs made before the gateway existed (add it with
+`43-clientless-access-gateway.md` §6). Only
 `db` (`postgres`), `redis` and `support-worker` report health — the first two from compose
 healthchecks, the worker from the `HEALTHCHECK` in its image; the others show plain `Up`.
 
@@ -147,6 +149,7 @@ healthchecks, the worker from the `HEALTHCHECK` in its image; the others show pl
 | `coturn` | `coturn/coturn:latest` | **host network**: `3478` tcp/udp, `5349` tcp/udp, relay `49152–65535/udp` | STUN/TURN relay |
 | `postgres` | `postgres:16` | internal `5432` | databases `netzilo` (management) and `zitadel` |
 | `redis` | `redis:latest` | **published on host `6379`, no password** | management store cache + Zitadel caches |
+| `gateway` | `ghcr.io/netzilo/net-gateway` | host `8443` (HTTPS proxy); admin `:9090` internal only | clientless access: browsers with only the Netzilo extension reach internal resources through it; each browser session is a guest peer of its user. Serves the server's certificate (Caddy's data volume on Let's Encrypt installs, `certs/` otherwise). Configuration, logs and troubleshooting: `43-clientless-access-gateway.md` |
 | `support-worker` | `ghcr.io/netzilo/net-support-worker` | internal `:8080`, **no ingress** | AI Assistant agent: management calls it with the shared token, it calls management back at `http://management:80`, and reaches the owner-configured AI provider outbound; stateless, runbooks baked into the image. Configuration, token rotation and troubleshooting: `42-ai-assistant-self-hosted.md` |
 
 Redis on marketplace deploys is shielded by the cloud security group/NSG (6379 is not
@@ -190,6 +193,7 @@ sudo docker compose logs --tail=200 management
 sudo docker compose logs --tail=200 zitadel
 sudo docker compose logs --tail=100 caddy
 sudo docker compose logs --tail=100 signal coturn dashboard
+sudo docker compose logs --tail=200 gateway     # clientless access; its own lines start with "gateway:" (43 §10.1)
 sudo docker compose logs -f            # follow everything
 ```
 
@@ -228,10 +232,14 @@ After a host reboot the stack comes back automatically (`restart: unless-stopped
 `always` for `zitadel` and `db`). Nothing needs to be run.
 
 Avoid `docker compose down` unless needed: it removes containers. Data volumes survive
-`down`, but Caddy's Let's Encrypt storage lives in the caddy container's **anonymous**
-volume, so after `down` + `up` Caddy re-issues the certificate on the next
-HTTPS request (usually fine; matters if you are near Let's Encrypt rate limits —
-5 duplicate certificates per week).
+`down`. Where Caddy's Let's Encrypt storage lives depends on the install: current
+installs keep it in the named volume `netzilo_caddy_data` (it survives `down`, and the
+gateway reads the certificate from it); installs made before the gateway keep it inside
+the caddy container itself (no volume), so any recreation of that container (`down` +
+`up`, `up --force-recreate`, a new caddy image) makes Caddy re-issue the certificate on
+the next HTTPS request. Usually fine; it matters near Let's Encrypt's rate limit of 5
+duplicate certificates per week. Adding the gateway (`43-clientless-access-gateway.md`
+§6) moves that storage into the named volume.
 
 ---
 
@@ -355,6 +363,7 @@ until the start line appears, then verify.
 | zitadel | takes noticeably longer than the others; it runs its setup steps on every start | `curl -sS -o /dev/null -w '%{http_code}\n' https://<domain>/debug/ready` returns `200`; sign in to the dashboard |
 | signal | `running signal server` | `docker compose ps signal` is `Up`; a client shows `Signal: Connected` |
 | dashboard | container `Up` | `curl -sS -o /dev/null -w '%{http_code}\n' https://<domain>/` returns `200` and the page title is Netzilo |
+| gateway | `gateway: version <v> starting in shared mode …` then `proxy listening on [::]:8443 (https)` | `curl -sS -o /dev/null -w '%{http_code}\n' --proxy https://<domain>:8443 http://example.com/` returns `407`; recreation drops browser sessions, which restart on their next request |
 
 **Management applies its schema migration during that start.** It is automatic and cannot
 be switched off. A failure appears in the log as `auto migrate:` followed by the reason,
@@ -376,15 +385,16 @@ Same procedure, one component at a time, in this order, verifying after each:
 1. zitadel
 2. management
 3. dashboard
-4. signal
-5. support-worker
+4. gateway
+5. signal
+6. support-worker
 
 The identity provider goes first because everything authenticates through it. Signal and
 the support worker go last because they are independent and stateless; a worker restart
 only interrupts an Assistant turn that is in flight.
 
 ```bash
-for S in zitadel management dashboard signal support-worker; do
+for S in zitadel management dashboard gateway signal support-worker; do
   sudo docker compose pull "$S" && sudo docker compose up -d --no-deps "$S"
   echo "== $S recreated; verify before continuing =="; read -r
 done
@@ -402,7 +412,7 @@ Once a component is verified, pin it to the digest now running so the next pull 
 move it unintentionally, and so the compose file itself documents the known-good state.
 
 ```bash
-S=management; IMG=ghcr.io/netzilo/net-management     # signal: net-signal, dashboard: net-dashboard, zitadel: zitadel-build
+S=management; IMG=ghcr.io/netzilo/net-management     # signal: net-signal, dashboard: net-dashboard, gateway: net-gateway, zitadel: zitadel-build
 NEW=$(sudo docker image inspect --format '{{index .RepoDigests 0}}' "$(sudo docker compose images -q $S)")
 BAK="docker-compose.yml.$(date -u +%Y%m%dT%H%MZ).bak"; sudo cp docker-compose.yml "$BAK"
 sudo sed -E "s#^([[:space:]]*image:[[:space:]]*)${IMG//./\\.}[@:].*#\1$NEW#" "$BAK" | sudo tee docker-compose.yml >/dev/null
@@ -989,7 +999,9 @@ No match → Let's Encrypt (automatic). `auto_https off` + `tls /data/caddy/cert
 
 ### 8.1 Let's Encrypt (default)
 
-Fully automatic (Caddy renews at ~2/3 lifetime). Requirements that must stay true:
+Fully automatic (Caddy renews at ~2/3 lifetime). The gateway serves the same
+certificate from Caddy's data volume and picks up each renewal within 30 seconds; nothing
+to do for it. Requirements that must stay true:
 DNS `A` record → this host, inbound `80` and `443` open, outbound `443` to the internet.
 Check: §2.1 TLS gate. If issuance keeps failing, `sudo docker compose logs caddy | grep -iE "acme|obtain|challenge|error"`.
 
@@ -1013,6 +1025,9 @@ sudo docker exec caddy caddy reload --config /etc/caddy/Caddyfile
 sudo docker compose restart coturn
 ```
 
+The gateway reads the same files from `certs/` and picks up the new pair within 30
+seconds without a restart (`gateway: TLS certificate reloaded from /certs/fullchain.pem`).
+
 Wildcard certificates (`*.example.com`) are fine and are required if the customer uses
 tenant subdomains (the Caddyfile already includes a `*.<domain>:443` site block).
 
@@ -1025,6 +1040,10 @@ tenant subdomains (the Caddyfile already includes a `*.<domain>:443` site block)
    `tls /data/caddy/certificates/fullchain.pem /data/caddy/certificates/privkey.pem`
    as the first line inside **both** site blocks (`<domain>:443` and `*.<domain>:443`).
 4. `sudo docker compose up -d --force-recreate caddy coturn`.
+5. The gateway, if present: replace its `netzilo_caddy_data:/caddy:ro` mount with
+   `./certs:/certs:ro` and its `--tls-cert-dir … --tls-domain …` options with
+   `--tls-cert /certs/fullchain.pem --tls-key /certs/privkey.pem`, then
+   `sudo docker compose up -d --no-deps gateway` (`43-clientless-access-gateway.md` §5).
 
 Reverse the edits to return to Let's Encrypt.
 
@@ -1099,6 +1118,7 @@ relay is coturn, on its own ports. coturn runs in host network mode, so a host f
 | 5349 | TCP | **Required** for clients on networks that block UDP, public | TURN over TLS (`turns:…:5349?transport=tcp`), the fallback when UDP 3478 is blocked at a client site. It completes only when coturn has a certificate (§8.4) |
 | 3478 | TCP | Optional | coturn listens, but the server advertises no TCP relay address on this port. The templates open it; closing it breaks nothing |
 | 5349 | UDP | Optional | coturn listens (DTLS), but the server advertises no address that uses it. The templates open it; closing it breaks nothing |
+| 8443 | TCP | **Required for clientless access**, from the users' networks | the gateway: browsers with the Netzilo extension connect here (HTTPS proxy). Current AWS and Azure templates open it; older stacks need the rule (`43-clientless-access-gateway.md` §6.4). Docker publishes it, so a host firewall does not filter it |
 | 22 | TCP | admin CIDR only | SSH |
 | 6379 | TCP | **must not be public** | Redis |
 

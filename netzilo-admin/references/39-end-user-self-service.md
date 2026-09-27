@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12497
+chars: 13049
 sections:
 - id: '1'
   title: What a regular user can see through the API
@@ -18,7 +18,7 @@ sections:
   chars: 2164
 - id: '3'
   title: The questions a regular user brings, and where each one ends
-  chars: 3454
+  chars: 4006
 - id: '4'
   title: Ending on the administrator's side of the boundary
   chars: 1418
@@ -132,6 +132,7 @@ administrator.
 | "What is Netzilo doing on my laptop?" / "what does it collect?" | Nothing to run | Answer from `17-end-user-guide.md` §4 and `14-data-handling-and-privacy.md`; no tool needed |
 | "It worked yesterday" | `diag.grep` around the time it stopped; `diag.status` for a version change | Either; the log says which (`38-device-diagnosis-method.md` §4, *worked yesterday*) |
 | "My workspace won't open" / "the secure browser is missing or blocked" / anything about Enterprise Workspace, Enterprise Browser or Disposable Browser | `GET /api/profiles` — which profiles their device receives; then the workspace troubleshooting steps | `26-profiles-secure-workplace.md` §9 "Troubleshooting the Workspace"; **administrator** if no profile reaches their device |
+| "Private access says unavailable" / "I can't open our internal sites in the browser" (browser extension, no Netzilo app) | Ask what hovering over **unavailable** shows; their `vp-<n>-PROXY` session in `GET /api/peers` (connected, public IP). There are no device tools for a browser | Their side for Firefox private-window access or a proxy owned by another extension; **administrator** for an operating-system proxy the profile does not name, the account switch, the profile, the gateway port, or a policy (`43-clientless-access-gateway.md` §11.2) |
 
 Work the symptom with the loop in `38-device-diagnosis-method.md` §2 and stop at the
 tree's stop condition. The trees end at a cause; §4 below says how to end the conversation.

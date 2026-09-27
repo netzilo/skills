@@ -6,11 +6,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 8294
+chars: 8559
 sections:
 - id: administration
   title: Administration
-  chars: 5065
+  chars: 5330
 - id: access-control
   title: Access Control
   chars: 454
@@ -32,8 +32,8 @@ sections:
 ---
 # Event catalogue — what each activity is called
 
-Generated from Netzilo Server's activity table on 2026-09-23 by
-`scripts/gen-event-codes.py`. 137 activities.
+Generated from Netzilo Server's activity table on 2026-09-27 by
+`scripts/gen-event-codes.py`. 140 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
 name), `activity_code` (the stable identifier) and `activity_category`. **Say the
@@ -52,6 +52,9 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Account peer inactivity expiration disabled | `account.peer.inactivity.expiration.disable` |
 | Account peer inactivity expiration enabled | `account.peer.inactivity.expiration.enable` |
 | Account peer inactivity expiration duration updated | `account.peer.inactivity.expiration.update` |
+| Account clientless access disabled | `account.setting.clientless.access.disable` |
+| Account clientless access enabled | `account.setting.clientless.access.enable` |
+| Account clientless proxy address updated | `account.setting.clientless.proxy.address.update` |
 | Account peer approval disabled | `account.setting.peer.approval.disable` |
 | Account peer approval enabled | `account.setting.peer.approval.enable` |
 | Account peer login expiration disabled | `account.setting.peer.login.expiration.disable` |

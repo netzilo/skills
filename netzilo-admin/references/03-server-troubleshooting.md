@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 29913
+chars: 30955
 sections:
 - id: '1'
   title: Nothing loads / certificate problems
   chars: 1839
 - id: '2'
   title: A container is unhealthy or restarting
-  chars: 3613
+  chars: 4277
 - id: '3'
   title: Cannot log in to the dashboard
   chars: 2763
@@ -23,6 +23,9 @@ sections:
 - id: 4a-signal-and-relay-stun-turn-dedicated
   title: 4a. Signal and relay (STUN/TURN) — dedicated diagnosis
   chars: 9109
+- id: 4b-browsers-with-the-extension-cannot-reach
+  title: 4b. Browsers with the extension cannot reach internal sites (clientless access)
+  chars: 378
 - id: '5'
   title: Performance and load
   chars: 1069
@@ -130,6 +133,9 @@ and rotate per `02-server-operations.md` §8.2.
 | `caddy` | `address already in use` | host nginx/apache on 80/443 | stop the other server |
 | `coturn` | `Cannot bind` | host port 3478/5349 busy | free the port; coturn runs in host network mode |
 | `redis` | `MISCONF … Redis is configured to save RDB snapshots` | disk full | free disk; `docker compose restart redis` |
+| `gateway` | `gateway: management: management not reachable yet, retrying …`, then exit after 5 minutes | management down or still starting | fix management first; the gateway recovers on its own under `restart: unless-stopped` |
+| `gateway` | `gateway: no TLS certificate yet (…)` | Caddy has no certificate for exactly the `--tls-domain` yet, or the certificate mount is wrong | wait for Caddy's first issuance; compare the domain with the Caddyfile; `43-clientless-access-gateway.md` §11.3 |
+| `gateway` | `management URL "…": want http(s)://host[:port]` | a malformed `--management-url` | fix the service's `command:` (`43-clientless-access-gateway.md` §9) |
 
 Get full logs for the failing service: `docker compose logs --since 30m <service>`.
 
@@ -307,6 +313,15 @@ client: `docker run --rm coturn/coturn turnutils_stunclient -p 3478 <public-ip-o
 
 Logs to keep for escalation: `docker compose logs coturn` and `signal` for the window,
 plus `netzilo status -d` from one affected peer at each site.
+
+---
+
+## 4b. Browsers with the extension cannot reach internal sites (clientless access)
+
+The gateway, the extension's popup reasons, the HTTP answers browsers get, a curl test of
+the whole path and the log lines are all in `43-clientless-access-gateway.md` §11. Start
+with its §11.1 test from outside the server: it separates the server side from the
+browser side in one step.
 
 ---
 

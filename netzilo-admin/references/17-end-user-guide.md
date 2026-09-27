@@ -6,17 +6,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 9057
+chars: 10337
 sections:
 - id: '1'
   title: Tell people before you install, not after
   chars: 845
 - id: '2'
   title: The page to publish
-  chars: 3412
+  chars: 4179
 - id: '3'
   title: Translating what the employee says
-  chars: 3399
+  chars: 3912
 - id: '4'
   title: What to tell an employee who asks what is monitored
   chars: 808
@@ -105,6 +105,16 @@ and manage your own profile, from the web portal your administrator will link. I
 your devices and their connection quality. You can use it to check whether a device is
 connected without asking anyone.
 
+**If you use only the browser extension (no Netzilo app).** Your company may let you open
+internal sites from Chrome, Edge or Firefox with just the Netzilo extension. Click the
+Netzilo icon, **Login**, and sign in with your work account. The popup's **Private
+access** line then shows the address of your company's gateway, and internal sites open
+like any other. The first internal page after a break of an hour or more takes a few
+seconds. On Firefox, allow the extension in private windows when asked (`about:addons` →
+Netzilo Secure Browser → Run in Private Windows: Allow); without it Private access shows
+"unavailable". If you also have the Netzilo app, the extension leaves the work to the app
+and shows its state (On or Off). Safari cannot be used this way.
+
 **If your company uses the Netzilo Workspace (Windows only).** Some applications may
 be set up to open inside a protected workspace. You start them from the shortcuts folder
 on your Desktop and in the Start menu, not from their usual icons. A few things are
@@ -142,6 +152,8 @@ When an admin forwards a complaint, this maps it to a cause and the file that fi
 | "My screen share shows nothing where the app is" | Restrict Screen Sharing in the workspace profile | `26-profiles-secure-workplace.md` §2, §9 |
 | "The shortcut folder is missing" / "there's nothing in it" | No folder name in the profile, the application is not installed at the configured path, the service started before they signed in, or the workspace failed to create. Not available at all on Mac, Linux, ARM or a non-admin install | `26-profiles-secure-workplace.md` §9 (shortcuts and never-created rows) |
 | "The apps in the workspace have no internet" / "it just says Initializing Netzilo" | The workspace's own network identity (its setup key) is spent, expired or revoked, or its peer has no policy to the destination — the host being online proves nothing about the workspace peer | `26-profiles-secure-workplace.md` §9 first row, `24-peers-and-setup-keys.md` |
+| "Private access says unavailable" (browser extension) | The reason is shown when hovering over the word: most often Firefox without private-window access, a proxy owned by a browser policy or another extension, or an operating-system proxy the profile does not name | `43-clientless-access-gateway.md` §11.2 |
+| "I can open public sites but not our internal ones in the browser" | The user's policies, a posture check a browser cannot pass, or the gateway port | `43-clientless-access-gateway.md` §11.3, §3.4 |
 | "The app closes as soon as I open it" (recording enabled) | Recording consent was declined or the recording storage is not configured; the workspace closes when it cannot record | `26-profiles-secure-workplace.md` §9 |
 
 ---

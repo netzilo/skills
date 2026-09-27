@@ -7,6 +7,48 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.13.0 — 2026-09-27
+
+Clientless access and the Netzilo gateway.
+
+- **New `references/43-clientless-access-gateway.md`.** How a browser with only the Netzilo
+  extension reaches internal resources: the routing management computes per user, the PAC
+  the extension installs, the gateway's authentication and its per-user, per-browser
+  sessions (`vp-<n>-PROXY` ephemeral peers). Requirements: Chromium-based browsers and
+  Firefox 128 or later with extension 5.0.455 or later, Firefox allowed in private windows,
+  Safari not supported, a certificate browsers trust, and a check that tells whether a
+  management server supports it (`/api/users/current/routing` answers `401`, not `404`).
+  Turning it on through Settings → Permissions and the profile's Proxy tab (Disabled,
+  Automatic, Custom PAC with Generate, corporate proxies), and what posture checks mean for
+  browser sessions.
+- **Where the gateway runs:** bundled with a compose server (what the installer writes for
+  Let's Encrypt, provided and self-signed certificates; none on plain-HTTP installs); on any
+  other host against the server's public URL or Netzilo Cloud, with the account binding a
+  multi-tenant server requires; on Kubernetes, as a container contract. Shared and node
+  mode, and why a remote gateway behind a self-hosted server's Caddy needs
+  `trusted_proxies` for browser addresses to be recorded.
+- **§6 adds the gateway to a server installed without it, in place**, never by
+  re-running the installer: backs up the compose file; on Let's Encrypt servers moves
+  Caddy's certificates into a named volume seeded from the running container, so no new
+  certificate is requested; on provided-certificate servers mounts the same folder; inserts
+  the service, validates, starts it; gates, the marketplace firewall rule for 8443, and a
+  rollback. Tested on both certificate modes.
+- Every gateway option and environment variable; logs and every line that matters; the
+  health endpoints and how to reach them on a distroless image; sessions in Peers;
+  upgrades; service-token rotation. Troubleshooting: a curl test of the whole path and of
+  the routing management computes, every reason the extension shows under "unavailable",
+  a symptom table with HTTP answers and log lines, and debugging the extension itself.
+- **Introducing it to existing installations**, by delivery path, with a pilot-first
+  rollout.
+- The server now runs ten containers. `00`, `01`, `02`, `03`, `13`, `18` and `19` list the
+  `gateway` container, port `8443/tcp`, the gates and the logs. `02` §3 corrects where
+  Caddy keeps its certificates: in the named volume `netzilo_caddy_data` on current
+  installs, and inside the container itself, lost on any recreation, on older ones. `02`
+  §8 says what the gateway needs when a certificate is rotated or the TLS mode changes.
+- `05`, `16`, `17`, `21`, `24`, `25`, `26` and `39` cover clientless access where their
+  pages and users meet it. `33` and `34` regenerated: the routing, PAC and PAC-preview
+  endpoints, the account's clientless settings, and three new activities (140 in all).
+
 ## 2.12.0 — 2026-09-25
 
 The AI Assistant on a self-hosted server, in one place.

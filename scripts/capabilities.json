@@ -225,5 +225,18 @@
     "requires": [
       "server-shell"
     ]
+  },
+  "43-clientless-access-gateway.md": {
+    "requires": [
+      "server-shell"
+    ],
+    "sections": {
+      "3": [
+        "api"
+      ],
+      "12": [
+        "api"
+      ]
+    }
   }
 }

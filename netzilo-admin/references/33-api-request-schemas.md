@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 68857
+chars: 71566
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
   chars: 233
 - id: put-api-accounts-accountid
   title: '`PUT /api/accounts/{accountId}`'
-  chars: 2290
+  chars: 2855
 - id: delete-api-accounts-accountid
   title: '`DELETE /api/accounts/{accountId}`'
   chars: 331
@@ -195,6 +195,12 @@ sections:
 - id: delete-api-groups-groupid
   title: '`DELETE /api/groups/{groupId}`'
   chars: 311
+- id: post-api-groups-groupid-peers-peerid
+  title: '`POST /api/groups/{groupId}/peers/{peerId}`'
+  chars: 398
+- id: delete-api-groups-groupid-peers-peerid
+  title: '`DELETE /api/groups/{groupId}/peers/{peerId}`'
+  chars: 405
 - id: get-api-integrations
   title: '`GET /api/integrations`'
   chars: 226
@@ -293,10 +299,13 @@ sections:
   chars: 348
 - id: post-api-profiles
   title: '`POST /api/profiles`'
-  chars: 687
+  chars: 723
+- id: post-api-profiles-pac
+  title: '`POST /api/profiles/pac`'
+  chars: 637
 - id: put-api-profiles-profileid
   title: '`PUT /api/profiles/{profileId}`'
-  chars: 778
+  chars: 814
 - id: delete-api-profiles-profileid
   title: '`DELETE /api/profiles/{profileId}`'
   chars: 302
@@ -429,6 +438,12 @@ sections:
 - id: post-api-users
   title: '`POST /api/users`'
   chars: 899
+- id: get-api-users-current-pac
+  title: '`GET /api/users/current/pac`'
+  chars: 418
+- id: get-api-users-current-routing
+  title: '`GET /api/users/current/routing`'
+  chars: 214
 - id: get-api-users-userid
   title: '`GET /api/users/{userId}`'
   chars: 281
@@ -471,7 +486,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-09-23 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-09-27 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -507,6 +522,8 @@ Request body (JSON):
   - `jwt_allow_groups` (array of string, optional): List of groups to which users are allowed access
   - `user_ai_assistant_enabled` (boolean, optional): Lets regular users open the AI assistant. Admins always may. A regular user also needs to belong to one of user_ai_assistant_groups. — e.g. `False`
   - `user_ai_assistant_groups` (array of string, optional): Group IDs whose members may use the AI assistant when user_ai_assistant_enabled is set. With the switch on and no groups listed, no regular user may.
+  - `clientless_access_enabled` (boolean, optional): Lets users reach internal resources from a browser with only the Netzilo extension, through a Netzilo gateway (Settings → Permissions → Allow clientless access). Off, management computes no PAC for anyone; a profile's custom PAC is served regardless. — e.g. `False`
+  - `clientless_proxy_address` (string, optional): The gateway proxy address (host:port) browsers are pointed at. Empty means the default, the management server's host on port 8443; reads return the effective value. — e.g. `srv.example.com:8443`
   - `extra` (?, optional)
 
 Responses: `200` An Account object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
@@ -1159,6 +1176,26 @@ Parameters:
 
 Responses: `200` Delete status code, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
+## `POST /api/groups/{groupId}/peers/{peerId}`
+
+Add a Peer to a Group
+
+Parameters:
+- `groupId` (path, required): The unique identifier of a group
+- `peerId` (path, required): The unique identifier of a peer
+
+Responses: `200` The updated Group object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `DELETE /api/groups/{groupId}/peers/{peerId}`
+
+Remove a Peer from a Group
+
+Parameters:
+- `groupId` (path, required): The unique identifier of a group
+- `peerId` (path, required): The unique identifier of a peer
+
+Responses: `200` The updated Group object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
 ## `GET /api/integrations`
 
 List all Integrations
@@ -1514,9 +1551,21 @@ Request body (JSON):
   - `disposable_browser` (string, optional)
   - `browser_extension` (array of ?, optional)
   - `extension_bookmarks` (array of ?, optional)
+  - `extension_proxy` (?, optional)
   - `enterprise_browser` (?, optional)
 
 Responses: `200` A Profile Object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `POST /api/profiles/pac`
+
+Generate a PAC for groups
+
+Request body (JSON):
+- `groups` (array of string, **required**): Group IDs a member of which the PAC is computed for (every peer is in All as well).
+- `os` (string, **required**): The browser's operating system as profiles name it (Windows, Darwin, Linux, Android, iOS); posture checks are evaluated for it.
+- `gateway` (string, optional): The gateway proxy address the PAC points at, host:port; defaults to the account's clientless proxy address.
+
+Responses: `200` The generated PAC, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
 
 ## `PUT /api/profiles/{profileId}`
 
@@ -1536,6 +1585,7 @@ Request body (JSON):
   - `disposable_browser` (string, optional)
   - `browser_extension` (array of ?, optional)
   - `extension_bookmarks` (array of ?, optional)
+  - `extension_proxy` (?, optional)
   - `enterprise_browser` (?, optional)
 
 Responses: `200` A Profile object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
@@ -1967,6 +2017,21 @@ Request body (JSON):
 - `password_change_required` (boolean, optional): Indicates whether the user is required to change their password on first login — e.g. `True`
 
 Responses: `200` A User object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/users/current/pac`
+
+Get the caller's PAC
+
+Parameters:
+- `gateway` (query, optional): The gateway proxy address the PAC points at, host:port; defaults to the account's clientless proxy address.
+
+Responses: `200` The PAC script, `204` No PAC for this user (mode disabled): the browser must configure no proxy., `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/users/current/routing`
+
+Get the caller's browser routing
+
+Responses: `200` The caller's browser routing, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
 
 ## `GET /api/users/{userId}`
 

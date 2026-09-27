@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 13662
+chars: 14208
 sections:
 - id: '1'
   title: Check types (cards in the Create/Update Posture Check modal)
@@ -20,7 +20,7 @@ sections:
   chars: 1901
 - id: '4'
   title: Design guidance
-  chars: 1433
+  chars: 1979
 - id: '5'
   title: Diagnosis
   chars: 3556
@@ -171,6 +171,13 @@ to allow all versions of an OS.
   fail the check.
 - Client Version checks are the safest lever to force upgrades: pair with the
   dashboard's "Update available" indicator.
+- **Browser sessions (clientless access)** are evaluated against the browser, not a
+  managed device: OS version from what the browser reports, Client Version from the
+  extension's version, Geolocation and Peer Network Range from the browser's public IP.
+  Process checks and every Netzilo endpoint check (firewall, antivirus, disk encryption,
+  screen lock, …) always fail for them when enforced, by design. A policy that should
+  admit browser users needs no such checks; give them their own policy
+  (`43-clientless-access-gateway.md` §3.4).
 
 ---
 

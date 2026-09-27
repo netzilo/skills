@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 9846
+chars: 10364
 sections:
 - id: step-1-check-the-prerequisites
   title: Step 1 — Check the prerequisites
-  chars: 2078
+  chars: 2314
 - id: step-2-run-the-installer
   title: Step 2 — Run the installer
   chars: 416
@@ -28,10 +28,10 @@ sections:
   chars: 1722
 - id: managing-your-server
   title: Managing your server
-  chars: 1992
+  chars: 2000
 - id: troubleshooting
   title: Troubleshooting
-  chars: 980
+  chars: 1254
 - id: uninstall
   title: Uninstall
   chars: 170
@@ -87,9 +87,11 @@ Make sure your server / cloud security group **and** any firewall on the server 
 | `49152–65535` | UDP | Required for relayed connections | The relay hands each relayed connection a port from this range; without it, clients that cannot connect directly will not connect at all |
 | `5349` | TCP | Recommended | Relay over TLS — the fallback for clients on networks that block UDP (only active once a certificate is configured for the relay; ask support) |
 | `3478` TCP, `5349` UDP | — | Optional | The relay listens on them but clients are never sent there; opening or closing them changes nothing |
+| `8443` | TCP | Required for clientless access | The gateway that lets browsers with only the Netzilo extension reach your internal apps; open it from your users' networks if you will use that |
 | `22` | TCP | Your address only | SSH — your own administrative access |
 
-The relay is a separate service on its own ports; it does **not** run through `443`.
+The relay is a separate service on its own ports; it does **not** run through `443`, and
+neither does the gateway on `8443`.
 
 ---
 
@@ -238,7 +240,7 @@ also moves the proxy, relay and cache to whatever their upstream latest happens 
 
 ```bash
 cd /opt/netzilo
-for s in zitadel management dashboard signal; do
+for s in zitadel management dashboard gateway signal; do
   sudo docker compose pull "$s"
   sudo docker compose up -d --no-deps "$s"
   sudo docker compose ps "$s"            # wait for Up, then open the dashboard
@@ -259,6 +261,7 @@ to update: both erase the server.
 | "Let's Encrypt will fail" warning during install | Domain doesn't resolve to this server yet | Fix the DNS `A` record (Step 1), then re-run the installer |
 | Can't reach the dashboard at all | Firewall/security group blocking 80/443 | Open the ports in Step 1 |
 | Clients sign in but cannot reach each other | Relay ports blocked (in the cloud firewall or on the server itself) | Open `3478/udp`, `49152–65535/udp` and `5349/tcp` (Step 1) |
+| Browsers with the extension show "Private access: unavailable" or cannot open internal apps | The gateway port is closed, or clientless access is not switched on | Open `8443/tcp` (Step 1); ask your operator to switch on Settings → Permissions → Allow clientless access |
 | Password rejected during install | Doesn't meet the policy | Use 12+ chars with upper, lower, number, and a symbol |
 
 To see what happened during install, check the logs:

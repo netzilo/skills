@@ -7,26 +7,26 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 21104
+chars: 22161
 sections:
 - id: '1'
   title: Rules of engagement
   chars: 3399
 - id: '2'
   title: What Netzilo is (30-second model)
-  chars: 1465
+  chars: 1796
 - id: '3'
   title: 'Triage: route the request'
-  chars: 4757
+  chars: 4967
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
 - id: '5'
   title: Canonical facts (memorize)
-  chars: 2494
+  chars: 2668
 - id: '6'
   title: Known product gaps to warn about proactively
-  chars: 1318
+  chars: 1660
 - id: '7'
   title: Closing a task
   chars: 329
@@ -106,6 +106,10 @@ this folder. Read it fully before your first action.
 - **Secure workplace:** **Profiles** deliver Enterprise Workspace (isolated enclave for
   Windows apps), Enterprise Browser, Disposable Browser, and the browser extension
   (DLP: redaction, watermark, clipboard/print/download controls).
+- **Clientless access:** a browser with only the Netzilo extension (Chromium-based
+  browsers and Firefox) reaches internal resources through the **Netzilo gateway**, an
+  HTTPS proxy on `8443`; each browser session is an ephemeral `vp-<n>-PROXY` peer of its
+  user, under that user's policies (`43-clientless-access-gateway.md`).
 
 Delivery paths for the server: on-prem one-liner (`/opt/netzilo`), AWS Marketplace AMI
 and Azure Marketplace image (`/opt/netzilo/run`), or Netzilo Cloud (nothing to install).
@@ -140,6 +144,7 @@ first; go to the device to see what the account cannot.
 | Runbook exhausted, problem persists — hand it to Netzilo | `12-escalation-package.md` — when escalation is justified, what to collect, redaction, and the package the customer sends |
 | "Policies / groups / posture checks / routes / exit nodes / DNS servers / setup keys / peers / activity / reports / integrations / plans" | `08-network-administration.md` |
 | "Automate with the API / export-import / bulk changes / tokens / IaC" | `09-api-and-automation.md` |
+| "Reach internal apps from a browser without the client" / "Private access unavailable" in the extension / install, add or debug the gateway / proxy errors in the browser | `43-clientless-access-gateway.md` |
 | "Govern AI agents / MCP / Claude Code hooks / SDK / browser extension / Enterprise Browser / Edge filters / test detection rules" | `10-ai-security-aidr.md` |
 | "Write a detection rule for threat X" (Sigma rule or Starlark behaviour script) | `32-detection-rule-authoring.md` (rule-author persona, full field/action/Starlark reference), then `10-ai-security-aidr.md` §8 to deploy and replay it |
 
@@ -287,8 +292,8 @@ It is a tool you may use; it is never evidence about the customer's environment.
 
 | Fact | Value |
 |---|---|
-| Server ports (inbound) | 22 (admin CIDR), 80, 443, 3478 tcp+udp, 5349 tcp+udp; 49152–65535/udp on cloud templates; 6379 must never be public |
-| Server containers | `caddy dashboard management signal zitadel coturn postgres redis support-worker` (nine; `support-worker` = AI Assistant agent, internal only, absent on engines/images published before 2026-09) |
+| Server ports (inbound) | 22 (admin CIDR), 80, 443, 3478 tcp+udp, 5349 tcp+udp; 49152–65535/udp on cloud templates; 8443/tcp for the clientless-access gateway; 6379 must never be public |
+| Server containers | `caddy dashboard management signal zitadel coturn postgres redis support-worker gateway` (ten; `support-worker` = AI Assistant agent, internal only, absent on engines/images published before 2026-09; `gateway` = clientless access on `8443`, absent on older installs and on plain-HTTP installs, added in place with `43` §6) |
 | Server state dirs | on-prem `/opt/netzilo`; images `/opt/netzilo/run` (compose) + `/opt/netzilo` (state); credentials `/opt/netzilo/CREDENTIALS` |
 | Server secrets that cannot be recovered | `ZITADEL_MASTERKEY` (`zitadel.env`), `DataStoreEncryptionKey` (`management.json`) |
 | Domain | permanent once installed; must not be `*.netzilo.com` |
@@ -326,6 +331,10 @@ It is a tool you may use; it is never evidence about the customer's environment.
 - **Linux daemon does not steer per-app traffic** into the AI proxy (Windows/macOS do).
 - **Client in-app update notifications** are not available; direct users to the
   dashboard download links (`05` §0).
+- **Clientless access**: Safari is not supported; browser sessions never pass process
+  checks or Netzilo endpoint checks (by design); Firefox needs the extension allowed in
+  private windows; a gateway on another host behind a self-hosted server's Caddy needs
+  `trusted_proxies`, or sessions show the gateway's IP and location (`43` §7.4).
 - **Older documentation pages** may mention `pkgs.netzilo.com`, port 33073,
   `app.netzilo.co`, a `netzilo/netzilo` Docker image, or a `match/except` rule syntax.
   The values in these runbooks are current.

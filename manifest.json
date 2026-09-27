@@ -1,12 +1,12 @@
 {
   "repository": "https://github.com/netzilo/skills",
-  "updated": "2026-09-25",
+  "updated": "2026-09-27",
   "raw_base": "https://raw.githubusercontent.com/netzilo/skills/main",
   "skills": [
     {
       "name": "netzilo-admin",
-      "version": "2.12.0",
-      "released": "2026-09-25",
+      "version": "2.13.0",
+      "released": "2026-09-27",
       "path": "netzilo-admin",
       "summary": "Operate Netzilo end to end: server install and day-2 operations, identity and SSO, client deployment, network policy, AI security (AIDR), REST API automation, connectivity diagnosis, Windows hosts, the secure Workspace, device tools that diagnose and repair a peer from the agent, bounded remediation workflows, the AI Assistant on self-hosted servers, and support escalation.",
       "version_url": "https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION",

@@ -6,26 +6,26 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 32352
+chars: 33518
 sections:
 - id: '0'
   title: What gets installed (all paths)
-  chars: 4894
+  chars: 5506
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
   chars: 8416
 - id: '2'
   title: Path B — AWS Marketplace (CloudFormation)
-  chars: 3879
+  chars: 4029
 - id: '3'
   title: Path C — Azure Marketplace (managed application)
-  chars: 2205
+  chars: 2397
 - id: '4'
   title: Variant — external PostgreSQL
-  chars: 1093
+  chars: 1119
 - id: '5'
   title: Variant — running the core engine directly (advanced / air-gapped)
-  chars: 2636
+  chars: 2733
 - id: '6'
   title: Installation failures — diagnosis table
   chars: 5282
@@ -37,7 +37,7 @@ sections:
   chars: 751
 - id: '9'
   title: Reporting template
-  chars: 1227
+  chars: 1316
 ---
 # Netzilo Server — Installation Runbook (all delivery paths)
 
@@ -57,12 +57,18 @@ companion; this document adds the cloud paths and the advanced variants.
 
 ## 0. What gets installed (all paths)
 
-One Ubuntu 22.04 host running nine Docker containers: `caddy`, `dashboard`,
+One Ubuntu 22.04 host running ten Docker containers: `caddy`, `dashboard`,
 `management`, `signal`, `zitadel` (identity), `postgres`, `redis`, `support-worker` — the
-AI Assistant's agent, reachable only by `management` over the compose network — and
-`coturn` (relay). Dashboard, API, management, signal and identity are all served through
-Caddy on `443`; the relay is **not** — coturn runs in host network mode on its own ports
-(`3478`, `5349`, relay range `49152–65535/udp`). See `02-server-operations.md` §1–2 for
+AI Assistant's agent, reachable only by `management` over the compose network —,
+`gateway` — the clientless-access gateway, an HTTPS proxy on `8443` that browsers with
+only the Netzilo extension use (`43-clientless-access-gateway.md`) — and `coturn`
+(relay). Dashboard, API, management, signal and identity are all served through Caddy on
+`443`; the relay is **not** — coturn runs in host network mode on its own ports (`3478`,
+`5349`, relay range `49152–65535/udp`) — and neither is the gateway, published on its own
+port `8443` with the same certificate. A plain-HTTP install (`use-ip`) has no certificate
+and therefore no `gateway` (nine containers). Engines and images published before the
+gateway existed also run nine; add it in place with `43-clientless-access-gateway.md` §6,
+never by re-running the installer. See `02-server-operations.md` §1–2 for
 the layout and service map and §11 for the firewall reference.
 
 **Three delivery paths, three pipelines.** The custom one-liner (wrapper + engine
@@ -85,7 +91,7 @@ grep -c 'support-worker' /opt/netzilo/docker-compose.yml        # custom one-lin
 grep -c 'support-worker' /opt/netzilo/run/docker-compose.yml    # AWS / Azure image
 # 0 = pre-worker engine (eight containers): the Assistant cannot be enabled on this
 #     install; a new install from a current engine/image is required (teardown §8).
-# >0 = worker engine (nine containers): continue with the gates.
+# >0 = worker engine (nine containers, ten with the gateway): continue with the gates.
 ```
 
 A pre-worker install gains the worker in place, without a reinstall:
@@ -113,7 +119,8 @@ Firewall inbound (`02-server-operations.md` §11 is the reference): **required**
 connection); `5349/tcp` (TURN over TLS) is the fallback for clients on UDP-blocking
 networks and only completes once a certificate is mounted into coturn
 (`02-server-operations.md` §8.4); `3478/tcp` and `5349/udp` are **optional** (coturn
-listens, no client is given an address on them); `22/tcp` from the admin CIDR only. The
+listens, no client is given an address on them); `8443/tcp` for clientless access (the
+gateway; open it when browsers will use it); `22/tcp` from the admin CIDR only. The
 AWS and Azure templates open all of these including the relay range; on a self-managed
 host the customer must, and a host firewall (`ufw`/`firewalld`) applies to coturn because
 it uses host networking. Never expose `6379` (Redis).
@@ -314,7 +321,8 @@ Listing: `https://aws.amazon.com/marketplace/pp/prodview-vf2pu4dhv53bs`. Time 10
 
 The stack creates: IAM role (SSM core + `ssm:PutParameter` on
 `/netzilo/<stack>/*` + `aws-marketplace:MeterUsage`), security group (22 from admin
-CIDR; 80, 443, 3478, 5349, 49152–65535/udp public), EIP association, EC2 with IMDSv2
+CIDR; 80, 443, 3478, 5349, 8443, 49152–65535/udp public; stacks created from older
+templates lack 8443, see `43-clientless-access-gateway.md` §6.4), EIP association, EC2 with IMDSv2
 required and a 30 GB encrypted gp3 root.
 
 ### 2.3 After `CREATE_COMPLETE`
@@ -338,8 +346,8 @@ Metering (`METERING_ENABLED=1`, dimension `users`) runs hourly — see
 
 ### 2.4 What the AMI carries
 
-- **Nine containers, all baked.** The image ships every container including
-  `support-worker`, each pinned to an immutable digest; first boot starts them from the
+- **Ten containers, all baked.** The image ships every container including
+  `support-worker` and `gateway`, each pinned to an immutable digest; first boot starts them from the
   local image store (`NETZILO_IMAGE_SOURCE=cloud`, nothing is pulled). The worker's shared
   token is generated at first boot and written into both `management.json`
   (`SupportConfig.WorkerToken`) and the worker's environment, exactly as on the one-liner.
@@ -356,7 +364,8 @@ Metering (`METERING_ENABLED=1`, dimension `users`) runs hourly — see
   the current AMI and restore (`02-server-operations.md` §6–7).
 
 Run the §1.5 gates against the domain: `docker compose ps` in `/opt/netzilo/run` must
-show 9 Up with `postgres`, `redis` and `support-worker` healthy.
+show 10 Up (9 on images built before the gateway) with `postgres`, `redis` and
+`support-worker` healthy.
 
 ---
 
@@ -391,16 +400,18 @@ uses it to discover the managed-application resource id.
 
 ### 3.3 What the Azure image carries
 
-Same as the AMI (§2.4): nine containers baked and digest-pinned, including
-`support-worker`; shared token generated at first boot; the worker is reachable only
+Same as the AMI (§2.4): ten containers baked and digest-pinned, including
+`support-worker` and `gateway`; shared token generated at first boot; the worker is reachable only
 from `management` on the compose network, so the NSG is unchanged (22 admin CIDR;
 80, 443, 3478, 5349 and the relay range 49152–65535/udp public) and no wizard field
 concerns AI. Outbound `443` to the
 chosen AI provider and to `github.com` must be allowed (the default NSG outbound rule
 does). The Assistant appears only after an owner connects a provider. Images published
 before September 2026 run eight containers; add the worker in place with
-`42-ai-assistant-self-hosted.md` §6.1 rather than redeploying. Gate 3 reads 9 Up with
-`postgres`, `redis` and `support-worker` healthy.
+`42-ai-assistant-self-hosted.md` §6.1 rather than redeploying, and the gateway with
+`43-clientless-access-gateway.md` §6 (the template's NSG opens `8443` on current
+deployments; older ones need the rule, §6.4 there). Gate 3 reads 10 Up (9 without the
+gateway) with `postgres`, `redis` and `support-worker` healthy.
 
 ---
 
@@ -413,7 +424,7 @@ the host; an admin role able to `CREATE DATABASE` and `CREATE ROLE`; `sslmode`
 `zitadel`. No `db` container or `netzilo_db_data` volume is created. Backups become the
 DB provider's responsibility; everything else in `02-server-operations.md` still applies.
 `support-worker` is unaffected by the DB mode — it holds no data and talks only to
-`management`; the stack is eight containers in external mode (no `postgres`).
+`management`; the stack is nine containers in external mode (no `postgres`; eight without the gateway).
 
 On-prem, pass through the wrapper by exporting before `bash install-netzilo.sh --yes`:
 `NETZILO_DB_MODE=external NETZILO_DB_HOST=… NETZILO_DB_PORT=5432 NETZILO_DB_ADMIN_USER=… NETZILO_DB_ADMIN_PASSWORD=… NETZILO_DB_SSLMODE=require`.
@@ -446,7 +457,7 @@ Engine variables not exposed by the wrapper:
 | `NETBIRD_DOMAIN` | — | FQDN, or literal `use-ip` for **plain HTTP on port 80** (test only; no TLS at all) |
 | `NETZILO_TLS_MODE` | `letsencrypt` | `selfsigned` generates a 1-year RSA-4096 cert in `./certs`; `provided` uses `NETZILO_CERT_DIR` |
 | `NETZILO_CERT_DIR` | `./certs` | must contain `fullchain.pem` + `privkey.pem` |
-| `NETZILO_IMAGE_SOURCE` | `cloud` | `disk` loads images from `NETZILO_IMAGES_DIR` (`*.tar.gz`/`*.tar`) — **air-gapped**; the nine archives must carry the expected tags |
+| `NETZILO_IMAGE_SOURCE` | `cloud` | `disk` loads images from `NETZILO_IMAGES_DIR` (`*.tar.gz`/`*.tar`) — **air-gapped**; the archives named in the engine's `NETZILO_IMAGE_FILES` (including `netzilo-gateway.tar.gz`) must carry the expected tags |
 | `NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED` | `false` | force a password change at first login even with a supplied password; the wrapper passes it through unchanged, so it also works in the §1.3 env file |
 | `NETZILO_DB_*` | container | external DB (see §4) |
 | `NETZILO_ZITADEL_DB_MAXOPENCONNS` etc. | 20/20/30m/5m | Zitadel pool |
@@ -455,8 +466,8 @@ Engine variables not exposed by the wrapper:
 | `NETZILO_L3_URL` | `https://l3.netzilo.com` | Netzilo Level 3 gate the AI Assistant escalates to |
 | `NETZILO_L3_TOKEN` | empty | Netzilo Cloud service-account token; empty **disables** the Assistant's escalation tool (the Assistant itself still works) |
 
-Air-gapped procedure: on a connected machine `docker pull` the nine images (tags from
-the engine's `IMAGE_*` lines), `docker save <image> | gzip > netzilo-<name>.tar.gz`,
+Air-gapped procedure: on a connected machine `docker pull` the images (tags from
+the engine's `IMAGE_*` lines, `IMAGE_GATEWAY` included), `docker save <image> | gzip > netzilo-<name>.tar.gz`,
 copy them plus the engine to the host, run with `NETZILO_IMAGE_SOURCE=disk
 NETZILO_IMAGES_DIR=/path`. Docker must already be installed. Let's Encrypt is impossible
 offline → use `provided` or `selfsigned`.
@@ -550,12 +561,12 @@ and state the diagnosis:
 
 - [ ] Gate 1 host meets OS/sizing/DNS prerequisites
 - [ ] Gate 2 installer completed (`Done. Netzilo is starting …` / `first-boot complete`)
-- [ ] Gate 3 9 containers Up, postgres + redis + support-worker healthy
+- [ ] Gate 3 10 containers Up (9 on a plain-HTTP install, no gateway), postgres + redis + support-worker healthy
 - [ ] Gate 4 dashboard HTTP 200
 - [ ] Gate 5 trusted certificate (or waived: provided/self-signed)
 - [ ] Gate 6 OIDC discovery 200 with `issuer` = `https://<domain>`
 - [ ] Gate 7 `<title>Netzilo</title>`
 - [ ] Gate 8 `/opt/netzilo/CREDENTIALS` present (mode `600`) and handed over without printing it
-- [ ] Firewall: required inbound rows of §0 open (`80`, `443`, `3478/udp`, `49152–65535/udp`; `5349/tcp` for UDP-blocked client sites) — on a self-managed host confirmed by the customer, on a marketplace image by the template
+- [ ] Firewall: required inbound rows of §0 open (`80`, `443`, `3478/udp`, `49152–65535/udp`; `5349/tcp` for UDP-blocked client sites; `8443/tcp` when clientless access will be used) — on a self-managed host confirmed by the customer, on a marketplace image by the template
 - [ ] Backup: fail-closed script and schedule installed, first run ended `BACKUP OK`, restore rehearsal date agreed (`02-server-operations.md` §6.2–6.4) — or the customer explicitly declined, in writing
 - [ ] Admin password supplied through chat: `NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED=true` set and the customer told to replace it at first login

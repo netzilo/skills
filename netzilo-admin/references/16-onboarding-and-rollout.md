@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 8011
+chars: 9010
 sections:
 - id: '0'
   title: What the admin sees first
@@ -33,6 +33,9 @@ sections:
 - id: phase-7-ai-security-in-report-mode-first
   title: Phase 7 — AI security, in report mode first
   chars: 548
+- id: phase-7b-clientless-access-if-browsers-without
+  title: Phase 7b — Clientless access, if browsers without the client need access
+  chars: 999
 - id: phase-8-roll-out-to-everyone
   title: Phase 8 — Roll out to everyone
   chars: 639
@@ -181,6 +184,26 @@ changed.
 
 **Exit test:** a week of events with an acceptable false-positive rate, and a named owner
 for tuning.
+
+---
+
+## Phase 7b — Clientless access, if browsers without the client need access
+
+For contractors, partners and unmanaged devices that should use only a browser.
+
+1. **Check the server has it**: management and dashboard with clientless access, a
+   gateway, and `8443/tcp` open (`43-clientless-access-gateway.md` §2, §12.1).
+2. **Pilot** with one group and a profile set to **Proxy → Automatic**; extension 5.0.455
+   or later, allowed in private windows on Firefox (`43-clientless-access-gateway.md`
+   §12.2).
+3. **Decide per resource** whether browser users need it: resources behind process or
+   Netzilo endpoint posture checks stay out of reach for browsers by design; give browser
+   users a separate policy where they should reach them.
+4. **Switch on** Settings → Permissions → Allow clientless access.
+
+**Exit test:** a pilot user opens an internal site from the browser, their
+`vp-<n>-PROXY` session shows their own public IP in Peers, and a resource they are not
+allowed stays refused.
 
 ---
 

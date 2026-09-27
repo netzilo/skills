@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 30197
+chars: 31697
 sections:
 - id: '1'
   title: Model
-  chars: 4521
+  chars: 4654
 - id: '2'
   title: Enterprise Workspace — reference
   chars: 5513
@@ -24,9 +24,12 @@ sections:
 - id: '5'
   title: Domain Settings (Browser Extension and Enterprise Browser)
   chars: 3702
+- id: 5a-proxy-clientless-access
+  title: 5a. Proxy (clientless access)
+  chars: 1305
 - id: '6'
   title: API
-  chars: 1281
+  chars: 1343
 - id: '7'
   title: Procedures
   chars: 1358
@@ -56,7 +59,7 @@ one profile.
 | **Enterprise Workspace** | native Windows applications ("work apps") run inside an isolated, optionally encrypted enclave with restrictions (clipboard, printing, screen sharing, keylogging, watermark, recording, integrity) and optional posture checks | Windows x64, full (admin) install only |
 | **Enterprise Browser** | Netzilo's own Chromium-based browser: bookmarks, per-domain restrictions, extension allow/block list, encrypted profile, wipe on close | Windows, macOS (mobile apps exist) |
 | **Disposable Browser** | isolated throw-away browser sessions; everything is destroyed on close | Windows x64, full (admin) install only |
-| **Enterprise Browser Extension** | per-domain DLP inside the user's normal browser (Chrome/Edge/Firefox/Safari): downloads, URL blocking, redaction, watermark, clipboard, printing, source-code controls, classified content, prompt-injection prevention, temporary cookies; the client force-installs the extension in Chrome/Edge when such a profile applies | any OS with a supported browser |
+| **Enterprise Browser Extension** | per-domain DLP inside the user's normal browser (Chrome/Edge/Firefox/Safari): downloads, URL blocking, redaction, watermark, clipboard, printing, source-code controls, classified content, prompt-injection prevention, temporary cookies; the client force-installs the extension in Chrome/Edge when such a profile applies. Its **Proxy** tab turns on clientless access for the profile's users (§5a) | any OS with a supported browser (Proxy: Chromium-based browsers and Firefox, not Safari) |
 
 Profile fields: **Groups** (required), **OS** (Windows, Darwin, Linux, Android, iOS;
 default Windows), components, **Enable Profile**, Name, Description. A device gets a
@@ -225,6 +228,26 @@ Every restriction produces events: `browser.url.blocked`, `browser.download.file
 
 ---
 
+## 5a. Proxy (clientless access)
+
+The extension component's **Proxy** tab decides whether the profile's users reach
+internal resources from the browser through a Netzilo gateway, without the client.
+Field `components.extension_proxy`:
+`{"mode": "disabled" | "auto" | "custom", "pac": "…", "upstream": {"type": "none" | "proxy" | "pac", "value": "…"}}`.
+
+| UI | Field | Notes |
+|---|---|---|
+| **Browser routing**: Disabled (default) / Automatic / Custom PAC | `mode` | Automatic needs Settings → Permissions → Allow clientless access; Custom PAC is served regardless |
+| **Corporate proxy**: None (direct) / Proxy host:port / PAC URL | `upstream` | Automatic only; for a proxy set in the operating system, which the extension cannot see |
+| **PAC script** (Custom PAC) | `pac` | must define `FindProxyForURL`, at most 64 KiB; send gateway traffic with `HTTPS host:port` |
+| **Generate** | `POST /api/profiles/pac` | fills the editor with what Automatic would serve for chosen groups and OS; a snapshot, regenerate after routing changes |
+
+A browser follows the first enabled profile by name, for its OS, whose groups hold one of
+the user's groups and that has a proxy setting. How the routing is computed, the gateway,
+and every "unavailable" reason: `43-clientless-access-gateway.md` §3 and §11.2.
+
+---
+
 ## 6. API
 
 Prefer this over dashboard clicking when you hold an API token: read the current
@@ -240,6 +263,7 @@ Body: `{"name","description","enabled","os":["Windows"],"groups":["<gid>"],
 "components":{"netzilo_workspace":{"work_apps":[{"path":"…","cmd":"","name":"","hashes":[],"signers":[]}],"restrictions":{…},"checks":["<pc-id>"],"any_check_must_pass":false,"use_fuse":false,"fuse_allowed_apps":[]},
 "browser_extension":[{"name":".example.com","block_urls":[],"restrict_downloads":[],"redact":[{"regex":"…","mask_with":"***","show_last":4}],"checks":[],"any_check_must_pass":false, …}],
 "extension_bookmarks":[{"name":"HR","url":"https://hr.example.com"}],
+"extension_proxy":{"mode":"auto","upstream":{"type":"none"}},
 "disposable_browser":"Disposable Browsers",
 "enterprise_browser":{"domain_settings":[…],"bookmarks":[…],"encryption_key":"","wipe_data_when_closed":false,"extension_control":{"action":"allow","extensions":["<id>"]}}}}`
 Read an existing profile with `GET` to see the exact shape before writing.

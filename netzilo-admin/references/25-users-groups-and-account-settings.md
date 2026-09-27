@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 13277
+chars: 13995
 sections:
 - id: '1'
   title: Roles and visibility
@@ -20,7 +20,7 @@ sections:
   chars: 840
 - id: '4'
   title: Account settings — reference
-  chars: 2800
+  chars: 3518
 - id: '5'
   title: API
   chars: 1273
@@ -120,6 +120,7 @@ names stable — JWT sync and scripts match by name.
 | Groups | JWT allow group | "Limit access to Netzilo for the specified group name… To use the group, you need to configure it first in your IdP." Warning: "To prevent losing access, ensure you are part of this group." | `jwt_allow_groups` |
 | Permissions | **Disable portal access for regular users** | "Access to the application portal(i.e. /workplace) will be disabled for non-admin users." | `regular_users_view_blocked` |
 | Permissions | **Allow regular users to use the AI Assistant** + **Allowed groups** | "Admins always have the AI Assistant. When enabled, regular users in the groups below also get it on the Workplace page, for their own devices." | `user_ai_assistant_enabled` (boolean) and `user_ai_assistant_groups` (group ids). Both are needed: the switch on and the user in one of the groups; an empty list admits nobody. The server reports the outcome per user as `permissions.ai_assistant` on the user record (`GET /api/users?self=true` for the user themselves). A regular user admitted this way works with their own permissions — see `39-end-user-self-service.md` |
+| Permissions | **Allow clientless access** + **Gateway proxy address** | "Users reach internal resources from a browser with only the Netzilo extension, through a Netzilo gateway." / "The host:port browsers are pointed at. By default this server on port 8443; change it if the gateway is hosted elsewhere." | `clientless_access_enabled` (boolean) and `clientless_proxy_address` (`host:port`; empty = this server on 8443). The switch gates automatic routing only; a profile's Custom PAC is served regardless. Changes are logged as *Account clientless access enabled/disabled* and *Account clientless proxy address updated*. How it works, the gateway and the profile's Proxy tab: `43-clientless-access-gateway.md` §3 |
 | Plans & Billing (owner; hidden on self-hosted/MSP) | current plan, usage, Upgrade/Downgrade, payment portal | Free 5 users/100 peers; Professional; Enterprise (Profiles, premium scanners) | `POST /api/tenant/subscription` |
 | Tenant (owner) | **Company Logo** (PNG/JPG/SVG ≤ 500 KB), Tenant Name, **Tenant ID** (for support), **Delete Tenant** (irreversible) | | `/api/tenant/logo`, `DELETE /api/accounts/{id}` |
 

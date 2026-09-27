@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 24086
+chars: 24490
 sections:
 - id: '0'
   title: Facts you need before touching a device
   chars: 3683
 - id: '1'
   title: Enrollment methods (decide first)
-  chars: 1313
+  chars: 1717
 - id: '2'
   title: Windows
   chars: 3573
@@ -117,6 +117,12 @@ them. For containers see §6.
 | **SSO (interactive)** | user devices | `netzilo up` (or tray **Connect**) → browser login | peer is bound to the user; **login expiration** applies (account default 24 h, admin-configurable); inactivity expiration can apply |
 | **Setup key** | servers, containers, IaC, kiosks | `netzilo up --setup-key <KEY>` | peer has no user; never expires by login; auto-assigned to the key's groups; `ephemeral` keys remove the peer 10 min after it goes offline |
 | **PAT (personal access token)** | headless devices that must act as a user (AI agents, CI runners) | `netzilo up --pat nzl_…` or env `NETZILOPAT`, or `netzilo deploy-user` | peer bound to the token's user |
+
+**No client at all: clientless access.** Where a device must not or cannot get the client
+(contractors, partners, unmanaged devices), a Chromium-based browser or Firefox with only
+the Netzilo browser extension can reach internal web resources through the Netzilo
+gateway, under the user's policies. It covers web traffic only and never passes endpoint
+posture checks: `43-clientless-access-gateway.md`.
 
 Self-hosted always add `--management-url https://<domain>` (the admin URL is derived).
 The management URL is persisted in `config.json`; subsequent `netzilo up` needs no flags.
