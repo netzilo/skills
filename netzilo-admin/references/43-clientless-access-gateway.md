@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 54876
+chars: 55088
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 8336
+  chars: 8548
   requires:
   - api
   executable_on:
@@ -255,11 +255,14 @@ or logged out leaves routing to the gateway (extension 5.0.456 and later; before
 seen within seven days blocked the PAC). Sessions appear in **Endpoint → Peers** as
 `vp-<n>-PROXY` (§10.3).
 
-The dashboard's **Workplace** page: on a computer without the Netzilo client, when the
-user's routing is on (auto or custom), the **Devices** tab is replaced by a **Private
-access** status for **this browser's own session** (the page asks the extension for the
-session's device id and matches on it; without an answer it falls back to the session
-from the same public IP and browser): **Online** (green) while that session is connected,
+The dashboard's **Workplace** page shows tabs for what is on the computer: with the
+Netzilo client (with or without the extension) **Applications** and **Devices**; without
+the client but with the extension routing through a gateway, **Applications** and a
+**Private access** status; with neither, **Applications** only. The status is for **this
+browser's own session**: the page asks the Netzilo extension in this browser for its
+device id and matches the session on it; without an answer (no extension, one older than
+5.0.458, or no routing for this user) nothing about private access is shown. **Online**
+(green) while that session is connected,
 **Suspended** (amber) when it is not, even if the same user is online from another
 browser or computer (the hover says so). Hovering shows the gateway, the session's name,
 its browser and OS, and since when it is connected (or when it was last seen). The page
