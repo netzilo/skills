@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 59079
+chars: 59342
 sections:
 - id: '1'
   title: Method
@@ -23,7 +23,7 @@ sections:
   chars: 37692
 - id: '5'
   title: The management log
-  chars: 11401
+  chars: 11664
 - id: '6'
   title: Correlating client and server
   chars: 1342
@@ -557,7 +557,10 @@ binding, one `session vp-<n>-PROXY (<email>) ready|stopped: <reason>` per browse
 session, refused credentials, device limits). Everything else comes from the sessions'
 guests, which run the client engine: `connected to the Management Service stream`,
 `Building network map`, `Posture check '<name>' FAILED at <check>`, and the other §4.5
-families, read exactly like a client log but for many users at once. Tie a guest line to
+families, read exactly like a client log but for many users at once. For every
+policy a session fails, the guest logs `Posture check '<name>' FAILED at NetziloChecks`
+and records a *Peer access blocked* event, usually with the reason `Endpoint checks cannot
+be satisfied by a browser session`: expected for endpoint-gated policies. Tie a guest line to
 a session by the session's peer address or FQDN in its `ready` line. Healthy start,
 every line's meaning and the troubleshooting table: `43-clientless-access-gateway.md`
 §10.1 and §11.

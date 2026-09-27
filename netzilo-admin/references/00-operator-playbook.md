@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 22161
+chars: 22406
 sections:
 - id: '1'
   title: Rules of engagement
@@ -26,7 +26,7 @@ sections:
   chars: 2668
 - id: '6'
   title: Known product gaps to warn about proactively
-  chars: 1660
+  chars: 1905
 - id: '7'
   title: Closing a task
   chars: 329
@@ -334,7 +334,10 @@ It is a tool you may use; it is never evidence about the customer's environment.
 - **Clientless access**: Safari is not supported; browser sessions never pass process
   checks or Netzilo endpoint checks (by design); Firefox needs the extension allowed in
   private windows; a gateway on another host behind a self-hosted server's Caddy needs
-  `trusted_proxies`, or sessions show the gateway's IP and location (`43` §7.4).
+  `trusted_proxies`, or sessions show the gateway's IP and location (`43` §7.4); a
+  session's OS version comes from the User-Agent (macOS frozen at 10.15.7, Windows 11 as
+  10.0), so OS-minimum posture rules misjudge browser users (`43` §3.4); the Netzilo
+  Gateway posture item belongs on network policies only (`43` §3.4).
 - **Older documentation pages** may mention `pkgs.netzilo.com`, port 33073,
   `app.netzilo.co`, a `netzilo/netzilo` Docker image, or a `match/except` rule syntax.
   The values in these runbooks are current.

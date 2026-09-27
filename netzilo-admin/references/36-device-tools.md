@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 18231
+chars: 18533
 sections:
 - id: '0'
   title: When to reach for a device, and when not to
@@ -36,7 +36,7 @@ sections:
   chars: 965
 - id: '8'
   title: What device tools cannot do
-  chars: 799
+  chars: 1101
 - id: '9'
   title: When management, not the device, answers
   chars: 2456
@@ -290,6 +290,10 @@ followed (`SKILL.md` rule 7).
 - **Delivery is at most once.** A `timeout` does not say whether the command ran (§9).
 - **No device without a management connection.** An offline, logged-out or blocked device
   cannot be reached (§3).
+- **No tools on a gateway session.** A `vp-<n>-PROXY` peer (platform *browser*) is a
+  browser session inside a Netzilo gateway, not a device: every tool returns `unsupported`
+  with *remote support tools are not available on this client*. Work it with
+  `43-clientless-access-gateway.md` §11 instead.
 
 ## 9. When management, not the device, answers
 

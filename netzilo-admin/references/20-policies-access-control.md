@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 10192
+chars: 10571
 sections:
 - id: '1'
   title: Model
@@ -23,7 +23,7 @@ sections:
   chars: 1894
 - id: '5'
   title: Semantics you must get right
-  chars: 951
+  chars: 1330
 - id: '6'
   title: Diagnosis — "why can't A reach B / why can A reach B?"
   chars: 1651
@@ -188,6 +188,11 @@ Attach a **Date & Time** posture check (`21-posture-checks.md`) to the policy.
   (`enabled:false` on the rule) and in the JSON view.
 - Group deletion is refused while a policy references the group.
 - Free-plan tenants can create policies but not posture checks.
+- **A policy for browser users only** (clientless access): give it a posture check whose
+  only item is **Netzilo Gateway** (Advanced Endpoint Settings). Gateway sessions pass it;
+  every device with the client fails it. Keep endpoint items out of that check and leave OS
+  minimums off it, since a session's OS version is approximate
+  (`43-clientless-access-gateway.md` §3.4).
 
 ---
 

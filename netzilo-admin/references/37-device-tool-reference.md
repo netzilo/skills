@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 27202
+chars: 27308
 sections:
 - id: '0'
   title: The contract every tool shares
@@ -30,7 +30,7 @@ sections:
   chars: 4349
 - id: '6'
   title: '`diag.posture` — what the device reports about itself'
-  chars: 2471
+  chars: 2577
 - id: '7'
   title: '`diag.system` — host facts'
   chars: 534
@@ -319,14 +319,15 @@ target into it (TUN modes), never in netstack mode.
 No arguments. Output: `device_id`, `domain_name`, `disk_encryption_enabled`,
 `firewall_enabled`, `firewall_names`, `antivirus_enabled`, `antivirus_updated`,
 `antivirus_names`, `screen_lock_enabled`, `os_updated`, `being_debugged`,
-`virtual_device`, `netzilo_container`, `netzilo_browser`, `integrity_level`, `checks[]`
+`virtual_device`, `netzilo_container`, `netzilo_browser`, `netzilo_gateway`, `integrity_level`, `checks[]`
 (`id`, `result`) and `failing[]`, a shortlist of signals that are off.
 
 Reading it: `failing` is a list of candidates, not a verdict. It names only six signals:
 disk encryption off, firewall off, screen lock not enabled, operating system not up to
 date, antivirus not enabled, and a debugger or integrity violation. **It never lists**
 `antivirus_updated`, `integrity_level`, `virtual_device`, `netzilo_container` (the
-workspace signal) or `netzilo_browser` (the enterprise browser signal), so read those
+workspace signal), `netzilo_browser` (the enterprise browser signal) or `netzilo_gateway`
+(always false on a device: only a gateway's browser session is one), so read those
 fields directly when a check depends on them. The device does not know which checks its
 account enforces; `references/21-posture-checks.md` does. Match the fields against the
 account's posture checks before telling anyone why they were denied.

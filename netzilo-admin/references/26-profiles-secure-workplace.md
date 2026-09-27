@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 31697
+chars: 31961
 sections:
 - id: '1'
   title: Model
-  chars: 4654
+  chars: 4918
 - id: '2'
   title: Enterprise Workspace — reference
   chars: 5513
@@ -83,8 +83,11 @@ on the ordinary Windows host peer. On macOS the workspace signal is true when th
 MDM- or DEP-enrolled, and such a Mac's peer name can end in `-WORKSPACE` too: that is the
 Mac itself, not a workspace. On Linux it is never true. Putting either check on an
 ordinary network policy therefore blocks every normal host in its source groups; attach
-it only to policies whose sources are workspace or browser peers. When a customer says
-"everyone lost access after we added a posture check", ask which check first (§9).
+it only to policies whose sources are workspace or browser peers. The third signal of
+that card, **Netzilo Gateway**, is true only for a clientless-access browser session
+(`43-clientless-access-gateway.md` §3.4) and false on every device with the client; it
+is the way to write a policy that admits browser users and nobody else. When a customer
+says "everyone lost access after we added a posture check", ask which check first (§9).
 
 **How a workspace comes to exist on a device.** When a profile with an Enterprise
 Workspace reaches a Windows x64 admin-installed device, the client service creates the

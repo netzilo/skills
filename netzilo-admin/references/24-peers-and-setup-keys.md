@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14301
+chars: 15231
 sections:
 - id: '1'
   title: Peer lifecycle
   chars: 1779
 - id: '2'
   title: Peers page — field and action reference
-  chars: 2304
+  chars: 3234
 - id: '3'
   title: Setup keys — reference
   chars: 2100
@@ -85,13 +85,34 @@ re-authenticate when their login expires."), **SSH Access** toggle ("Enable the 
 server on this peer to access the machine via an secure shell."), **Assigned Groups**
 (typing a new name + Enter creates a group), **Available Snapshots** (AI session
 snapshots, admins), information card (Device ID, Netzilo IP, Public IP, Domain Name, AD
-Domain Name, Hostname, Region, Operating System, Security Score with nine posture
-indicators, Last seen, Agent Version, UI Version), and **Network Routes** for this peer
+Domain Name, Hostname, Region, Operating System, **Browser** (gateway sessions only, e.g.
+`Edge 154.0.0.0`), Security Score with ten posture indicators, Last seen, Agent Version,
+UI Version), and **Network Routes** for this peer
 (Add Exit Node, Add Route → New Network Route / Existing Network).
 
 Security Score indicators (tooltips): Firewall, Antivirus (active and up to date), Disk
 Encryption, OS up to date, Virtual device, Screen locked, Device Integrity, Enterprise
-Workspace, Enterprise Browser. Grades: A ≥ 80, B ≥ 60, C ≥ 40, D ≥ 20, F below.
+Workspace, Enterprise Browser, Netzilo Gateway ("Peer is a Netzilo gateway session").
+Grades: A ≥ 80, B ≥ 60, C ≥ 40, D ≥ 20, F below.
+
+How the score is computed (points for each signal that is true; the total is clamped to
+0–100; management stores it and recalculates it when the peer next reports its device):
+
+| Signal | Windows | Linux, macOS | Android, iOS |
+|---|---|---|---|
+| Antivirus active | +50 | +5 | — |
+| Firewall on | +20 | +5 | — |
+| Disk encryption on | +10 | +10 | — |
+| OS up to date | +15 | +70 | +10 |
+| Screen lock | +5 | +5 | +10 |
+| Enterprise Workspace | +30 | +30 | +30 |
+| Enterprise Browser | +30 | +30 | +30 |
+| Netzilo Gateway session | +50 | +50 | +50 |
+| Virtual device | −5 | −5 | −50 |
+| Being debugged | −50 | −30 | not debugged: **+80** |
+
+A gateway session reports only the gateway signal: 50 (C) on a desktop OS, 100 (A) on a
+mobile one. The score is informational; posture checks, not the grade, decide access.
 
 ---
 

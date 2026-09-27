@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 9010
+chars: 9196
 sections:
 - id: '0'
   title: What the admin sees first
@@ -35,7 +35,7 @@ sections:
   chars: 548
 - id: phase-7b-clientless-access-if-browsers-without
   title: Phase 7b — Clientless access, if browsers without the client need access
-  chars: 999
+  chars: 1185
 - id: phase-8-roll-out-to-everyone
   title: Phase 8 — Roll out to everyone
   chars: 639
@@ -198,7 +198,9 @@ For contractors, partners and unmanaged devices that should use only a browser.
    §12.2).
 3. **Decide per resource** whether browser users need it: resources behind process or
    Netzilo endpoint posture checks stay out of reach for browsers by design; give browser
-   users a separate policy where they should reach them.
+   users a separate policy where they should reach them, gated by a posture check with
+   only the **Netzilo Gateway** item so that it admits browser sessions and no device, and
+   without OS minimums (`43-clientless-access-gateway.md` §3.4).
 4. **Switch on** Settings → Permissions → Allow clientless access.
 
 **Exit test:** a pilot user opens an internal site from the browser, their

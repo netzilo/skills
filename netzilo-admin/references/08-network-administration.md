@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 20414
+chars: 20510
 sections:
 - id: '1'
   title: Peers (Endpoint → Peers, `/peers`)
-  chars: 2796
+  chars: 2892
 - id: '2'
   title: Setup keys (Endpoint → Setup Keys, `/setup-keys`)
   chars: 975
@@ -83,7 +83,8 @@ Per-peer actions (⋮ or detail page `/peer?id=`):
 Detail page shows Device ID, Netzilo IP, Public IP, Domain Name, AD Domain, Hostname,
 Region, OS, Security Score with posture indicators (firewall, antivirus, disk encryption,
 OS updates, virtual device, screen lock, device integrity, Enterprise Workspace,
-Enterprise Browser), Last seen, Agent/UI version, and (admins) **Available Snapshots**
+Enterprise Browser, Netzilo Gateway; weights in `24-peers-and-setup-keys.md` §2), the
+browser for a gateway session, Last seen, Agent/UI version, and (admins) **Available Snapshots**
 (AI session snapshots) and the peer's **Network Routes**.
 
 Peer lifecycle facts:

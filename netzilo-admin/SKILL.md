@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.13.0
+  version: 2.14.0
   released: "2026-09-27"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 2.13.0, released 2026-09-27.** Confirm it is current before
+**This copy is version 2.14.0, released 2026-09-27.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -151,7 +151,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.13.0** above.
+Compare its `version:` with **2.14.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -377,7 +377,7 @@ is instructions for the admin rather than work you performed.
 | Read this first, every session | `references/00-operator-playbook.md` (canonical facts, known product gaps, intake checklist) | reading only |
 | Install the server: on-prem, AWS, Azure, external DB, air-gapped, provided TLS | `references/01-server-install.md`, `references/18-server-install-gated.md` (scripted gates), `references/19-server-install-handout.md` (hand to the customer) | server shell |
 | Upgrade / backup / restore / rotate cert / domain / disk / logs / metering / decommission | `references/02-server-operations.md` | server shell |
-| Clientless access: browsers with only the extension reaching internal resources; the gateway bundled with the server, added to a server installed without it, or run on any other host or on Kubernetes; its options, logs, health and every error; "Private access unavailable"; introducing it to existing installations | `references/43-clientless-access-gateway.md` — §3 to turn it on (API), §6 to add it in place, §11 to troubleshoot | server shell; API for §3 and §12 |
+| Clientless access: browsers with only the extension reaching internal resources; the gateway bundled with the server, added to a server installed without it, or run on any other host or on Kubernetes; its options, logs, health and every error; "Private access unavailable"; introducing it to existing installations; the Netzilo Gateway posture item and policies for browser users only | `references/43-clientless-access-gateway.md` — §3 to turn it on (API), §3.4 for posture, §6 to add it in place, §11 to troubleshoot | server shell; API for §3 and §12 |
 | The AI Assistant on a self-hosted server: how Management and the support worker fit, their configuration, deploying the worker on compose or Kubernetes, runbook source and air-gapped use, proxies, token rotation, and why it does not answer | `references/42-ai-assistant-self-hosted.md` | server shell |
 | Server down, cert warning, container restarting, can't log in, slow | `references/03-server-troubleshooting.md` | server shell |
 | Users, invites, SSO (Entra/Okta/Google/SAML), MFA, lockout, SMTP, roles | `references/04-identity-and-sso.md` | IdP console, server shell |

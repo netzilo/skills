@@ -6,17 +6,17 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 47511
+chars: 52299
 sections:
 - id: '1'
   title: How it works
-  chars: 2347
+  chars: 2646
 - id: '2'
   title: Requirements and support
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 4569
+  chars: 7189
   requires:
   - api
   executable_on:
@@ -43,10 +43,10 @@ sections:
   chars: 2443
 - id: '10'
   title: Operating it
-  chars: 5339
+  chars: 6219
 - id: '11'
   title: Troubleshooting
-  chars: 7127
+  chars: 8116
 - id: '12'
   title: Introducing it to existing installations
   chars: 2301
@@ -103,7 +103,10 @@ Permissions) and `26-profiles-secure-workplace.md` (the extension's Proxy tab).
 
 If a Netzilo client is installed on the device, the extension leaves routing to the client
 and installs nothing. A client seen on the device in the last 7 days counts as installed,
-even while stopped.
+even while stopped. A client that starts while the extension is logged in on its own takes
+over within about a minute: the extension checks the client's local port once a minute
+and, when the client answers, removes the gateway PAC and shows the client's state. The
+popup's refresh button makes the same check at once.
 
 What the gateway checks on every request: a valid credential of a user of this server
 (or of the bound account, §4.3), the per-user device limit, and that the destination is
@@ -200,15 +203,46 @@ gateway host).
 
 | Check | Evaluated against |
 |---|---|
-| OS version | the OS and version the browser reports |
+| OS version | the OS and version the browser reports. **Approximate for a session**: the gateway reads them from the User-Agent, where Chromium freezes macOS at `10.15.7` and Windows 11 still says `10.0`. Management's routing prefers the version the extension reads from the browser itself, so the PAC and the session can disagree (below) |
 | Netzilo version | the extension's version |
 | Geolocation, peer network range | the browser's public IP address (§7.4 for a gateway on another host) |
 | Process | always fails for browser sessions |
 | Netzilo endpoint checks (firewall, antivirus, disk encryption, …) | always fail for browser sessions when enforced |
+| **Netzilo Gateway** (Advanced Endpoint Settings) | **passes only for browser sessions**: the guest reports itself as a gateway session; every device with the client reports false |
 
 A browser is not a managed endpoint; this is by design, not a fault. To give browser users
 a resource that desktop users reach behind endpoint checks, add a separate policy for the
-browser users without those checks.
+browser users without those checks. The **Netzilo Gateway** item is how such a policy is
+kept to browser users: a posture check with only that item on, attached to the policy,
+admits gateway sessions and nothing else. Management applies it when it computes the
+routing and when the session's guest logs in; a change to the check or the policy reaches
+a running session within about a minute, as any policy change does.
+
+Rules for the **Netzilo Gateway** item (API: `advanced_settings_check.netzilo_gateway_check`):
+
+- **Attach it to network policies only.** On a profile's domain settings, a workspace or an
+  MCP filter it is evaluated by the device's client, which is never a gateway session, so
+  it blocks every device.
+- **Combine it with nothing an endpoint must report.** A check holding the gateway item
+  and, say, a firewall item fails for sessions on the firewall item and for devices on the
+  gateway item: it admits nobody.
+- **It is reported, not attested**, like the Workspace and Browser signals. It
+  distinguishes a gateway session from a device; it is not proof against a modified client.
+  Its value is segmentation (browser users get their own policy), not device trust.
+
+**OS version checks on sessions.** Because a session's OS version comes from the
+User-Agent, a minimum-version rule behaves unexpectedly for browsers: a macOS minimum above
+10.15 fails every Mac session, and a Windows 11 build minimum fails every Windows session.
+The PAC may still send the resource to the gateway (routing used the browser's real
+version), and the session is then refused (`403`/`504`). Give browser users a policy
+without OS minimums, or gate them on the Netzilo Gateway item instead.
+
+**Expected "Peer access blocked" events.** Each session evaluates the account's policies
+for itself when it starts. Every policy whose posture checks it fails, typically those with
+endpoint items, is recorded as *Peer access blocked* with the reason *Endpoint checks
+cannot be satisfied by a browser session* (or the failing item's reason). Many browser users
+in the source groups of endpoint-gated policies therefore produce many such events; they
+record the design working, not a fault.
 
 ### 3.5 What users see
 
@@ -709,6 +743,17 @@ management` (node mode), `session limit reached`, `no TLS certificate yet`, `dra
   in again reuses it. Five per user at most.
 - Blocking or deleting a user, or revoking their token, ends their sessions within the
   revalidation interval (10 minutes).
+- **What the peer page shows for a session:** a **Browser** row under Operating System
+  (for example `Edge 154.0.0.0`; Chrome, Edge, Opera, Firefox and Safari are told apart),
+  and the **Netzilo Gateway** indicator lit in the Security Score row. API: `browser` and
+  `browser_version` on the peer (set only for sessions), `meta.netzilo_meta.is_netzilo_gateway`.
+  Chrome and Edge report only their major version (`154.0.0.0`); Firefox its full one.
+- **Security score:** a session scores 50 on Windows, macOS and Linux (grade C), the
+  gateway signal being the only one it reports, and 100 on Android and iOS
+  (`24-peers-and-setup-keys.md` §2).
+- **No device tools.** A session runs no device-tool executor: every tool request returns
+  `unsupported` with *remote support tools are not available on this client*. Diagnose a
+  session with §11, never with `36-device-tools.md`.
 
 ### 10.4 Upgrades
 
@@ -800,6 +845,10 @@ matching enabled profile for the OS, or the profile is Disabled).
 | internal site loads for some users only | §11.1 routing for each user | different groups or profiles; the PAC only sends what the user may reach |
 | public sites broke after enabling | popup reason | an OS-level proxy (§3.3) |
 | Peers show the gateway's IP for sessions | §7.4 | remote gateway behind the server's Caddy without `trusted_proxies` |
+| Mac or Windows browser users refused a resource that the PAC does send to the gateway | the policy's OS version check | the session's OS version comes from the User-Agent (macOS `10.15.7`, Windows `10.0`); remove OS minimums from browser users' policy or gate it on the Netzilo Gateway item (§3.4) |
+| a policy with the Netzilo Gateway item admits nobody | the posture check's other items | an endpoint item in the same check fails every session; keep the gateway item alone in its check (§3.4) |
+| desktop or mobile clients lose a domain, a workspace or MCP tools after a posture check was attached | whether it carries the Netzilo Gateway item | clients evaluate profile and filter checks themselves and are never gateway sessions; attach the gateway item to network policies only (§3.4) |
+| the activity log fills with *Peer access blocked* for `vp-<n>-PROXY` peers | the reasons | expected for policies with endpoint checks (§3.4); scope those policies' source groups, or leave it |
 | every new session refused, log `the gateway's service credential was refused` | the service token | expired or revoked: rotate (§10.5) |
 
 ### 11.4 Debugging the extension

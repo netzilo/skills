@@ -7,6 +7,36 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.14.0 — 2026-09-27
+
+The Netzilo Gateway posture check, and what a browser session looks like in Peers.
+
+- **New posture item: Netzilo Gateway** (Endpoint → Posture Checks → Advanced Endpoint
+  Settings; API `netzilo_gateway_check`). It passes only for a gateway's browser session and
+  fails on every device with the client: the way to write a policy for browser users only.
+  `43` §3.4 gives the rules: keep it alone in its check, attach it to network policies only
+  (a profile's domain settings, a workspace or an MCP filter is evaluated by the device's
+  client, which then blocks itself), and read it as segmentation, not attestation. `20` §5
+  adds the "policy for browser users only" pattern; `21` the card, caveats, API field and two
+  reasons; `26`, `16` and `00` point to it.
+- **OS version checks on browser sessions** are approximate: the session's version comes
+  from the User-Agent (macOS frozen at 10.15.7, Windows 11 reported as 10.0), while the
+  routing uses the version the extension reads from the browser, so the PAC and the session
+  can disagree. `43` §3.4 and §11.3, `21`, `00`.
+- **Security score:** the weights of every signal per OS family are now documented (`24`
+  §2), including the new **Netzilo Gateway** indicator (+50); a session scores 50 (C) on a
+  desktop OS and 100 on a mobile one. `08` and `24` list the tenth indicator.
+- **Peers:** a session's peer page shows a **Browser** row (Chrome, Edge, Opera, Firefox,
+  Safari, with the version; Chromium reports only the major one); the API adds `browser`,
+  `browser_version` and `meta.netzilo_meta.is_netzilo_gateway` (`43` §10.3, `24`).
+- **Device tools do not work on a gateway session**: every tool returns `unsupported`
+  (`36` §8, `43` §10.3). `37` adds the `netzilo_gateway` field of the posture diagnostic.
+- **A desktop client started after a standalone login takes over within about a minute**
+  with the current extension; the popup's refresh is no longer needed (`43` §1).
+- **Expected "Peer access blocked" events** for browser sessions in the source groups of
+  endpoint-gated policies, with the reason *Endpoint checks cannot be satisfied by a
+  browser session* (`43` §3.4, `13` §5.7, `21`).
+
 ## 2.13.0 — 2026-09-27
 
 Clientless access and the Netzilo gateway.
