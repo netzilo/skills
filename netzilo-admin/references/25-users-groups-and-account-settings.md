@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 13995
+chars: 14395
 sections:
 - id: '1'
   title: Roles and visibility
@@ -29,10 +29,10 @@ sections:
   chars: 930
 - id: '7'
   title: Diagnosis
-  chars: 2270
+  chars: 2396
 - id: '8'
   title: Rules that refuse a change, and why
-  chars: 2464
+  chars: 2738
 ---
 # Admin Skill — Users, Agents (Service Users), Groups and Account Settings
 
@@ -184,7 +184,7 @@ Agent: `{"name":"automation","role":"admin","auto_groups":[],"is_service_user":t
 | Cannot delete a group | still referenced | Settings → Groups usage counts |
 | Cannot delete/demote Owner | by design | transfer ownership first |
 | `maximum number of users reached` (HTTP 409 on `POST /api/users`) | Free plan (5 users, Agents included) | delete a user or upgrade (`31` §2). Treat the plan as the cause **only** when this exact text is returned; a 409 with any other body (e.g. an existing e-mail) is not a limit |
-| Token creation fails for another human user | tokens can only be created on your own profile or on Agents | use an Agent |
+| Token creation fails for another human user | admins and owners manage tokens on their own profile, on Agents and on **regular users**; never on another admin's or owner's | for an admin or owner, they create it themselves; otherwise use an Agent |
 | Access token stopped working | expired (1–365 days) or deleted; user blocked | new token |
 
 Events: `user.invite`, `user.join`, `user.role.update`, `user.block/unblock`,
@@ -206,7 +206,7 @@ ticket; an admin who does moves on.
 | Change your own role | `admins can't change their role` | Prevents self-escalation; another admin must do it |
 | Grant or remove the Owner role | Only the Owner may | Ownership transfers are owner-initiated |
 | Invite someone directly as Owner | Refused | Create then transfer |
-| Create a token for another person | Refused | Tokens exist only on your own profile or on an Agent |
+| Create a token for another admin or owner | Refused | Admins and owners may create, list and delete tokens only on their own profile, on Agents and on regular users: a token acts with its owner's full role, so one for an equal or higher role would be an escalation. A regular user's token acts as that user, through the API and the gateway, and its use is recorded as them |
 
 The role selector on a user's page is simply disabled in these cases, with no explanation
 on screen. When an admin reports that they "cannot change a role", check this table

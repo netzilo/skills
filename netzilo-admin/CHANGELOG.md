@@ -33,6 +33,10 @@ The Netzilo Gateway posture check, and what a browser session looks like in Peer
   (`36` §8, `43` §10.3). `37` adds the `netzilo_gateway` field of the posture diagnostic.
 - **A desktop client started after a standalone login takes over within about a minute**
   with the current extension; the popup's refresh is no longer needed (`43` §1).
+- **Access tokens for other users:** admins and owners may now create, list and delete a
+  **regular user's** tokens (Team → Users → the user), besides their own and Agents'; never
+  another admin's or owner's. The create dialog warns that the token acts as that person
+  (`25`).
 - **Expected "Peer access blocked" events** for browser sessions in the source groups of
   endpoint-gated policies, with the reason *Endpoint checks cannot be satisfied by a
   browser session* (`43` §3.4, `13` §5.7, `21`).
