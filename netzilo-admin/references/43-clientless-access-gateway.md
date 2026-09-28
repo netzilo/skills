@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 55843
+chars: 56618
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 8548
+  chars: 9017
   requires:
   - api
   executable_on:
@@ -46,7 +46,7 @@ sections:
   chars: 7371
 - id: '11'
   title: Troubleshooting
-  chars: 8831
+  chars: 9137
 - id: '12'
   title: Introducing it to existing installations
   chars: 2301
@@ -250,7 +250,12 @@ The popup's **Private access** row: the gateway address (the PAC is installed; c
 shows it, the copy icon copies it with "Settings copied to clipboard"); **off** (logged in,
 but no routing for this user); **unavailable** (the PAC could not be installed; hovering
 shows the reason, §11.2); **On/Off** (a Netzilo client is installed; the row shows its
-state). Only a *connected* client takes this row; a client that is installed but stopped
+state); **Session expired – Login** on the popup's button means the extension's token was
+refused and could not be renewed (typically after a long browser shutdown): opening the
+Workplace signs the extension in again by itself (extension 5.0.460 and later — the
+dashboard hands its current session to the extension on load, after every token renewal
+and on request, and a dashboard logout logs the extension out too; a connected desktop
+client keeps owning the login instead). Only a *connected* client takes this row; a client that is installed but stopped
 or logged out leaves routing to the gateway (extension 5.0.456 and later; before, a client
 seen within seven days blocked the PAC). Sessions appear in **Endpoint → Peers** as
 `vp-<n>-PROXY` (§10.3).
@@ -884,6 +889,7 @@ matching enabled profile for the OS, or the profile is Disabled).
 | the activity log fills with *Peer access blocked* for `vp-<n>-PROXY` peers | the reasons | expected for policies with endpoint checks (§3.4); scope those policies' source groups, or leave it |
 | Workplace shows **Private access · Suspended** | the popup's Private access row; §10.3 for the user | no session connected: the extension is off, logged out or paused, or the gateway is down (`/readyz`); a session ended by the idle timeout comes back on the next internal request |
 | Workplace still shows **Devices** on a browser-only computer | the popup | the user's routing is off for this browser (§3.2), so no private access is expected; or a Netzilo client answers on this computer |
+| popup button says **Session expired – Login**; Workplace shows Applications only | the popup row's hover text ("credential refused") | the token lapsed while the browser was closed and the renewal failed; open the Workplace (5.0.460+ signs the extension in from the dashboard's session) or click Login |
 | popup says **Off** and no PAC although the client is not running | the extension version | before 5.0.456 a client seen within seven days blocked the gateway PAC; update the extension, or wait for the marker to expire |
 | every new session refused, log `the gateway's service credential was refused` | the service token | expired or revoked: rotate (§10.5) |
 
