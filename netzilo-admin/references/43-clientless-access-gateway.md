@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 56618
+chars: 59905
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 9017
+  chars: 11622
   requires:
   - api
   executable_on:
@@ -46,7 +46,7 @@ sections:
   chars: 7371
 - id: '11'
   title: Troubleshooting
-  chars: 9137
+  chars: 9819
 - id: '12'
   title: Introducing it to existing installations
   chars: 2301
@@ -243,6 +243,42 @@ endpoint items, is recorded as *Peer access blocked* with the reason *Endpoint c
 cannot be satisfied by a browser session* (or the failing item's reason). Many browser users
 in the source groups of endpoint-gated policies therefore produce many such events; they
 record the design working, not a fault.
+
+### 3.4a Several servers: which one the extension follows
+
+The extension follows one Netzilo server at a time: the one the user last signed in on.
+A dashboard is a *portal*; the extension keeps a list of portals it knows (`go.netzilo.com`
+by default, plus any it was connected to) and the *active* one. Extension 5.0.460 and later.
+
+- **A known portal is opened** (its Workplace loads in the foreground tab, or the user
+  logs in through the extension's Login): the extension switches to it — it logs out of
+  the previous server (PAC removed, token cleared, policies dropped) and signs in here.
+  The previous server's browser session is not touched. Merely focusing an already open
+  dashboard tab, a token renewal, or a background tab never switches; the Workplace of
+  the other server shows the Connect button instead. A session must name the API the
+  portal registered (its descriptor, or its first sign-in); one naming another API is
+  refused.
+- **An unknown portal** (a self-hosted server the extension has not seen): the Workplace
+  shows *Netzilo extension — connect to this server*; the button asks the extension, which
+  reads the server's descriptor itself (`https://<portal>/.well-known/netzilo.json`, served
+  by every dashboard) and opens **its own window** with the server's name and API for the
+  user to confirm. Nothing on the web page can grant this. *Not now* (or closing the window)
+  declines that portal for a week; the button asks again regardless (from the active tab,
+  at most once a minute per server). A site without the descriptor cannot be connected,
+  and the window says so. A page that is not a known portal learns only that the
+  extension is installed, never which server it follows.
+- **Logout** counts only from the active portal; a logout on another server's tab is ignored.
+- **A connected desktop client** owns the login: no portal event switches or signs the
+  extension out.
+- **Policy** (browser enterprise policy, managed storage of the extension): `portals`
+  (origins that need no confirmation), `activePortal`, `lockPortal` (only that server; other
+  portals' Workplace says the choice is managed). Chrome/Edge: the extension's
+  `3rdparty`/managed policy with `{"portals": ["https://portal.example.com"],
+  "activePortal": "https://portal.example.com", "lockPortal": true}`; Firefox: the
+  `3rdparty.Extensions.<extension id>` policy with the same keys.
+- **Where to look:** the popup shows the active server under the logo; the extension's log
+  (`portals` category) records every decision (`session from <origin>: switch`, `prompt`,
+  `locked`, …).
 
 ### 3.5 What users see
 
@@ -889,6 +925,9 @@ matching enabled profile for the OS, or the profile is Disabled).
 | the activity log fills with *Peer access blocked* for `vp-<n>-PROXY` peers | the reasons | expected for policies with endpoint checks (§3.4); scope those policies' source groups, or leave it |
 | Workplace shows **Private access · Suspended** | the popup's Private access row; §10.3 for the user | no session connected: the extension is off, logged out or paused, or the gateway is down (`/readyz`); a session ended by the idle timeout comes back on the next internal request |
 | Workplace still shows **Devices** on a browser-only computer | the popup | the user's routing is off for this browser (§3.2), so no private access is expected; or a Netzilo client answers on this computer |
+| Workplace shows *Netzilo extension — connect to this server* although the user is signed in | the popup's server line | the extension follows another server (§3.4a); press the button, confirm in the extension's window |
+| the Connect window says the site is not a Netzilo server | `curl -s https://<portal>/.well-known/netzilo.json` | the dashboard is older than the descriptor, or a proxy blocks `/.well-known/`; update the dashboard, allow the path |
+| private access stopped after visiting another customer's portal | the popup's server line | the extension switched to the portal that signed in last (§3.4a); sign in again on the intended one, or set `lockPortal` by policy |
 | popup button says **Session expired – Login**; Workplace shows Applications only | the popup row's hover text ("credential refused") | the token lapsed while the browser was closed and the renewal failed; open the Workplace (5.0.460+ signs the extension in from the dashboard's session) or click Login |
 | popup says **Off** and no PAC although the client is not running | the extension version | before 5.0.456 a client seen within seven days blocked the gateway PAC; update the extension, or wait for the marker to expire |
 | every new session refused, log `the gateway's service credential was refused` | the service token | expired or revoked: rotate (§10.5) |
