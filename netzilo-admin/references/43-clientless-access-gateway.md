@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 55088
+chars: 55843
 sections:
 - id: '1'
   title: How it works
@@ -40,10 +40,10 @@ sections:
   chars: 1514
 - id: '9'
   title: Configuration reference
-  chars: 2443
+  chars: 2761
 - id: '10'
   title: Operating it
-  chars: 6934
+  chars: 7371
 - id: '11'
   title: Troubleshooting
   chars: 8831
@@ -676,6 +676,7 @@ container's `args`. Change them there and recreate the container
 | `--admin-listen` | `127.0.0.1:9090` | `/healthz` and `/readyz`; empty disables |
 | `--idle-timeout` | `60m` | stop a session's tunnel after this long without traffic |
 | `--revalidate` | `10m` | re-present each session's credential to management this often |
+| `--rechallenge` | `2m` | make each browser present its proxy credential afresh this often (one `407` per session per interval, answered by the extension), so an extension whose device seed changed after a reinstall gets a session under its current device id; the old session is stopped once silent for two minutes |
 | `--max-sessions` | `2000` | concurrent sessions in total |
 | `--max-devices-per-user` | `5` | concurrent browser sessions per user |
 | `--max-connections` | `20000` | accepted proxy connections |
@@ -772,6 +773,12 @@ management` (node mode), `session limit reached`, `no TLS certificate yet`, `dra
 - **No device tools.** A session runs no device-tool executor: every tool request returns
   `unsupported` with *remote support tools are not available on this client*. Diagnose a
   session with §11, never with `36-device-tools.md`.
+- **A browser whose extension was reinstalled** keeps using its cached proxy credential,
+  so its old session stays online under the old device id for up to `--rechallenge`
+  (2 minutes); then the gateway makes the browser present its credential afresh, a
+  session under the new device id appears, and the old one is stopped two minutes
+  later. Two connected sessions of one browser for a few minutes after a reinstall are
+  expected.
 - **Online or not, per user:** `GET /api/users/{userId}/gateway-sessions` lists a user's
   sessions: `id`, `name`, `connected`, `connected_since`, `last_seen`, `browser`,
   `browser_version`, `os`, `connection_ip`, `device_id`, and `matches_request` (the session
