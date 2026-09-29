@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 65955
+chars: 66327
 sections:
 - id: '1'
   title: How it works
-  chars: 3035
+  chars: 3407
 - id: '2'
   title: Requirements and support
   chars: 1901
@@ -104,9 +104,13 @@ Permissions) and `26-profiles-secure-workplace.md` (the extension's Proxy tab).
 If a Netzilo client is installed on the device, the extension leaves routing to the client
 and installs nothing. A client seen on the device in the last 7 days counts as installed,
 even while stopped. A client that starts while the extension is logged in on its own takes
-over within about a minute: the extension checks the client's local port once a minute
-and, when the client answers, removes the gateway PAC and shows the client's state. The
-popup's refresh button makes the same check at once.
+over at once when the Workplace page is open (the page opens its own socket to the client
+and tells the extension the moment it has one), within 3 to 6 seconds when the client was
+seen in this browser before, and within 30 seconds otherwise (the extension checks the
+client's local port every 30 seconds). When the client answers, the extension removes the
+gateway PAC and shows the client's state. The popup's refresh button makes the same check
+at once. Extensions before 5.0.463 checked once a minute and, after one failed handshake,
+waited 30 minutes: on those, open the popup and press refresh.
 
 **Not the same thing as published applications.** The gateway serves browsers that carry
 the extension, on `8443`. A private application published at an address of its own,
