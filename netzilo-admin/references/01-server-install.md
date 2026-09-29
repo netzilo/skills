@@ -6,20 +6,20 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 33518
+chars: 34429
 sections:
 - id: '0'
   title: What gets installed (all paths)
-  chars: 5506
+  chars: 5931
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
-  chars: 8416
+  chars: 8641
 - id: '2'
   title: Path B — AWS Marketplace (CloudFormation)
-  chars: 4029
+  chars: 4206
 - id: '3'
   title: Path C — Azure Marketplace (managed application)
-  chars: 2397
+  chars: 2481
 - id: '4'
   title: Variant — external PostgreSQL
   chars: 1119
@@ -62,7 +62,8 @@ One Ubuntu 22.04 host running ten Docker containers: `caddy`, `dashboard`,
 AI Assistant's agent, reachable only by `management` over the compose network —,
 `gateway` — the clientless-access gateway, an HTTPS proxy on `8443` that browsers with
 only the Netzilo extension use (`43-clientless-access-gateway.md`) — and `coturn`
-(relay). Dashboard, API, management, signal and identity are all served through Caddy on
+(relay); an eleventh, `reverse-proxy`, when an application domain is given: published
+applications, served behind Caddy on `443` (`44-published-applications.md` §8). Dashboard, API, management, signal and identity are all served through Caddy on
 `443`; the relay is **not** — coturn runs in host network mode on its own ports (`3478`,
 `5349`, relay range `49152–65535/udp`) — and neither is the gateway, published on its own
 port `8443` with the same certificate. A plain-HTTP install (`use-ip`) has no certificate
@@ -108,6 +109,7 @@ Inputs every path needs:
 | Admin first + last name | Both **mandatory** (the core installer fails late — after containers are up — if missing). |
 | Admin password | Wrapper/CFN/ARM enforce: ≥12 chars with upper, lower, digit, symbol. |
 | TLS mode | `letsencrypt` (default) or `provided` (fullchain + key). |
+| Published applications domain (optional) | A domain other than the server's, e.g. `apps.<domain>`, with a wildcard `A` record `*.apps.<domain>` at the server; not under `netzilo.network`. Installs the `reverse-proxy` container (`44-published-applications.md` §8). |
 
 Sizing: min 2 vCPU / 4 GB / 40 GB; recommended 2 vCPU / 8 GB.
 
@@ -199,6 +201,9 @@ EOF
 
 Provided certificate instead: add `NETZILO_TLS_MODE=provided`, `NETZILO_CERT_FILE=/path/fullchain.pem`
 and `NETZILO_KEY_FILE=/path/privkey.pem` lines to the env file (same `printf '%q'` form).
+Published applications: add `NETZILO_APPS_DOMAIN=apps.<domain>` (and, with a provided
+certificate that does not cover `*.apps.<domain>`, `NETZILO_APPS_CERT_FILE` /
+`NETZILO_APPS_KEY_FILE`); `44-published-applications.md` §8.
 The fullchain must contain leaf + intermediates; the installer validates PEM syntax,
 key/cert match, expiry, chain completeness and (if a system CA bundle exists) trust.
 
@@ -311,6 +316,7 @@ Listing: `https://aws.amazon.com/marketplace/pp/prodview-vf2pu4dhv53bs`. Time 10
 | Parameter | Notes |
 |---|---|
 | `NetziloDomain` | FQDN (regex-validated) |
+| `NetziloAppsDomain` | optional: the published-applications domain, e.g. `apps.example.com`, with a wildcard `A` record at the Elastic IP (`44-published-applications.md` §8) |
 | `EipAllocationId` | from step 1 |
 | `AdminEmail`, `AdminFirstName`, `AdminLastName`, `AdminPassword` | password ≥12 chars, upper/lower/digit/symbol |
 | `InstanceType` | `t3.large` (default, "up to a few hundred peers"), `t3.xlarge`, `m6i.large`, `m6i.xlarge` |
@@ -376,7 +382,8 @@ Billing is per named user per hour via Azure Marketplace metering.
 
 ### 3.1 Wizard
 
-- **Basics:** subscription, resource group, region, domain FQDN, admin email, first/last
+- **Basics:** subscription, resource group, region, domain FQDN, **Published applications
+  domain (optional)** (`44-published-applications.md` §8), admin email, first/last
   name, admin password (≥12, complex). Application name and managed resource group.
 - **Virtual machine:** size `Standard_D2s_v5` (recommended) or `Standard_D4s_v5`; OS
   username (default `azureuser`); SSH public key or password.

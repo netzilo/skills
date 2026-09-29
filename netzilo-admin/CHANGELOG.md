@@ -7,6 +7,39 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.16.0 — 2026-09-29
+
+Published applications and the Netzilo reverse proxy.
+
+- **New reference `44-published-applications.md`:** a private web application published
+  at an address of its own (`crm.apps.example.com`, `*.netzilo.app` on Cloud), opened in
+  any browser with nothing installed, after signing in at the Workplace; every request
+  through the user's own tunnel (`vp-<n>-RPROXY`, one peer per user, public address and
+  operating system, kept across restarts, reporting every browser it served and the
+  Netzilo Gateway posture item; at most 16 per user). The Workplace's Logout ends the
+  application sessions in that browser. Addresses and application domains are unique
+  across tenants, decided when saved. Turning it on (Settings → Permissions: the switch, application
+  domains with a wildcard-DNS check), publishing (Edge → Applications: address with the
+  domain picker and availability check, target, groups, Host header), what users see
+  (Workplace tiles, the sign-in dialog, *Access Denied* / *Access Failed*),
+  non-interactive access (`X-Netzilo-Bearer`), where the reverse proxy runs (Cloud,
+  compose behind Caddy, Kubernetes), a new self-hosted install with an application domain
+  (one-liner `NETZILO_APPS_DOMAIN`, CloudFormation `NetziloAppsDomain`, Azure *Published
+  applications domain*) and adding it to an existing server, certificates per TLS mode
+  (Caddy on-demand per name on Let's Encrypt), the configuration reference, logs with
+  the request id, peers and posture, a symptom table, and the regular-user seat.
+- **`43`:** the reverse proxy is a second container, not the gateway; §10.3 and §13 tell
+  `vp-<n>-RPROXY` peers from `vp-<n>-PROXY` sessions.
+- **`21` Operating System check:** an operating system the check does not list is
+  blocked, including one it cannot recognise (a reverse-proxy peer before any client);
+  a peer serving several clients passes only when every client does. A check listing no
+  OS is skipped.
+- **`24`, `25`, `39`, `17`, `00`, `01`, `02`:** the reverse-proxy peer, the two
+  Permissions settings, the regular user's list and symptoms, the employee page, and the
+  eleventh container (`reverse-proxy`, `netzilo_reverse_proxy` volume, logs).
+- **`33`, `34`:** regenerated; the published-applications endpoints and the three
+  *Application published / updated / unpublished* activities.
+
 ## 2.15.0 — 2026-09-27
 
 Private access status for browser users.

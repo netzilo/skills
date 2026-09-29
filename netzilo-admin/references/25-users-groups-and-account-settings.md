@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14395
+chars: 14916
 sections:
 - id: '1'
   title: Roles and visibility
@@ -20,7 +20,7 @@ sections:
   chars: 840
 - id: '4'
   title: Account settings — reference
-  chars: 3518
+  chars: 4039
 - id: '5'
   title: API
   chars: 1273
@@ -121,6 +121,7 @@ names stable — JWT sync and scripts match by name.
 | Permissions | **Disable portal access for regular users** | "Access to the application portal(i.e. /workplace) will be disabled for non-admin users." | `regular_users_view_blocked` |
 | Permissions | **Allow regular users to use the AI Assistant** + **Allowed groups** | "Admins always have the AI Assistant. When enabled, regular users in the groups below also get it on the Workplace page, for their own devices." | `user_ai_assistant_enabled` (boolean) and `user_ai_assistant_groups` (group ids). Both are needed: the switch on and the user in one of the groups; an empty list admits nobody. The server reports the outcome per user as `permissions.ai_assistant` on the user record (`GET /api/users?self=true` for the user themselves). A regular user admitted this way works with their own permissions — see `39-end-user-self-service.md` |
 | Permissions | **Allow clientless access** + **Gateway proxy address** | "Users reach internal resources from a browser with only the Netzilo extension, through a Netzilo gateway." / "The host:port browsers are pointed at. By default this server on port 8443; change it if the gateway is hosted elsewhere." | `clientless_access_enabled` (boolean) and `clientless_proxy_address` (`host:port`; empty = this server on 8443). The switch gates automatic routing only; a profile's Custom PAC is served regardless. Changes are logged as *Account clientless access enabled/disabled* and *Account clientless proxy address updated*. How it works, the gateway and the profile's Proxy tab: `43-clientless-access-gateway.md` §3 |
+| Permissions | **Allow published applications** + **Application domains** | "Administrators can publish private web applications." / "The domains you publish under and the reverse-proxy addresses their wildcard records point at." Each domain row has **Verify** (the wildcard record's answer) | `published_apps_enabled` (boolean; off = nothing is published) and `published_app_domains` (`[{domain, addresses[]}]`; on a multi-tenant server every published address must fall under one). `44-published-applications.md` §3 |
 | Plans & Billing (owner; hidden on self-hosted/MSP) | current plan, usage, Upgrade/Downgrade, payment portal | Free 5 users/100 peers; Professional; Enterprise (Profiles, premium scanners) | `POST /api/tenant/subscription` |
 | Tenant (owner) | **Company Logo** (PNG/JPG/SVG ≤ 500 KB), Tenant Name, **Tenant ID** (for support), **Delete Tenant** (irreversible) | | `/api/tenant/logo`, `DELETE /api/accounts/{id}` |
 

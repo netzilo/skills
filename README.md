@@ -10,7 +10,7 @@ each skill carries its version and tells the agent how to check for a newer one.
 
 | Skill | Version | What it does |
 |---|---|---|
-| [`netzilo-admin`](netzilo-admin/) | 2.15.0 | Install, configure, run and troubleshoot Netzilo end to end: server (on-prem, AWS, Azure), identity and SSO, clients on every OS, clientless browser access through the Netzilo gateway, network policy, AI security (AIDR), REST API automation, connectivity diagnosis, Windows hosts, the secure Workspace, log interpretation, bounded remediation workflows, running the AI Assistant on a self-hosted server, onboarding and rollout, incident response and recovery, plan and billing limits, data-handling answers for security reviews, an end-user guide to publish, and support escalation. |
+| [`netzilo-admin`](netzilo-admin/) | 2.16.0 | Install, configure, run and troubleshoot Netzilo end to end: server (on-prem, AWS, Azure), identity and SSO, clients on every OS, clientless browser access through the Netzilo gateway, published applications (private web apps at an address of their own, opened in any browser through the Netzilo reverse proxy), network policy, AI security (AIDR), REST API automation, connectivity diagnosis, Windows hosts, the secure Workspace, log interpretation, bounded remediation workflows, running the AI Assistant on a self-hosted server, onboarding and rollout, incident response and recovery, plan and billing limits, data-handling answers for security reviews, an end-user guide to publish, and support escalation. |
 
 Machine-readable index: [`manifest.json`](manifest.json).
 

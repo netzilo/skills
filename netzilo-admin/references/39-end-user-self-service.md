@@ -8,17 +8,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 13326
+chars: 14165
 sections:
 - id: '1'
   title: What a regular user can see through the API
-  chars: 3707
+  chars: 3977
 - id: '2'
   title: What you may do on their device
   chars: 2164
 - id: '3'
   title: The questions a regular user brings, and where each one ends
-  chars: 4006
+  chars: 4575
 - id: '4'
   title: Ending on the administrator's side of the boundary
   chars: 1418
@@ -65,6 +65,7 @@ here is what the person's devices themselves hold, no more.
 | `GET /api/profiles` | The profiles their peers receive |
 | `GET /api/support/devices/{id}`, `/tools` | The device summary for the tools (`online`, `tools_supported`, `owned_by_caller: true`) and the tool catalog |
 | `GET /api/edge/filters` | The Edge filters that apply to them |
+| `GET /api/users/current/published-apps` | The published applications the person may open (the Workplace's Applications tiles): name, address, `url`. Empty when publishing is off for the tenant or none of their groups is admitted (`44-published-applications.md` §12) |
 | `GET /api/users/{their id}/gateway-sessions` | Their browser sessions through a Netzilo gateway (`vp-<n>-PROXY`) with `connected`, browser and OS: the Workplace page's **Private access** status (`43-clientless-access-gateway.md` §3.5, §10.3). Another user's id answers 403 |
 
 When the administrator has **disabled the portal for regular users** (Settings → Permissions),
@@ -133,6 +134,7 @@ administrator.
 | "What is Netzilo doing on my laptop?" / "what does it collect?" | Nothing to run | Answer from `17-end-user-guide.md` §4 and `14-data-handling-and-privacy.md`; no tool needed |
 | "It worked yesterday" | `diag.grep` around the time it stopped; `diag.status` for a version change | Either; the log says which (`38-device-diagnosis-method.md` §4, *worked yesterday*) |
 | "My workspace won't open" / "the secure browser is missing or blocked" / anything about Enterprise Workspace, Enterprise Browser or Disposable Browser | `GET /api/profiles` — which profiles their device receives; then the workspace troubleshooting steps | `26-profiles-secure-workplace.md` §9 "Troubleshooting the Workspace"; **administrator** if no profile reaches their device |
+| "I can't open <a published application>" / "the tile is missing" / "Access Denied" / "Access Failed" / "There is no application at this address" (an address of its own, any browser, nothing installed) | `GET /api/users/current/published-apps` — is the address in their list; their `vp-<n>-RPROXY` peer in `GET /api/peers` (connected). No device tools for a browser | Their side only for cookies blocked on the address or an old link; **administrator** for the groups, the tenant switch, the policy to the target, or the address (`44-published-applications.md` §12) |
 | "Private access says unavailable" / "I can't open our internal sites in the browser" (browser extension, no Netzilo app) | Ask what hovering over **unavailable** shows; their `vp-<n>-PROXY` session in `GET /api/peers` (connected, public IP). There are no device tools for a browser | Their side for Firefox private-window access or a proxy owned by another extension; **administrator** for an operating-system proxy the profile does not name, the account switch, the profile, the gateway port, or a policy (`43-clientless-access-gateway.md` §11.2) |
 
 Work the symptom with the loop in `38-device-diagnosis-method.md` §2 and stop at the

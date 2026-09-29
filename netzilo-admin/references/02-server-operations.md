@@ -6,20 +6,20 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 67705
+chars: 68611
 sections:
 - id: '1'
   title: Know which layout you are on
-  chars: 2182
+  chars: 2225
 - id: '2'
   title: Service inventory and health
-  chars: 5290
+  chars: 6009
 - id: '3'
   title: Start / stop / restart
   chars: 1203
 - id: '4'
   title: Upgrading
-  chars: 13064
+  chars: 13208
 - id: '5'
   title: Configuration changes
   chars: 2332
@@ -112,7 +112,7 @@ Files in `$C` and what they hold:
 
 | File | Purpose | Secrets inside |
 |---|---|---|
-| `docker-compose.yml` | 10 services (9 without the gateway), images, volumes, management env/command, gateway options | Postgres admin password, `NETZILO_MSP_KEY`, `SUPPORT_WORKER_TOKEN` |
+| `docker-compose.yml` | 10 services (9 without the gateway, 11 with `reverse-proxy`), images, volumes, management env/command, gateway and reverse-proxy options | Postgres admin password, `NETZILO_MSP_KEY`, `SUPPORT_WORKER_TOKEN` |
 | `Caddyfile` | reverse proxy + TLS; all routes for dashboard, API, gRPC, Zitadel | — |
 | `management.json` | management server config | `DataStoreEncryptionKey`, `InternalAPIToken`, IdP client secret, TURN password, `SupportConfig.WorkerToken` |
 | `zitadel.env` | Zitadel runtime config | **`ZITADEL_MASTERKEY`** (irreplaceable), DB passwords |
@@ -133,7 +133,9 @@ cd "$C" && sudo docker compose ps
 ```
 
 Expected: 10 containers — `caddy`, `coturn`, `dashboard`, `management`, `signal`,
-`zitadel`, `gateway`, `support-worker` (healthy), `postgres` (healthy), `redis` (healthy).
+`zitadel`, `gateway`, `support-worker` (healthy), `postgres` (healthy), `redis` (healthy);
+11 with `reverse-proxy` (published applications, only when an application domain was
+given at install, `44-published-applications.md` §8).
 Nine on a plain-HTTP install and on installs made before the gateway existed (add it with
 `43-clientless-access-gateway.md` §6). Only
 `db` (`postgres`), `redis` and `support-worker` report health — the first two from compose
@@ -150,6 +152,7 @@ healthchecks, the worker from the `HEALTHCHECK` in its image; the others show pl
 | `postgres` | `postgres:16` | internal `5432` | databases `netzilo` (management) and `zitadel` |
 | `redis` | `redis:latest` | **published on host `6379`, no password** | management store cache + Zitadel caches |
 | `gateway` | `ghcr.io/netzilo/net-gateway` | host `8443` (HTTPS proxy); admin `:9090` internal only | clientless access: browsers with only the Netzilo extension reach internal resources through it; each browser session is a guest peer of its user. Serves the server's certificate (Caddy's data volume on Let's Encrypt installs, `certs/` otherwise). Configuration, logs and troubleshooting: `43-clientless-access-gateway.md` |
+| `reverse-proxy` | `ghcr.io/netzilo/net-reverse-proxy` | internal `:8444` (plain HTTP, behind Caddy's `*.<application domain>` site on `443`); admin `:9090` internal only | published applications: users open a private web application at its own address in any browser after signing in at the dashboard; each request through the user's own tunnel (`vp-<n>-RPROXY`). Configuration, logs and troubleshooting: `44-published-applications.md` |
 | `support-worker` | `ghcr.io/netzilo/net-support-worker` | internal `:8080`, **no ingress** | AI Assistant agent: management calls it with the shared token, it calls management back at `http://management:80`, and reaches the owner-configured AI provider outbound; stateless, runbooks baked into the image. Configuration, token rotation and troubleshooting: `42-ai-assistant-self-hosted.md` |
 
 Redis on marketplace deploys is shielded by the cloud security group/NSG (6379 is not
@@ -194,6 +197,7 @@ sudo docker compose logs --tail=200 zitadel
 sudo docker compose logs --tail=100 caddy
 sudo docker compose logs --tail=100 signal coturn dashboard
 sudo docker compose logs --tail=200 gateway     # clientless access; its own lines start with "gateway:" (43 §10.1)
+sudo docker compose logs --tail=200 reverse-proxy   # published applications; one access line per request, "gateway:" prefix too (44 §10.1)
 sudo docker compose logs -f            # follow everything
 ```
 
@@ -266,6 +270,7 @@ nor `docker compose down` touches them.
 |---|---|---|
 | Netzilo database (internal mode) | named volume `…netzilo_db_data` | yes |
 | Management data | named volume `…netzilo_management` | yes |
+| Reverse-proxy peer identities (published applications) | named volume `…netzilo_reverse_proxy` | yes (`44-published-applications.md` §10.3) |
 | Identity provider certificates | named volume `…netzilo_zitadel_certs` | yes |
 | Cache | named volume `…netzilo_redis_data` | yes, and disposable (§4.6) |
 | `management.json`, `Caddyfile`, `turnserver.conf`, `machinekey/` | files next to the compose file | yes |

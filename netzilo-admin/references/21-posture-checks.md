@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 15705
+chars: 16445
 sections:
 - id: '1'
   title: Check types (cards in the Create/Update Posture Check modal)
-  chars: 6208
+  chars: 6948
 - id: '2'
   title: Creating and attaching
   chars: 985
@@ -56,7 +56,12 @@ All settings of this check will be lost."
 | **Advanced Endpoint Settings** | presence/absence indicators; **all enabled items must pass** | Enterprise Workspace and Enterprise Browser (true only on the workspace's own peer / the browser's own peer, **never on the host peer**; on a normal policy they block every ordinary device), Netzilo Gateway (true only for a browser session of a Netzilo gateway, `43-clientless-access-gateway.md`; every device with the Netzilo client fails it, so it belongs on policies meant for browser users), Virtual Device (must **not** be a VM — Windows, Linux, macOS), Device Integrity (not rooted/jailbroken/debugged — Windows, Linux, macOS, iOS, Android), Registry Key & Value (Windows; All/Any; hive HKLM/HKCU/HKCR/HKCC/HKU, key, value; glob wildcards on key path and value name; value data is not compared), File & Folder (All/Any; per OS path + optional content regex), Running Processes (All/Any; per OS path patterns) | per item |
 
 Version semantics for **Operating System**: Block = the OS is excluded entirely; Allow
-"All versions" = any version; Allow "Equal or greater than" = minimum. Windows values
+"All versions" = any version; Allow "Equal or greater than" = minimum. Only the operating
+systems the check lists pass: any other, including one the peer reports that the check
+cannot recognise (an API client that names no operating system, say), is blocked. A
+check that lists no operating system is skipped, which is how the dashboard saves a
+check with every tab on Block. A reverse-proxy peer reports the operating system of the
+browser it was signed in from (`44-published-applications.md` §10.3). Windows values
 are kernel builds (Windows 10 22H2 `10.0.19045`, Windows 11 23H2 `10.0.22631`, Server
 2022 `10.0.20348`); Linux is the kernel (e.g. `6.1`).
 
@@ -102,6 +107,10 @@ device fails, instead of telling the customer the device is misconfigured:
 - *Operating System* for a browser session: the version comes from the User-Agent (macOS
   frozen at `10.15.7`, Windows 11 reported as `10.0`), so minimum-version rules misjudge
   browser sessions (`43-clientless-access-gateway.md` §3.4).
+- A reverse-proxy peer (`vp-<n>-RPROXY`, published applications) carries the Netzilo
+  Gateway item and no endpoint signals; *Country & Region* and *Peer Network Range* judge
+  the user's public address, *Operating System* the system the browser reported at
+  sign-in (`44-published-applications.md` §10.3).
 
 Windows detail and the device-side checks for each signal: `40-windows-hosts.md` §8.
 

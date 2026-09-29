@@ -238,5 +238,21 @@
         "api"
       ]
     }
+  },
+  "44-published-applications.md": {
+    "requires": [
+      "server-shell"
+    ],
+    "sections": {
+      "3": [
+        "api"
+      ],
+      "4": [
+        "api"
+      ],
+      "12": [
+        "api"
+      ]
+    }
   }
 }

@@ -7,23 +7,23 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 22406
+chars: 23238
 sections:
 - id: '1'
   title: Rules of engagement
   chars: 3399
 - id: '2'
   title: What Netzilo is (30-second model)
-  chars: 1796
+  chars: 2148
 - id: '3'
   title: 'Triage: route the request'
-  chars: 4967
+  chars: 5273
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
 - id: '5'
   title: Canonical facts (memorize)
-  chars: 2668
+  chars: 2842
 - id: '6'
   title: Known product gaps to warn about proactively
   chars: 1905
@@ -110,6 +110,10 @@ this folder. Read it fully before your first action.
   browsers and Firefox) reaches internal resources through the **Netzilo gateway**, an
   HTTPS proxy on `8443`; each browser session is an ephemeral `vp-<n>-PROXY` peer of its
   user, under that user's policies (`43-clientless-access-gateway.md`).
+- **Published applications:** a private web application published at an address of its
+  own (`*.netzilo.app` on Cloud) opens in **any browser**, nothing installed, after a
+  Workplace sign-in, through the **Netzilo reverse proxy** (its own container); each
+  request through the user's tunnel, a `vp-<n>-RPROXY` peer (`44-published-applications.md`).
 
 Delivery paths for the server: on-prem one-liner (`/opt/netzilo`), AWS Marketplace AMI
 and Azure Marketplace image (`/opt/netzilo/run`), or Netzilo Cloud (nothing to install).
@@ -145,6 +149,7 @@ first; go to the device to see what the account cannot.
 | "Policies / groups / posture checks / routes / exit nodes / DNS servers / setup keys / peers / activity / reports / integrations / plans" | `08-network-administration.md` |
 | "Automate with the API / export-import / bulk changes / tokens / IaC" | `09-api-and-automation.md` |
 | "Reach internal apps from a browser without the client" / "Private access unavailable" in the extension / install, add or debug the gateway / proxy errors in the browser | `43-clientless-access-gateway.md` |
+| "Publish an internal web app at its own address" / "the application tile is missing" / "Access Denied" or "Access Failed" opening a published application / "There is no application at this address" / install or add the reverse proxy / call an application from a script | `44-published-applications.md` |
 | "Govern AI agents / MCP / Claude Code hooks / SDK / browser extension / Enterprise Browser / Edge filters / test detection rules" | `10-ai-security-aidr.md` |
 | "Write a detection rule for threat X" (Sigma rule or Starlark behaviour script) | `32-detection-rule-authoring.md` (rule-author persona, full field/action/Starlark reference), then `10-ai-security-aidr.md` §8 to deploy and replay it |
 
@@ -293,7 +298,7 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Fact | Value |
 |---|---|
 | Server ports (inbound) | 22 (admin CIDR), 80, 443, 3478 tcp+udp, 5349 tcp+udp; 49152–65535/udp on cloud templates; 8443/tcp for the clientless-access gateway; 6379 must never be public |
-| Server containers | `caddy dashboard management signal zitadel coturn postgres redis support-worker gateway` (ten; `support-worker` = AI Assistant agent, internal only, absent on engines/images published before 2026-09; `gateway` = clientless access on `8443`, absent on older installs and on plain-HTTP installs, added in place with `43` §6) |
+| Server containers | `caddy dashboard management signal zitadel coturn postgres redis support-worker gateway reverse-proxy` (eleven; `support-worker` = AI Assistant agent, internal only, absent on engines/images published before 2026-09; `gateway` = clientless access on `8443`, absent on older installs and on plain-HTTP installs, added in place with `43` §6; `reverse-proxy` = published applications behind Caddy on `443`, present only when an application domain was given at install, added in place with `44` §8.3) |
 | Server state dirs | on-prem `/opt/netzilo`; images `/opt/netzilo/run` (compose) + `/opt/netzilo` (state); credentials `/opt/netzilo/CREDENTIALS` |
 | Server secrets that cannot be recovered | `ZITADEL_MASTERKEY` (`zitadel.env`), `DataStoreEncryptionKey` (`management.json`) |
 | Domain | permanent once installed; must not be `*.netzilo.com` |

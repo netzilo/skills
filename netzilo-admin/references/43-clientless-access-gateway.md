@@ -6,17 +6,17 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 59905
+chars: 61494
 sections:
 - id: '1'
   title: How it works
-  chars: 2646
+  chars: 3035
 - id: '2'
   title: Requirements and support
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 11622
+  chars: 12185
   requires:
   - api
   executable_on:
@@ -43,7 +43,7 @@ sections:
   chars: 2761
 - id: '10'
   title: Operating it
-  chars: 7371
+  chars: 7860
 - id: '11'
   title: Troubleshooting
   chars: 9819
@@ -58,7 +58,7 @@ sections:
   - human-operator
 - id: '13'
   title: Limits
-  chars: 700
+  chars: 848
 ---
 # Clientless access and the Netzilo gateway
 
@@ -107,6 +107,12 @@ even while stopped. A client that starts while the extension is logged in on its
 over within about a minute: the extension checks the client's local port once a minute
 and, when the client answers, removes the gateway PAC and shows the client's state. The
 popup's refresh button makes the same check at once.
+
+**Not the same thing as published applications.** The gateway serves browsers that carry
+the extension, on `8443`. A private application published at an address of its own,
+opened in any browser with nothing installed, is served by the **Netzilo reverse
+proxy**, a separate container behind the front door on `443`
+(`44-published-applications.md`); its peers are `vp-<n>-RPROXY` (§10.3).
 
 What the gateway checks on every request: a valid credential of a user of this server
 (or of the bound account, §4.3), the per-user device limit, and that the destination is
@@ -261,8 +267,11 @@ by default, plus any it was connected to) and the *active* one. Extension 5.0.46
 - **An unknown portal** (a self-hosted server the extension has not seen): the Workplace
   shows *Netzilo extension — connect to this server*; the button asks the extension, which
   reads the server's descriptor itself (`https://<portal>/.well-known/netzilo.json`, served
-  by every dashboard) and opens **its own window** with the server's name and API for the
-  user to confirm. Nothing on the web page can grant this. *Not now* (or closing the window)
+  by every dashboard) and shows **its own confirmation over the page** (an extension
+  frame the page can neither read nor click; its buttons arm only once the frame has been
+  visible and unobscured for a moment) with the server's name and API; where a page cannot
+  show it, a small window centered over the browser instead. Nothing on the web page can
+  grant this. *Not now* (clicking outside the card, leaving the page, or closing the window)
   declines that portal for a week; the button asks again regardless (from the active tab,
   at most once a minute per server). A site without the descriptor cannot be connected,
   and the window says so. A page that is not a known portal learns only that the
@@ -276,6 +285,10 @@ by default, plus any it was connected to) and the *active* one. Extension 5.0.46
   `3rdparty`/managed policy with `{"portals": ["https://portal.example.com"],
   "activePortal": "https://portal.example.com", "lockPortal": true}`; Firefox: the
   `3rdparty.Extensions.<extension id>` policy with the same keys.
+- **Language:** the popup, the Workplace confirmation and the block pages follow the
+  language chosen in the Workplace (sent with the login, with every session, and when the
+  user switches it there); without one, the browser's UI language. English and Turkish;
+  English otherwise. From 5.0.460.
 - **Where to look:** the popup shows the active server under the logo; the extension's log
   (`portals` category) records every decision (`session from <origin>: switch`, `prompt`,
   `locked`, …).
@@ -811,6 +824,12 @@ management` (node mode), `session limit reached`, `no TLS certificate yet`, `dra
 - **Security score:** a session scores 50 on Windows, macOS and Linux (grade C), the
   gateway signal being the only one it reports, and 100 on Android and iOS
   (`24-peers-and-setup-keys.md` §2).
+- **`vp-<n>-RPROXY` is a reverse-proxy tunnel, not a browser's session.** It is a
+  user's tunnel for published applications (`44-published-applications.md` §10.3): one
+  per user, public address and operating system, kept across restarts, reporting every
+  browser it has served. It carries the Netzilo Gateway posture item like an
+  extension session, but it is not a browser's session: `gateway-sessions` leaves it
+  out and it never makes the Workplace's Private access status Online.
 - **No device tools.** A session runs no device-tool executor: every tool request returns
   `unsupported` with *remote support tools are not available on this client*. Diagnose a
   session with §11, never with `36-device-tools.md`.
@@ -1003,3 +1022,5 @@ in this order.
   custom PACs per group (§7.3).
 - A gateway on another host behind a self-hosted server's Caddy needs `trusted_proxies`
   for browser addresses to be recorded (§7.4).
+- Published applications (an address of their own, no extension) are the reverse proxy's
+  job, not the gateway's (`44-published-applications.md`).

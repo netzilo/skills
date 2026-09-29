@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 71566
+chars: 75531
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
   chars: 233
 - id: put-api-accounts-accountid
   title: '`PUT /api/accounts/{accountId}`'
-  chars: 2855
+  chars: 3355
 - id: delete-api-accounts-accountid
   title: '`DELETE /api/accounts/{accountId}`'
   chars: 331
@@ -309,6 +309,27 @@ sections:
 - id: delete-api-profiles-profileid
   title: '`DELETE /api/profiles/{profileId}`'
   chars: 302
+- id: get-api-published-apps
+  title: '`GET /api/published-apps`'
+  chars: 193
+- id: post-api-published-apps
+  title: '`POST /api/published-apps`'
+  chars: 901
+- id: get-api-published-apps-check
+  title: '`GET /api/published-apps/check`'
+  chars: 250
+- id: get-api-published-apps-domains-check
+  title: '`GET /api/published-apps/domains/check`'
+  chars: 277
+- id: get-api-published-apps-exists
+  title: '`GET /api/published-apps/exists`'
+  chars: 141
+- id: put-api-published-apps-appid
+  title: '`PUT /api/published-apps/{appId}`'
+  chars: 982
+- id: delete-api-published-apps-appid
+  title: '`DELETE /api/published-apps/{appId}`'
+  chars: 240
 - id: post-api-register
   title: '`POST /api/register`'
   chars: 527
@@ -441,6 +462,9 @@ sections:
 - id: get-api-users-current-pac
   title: '`GET /api/users/current/pac`'
   chars: 418
+- id: get-api-users-current-published-apps
+  title: '`GET /api/users/current/published-apps`'
+  chars: 179
 - id: get-api-users-current-routing
   title: '`GET /api/users/current/routing`'
   chars: 214
@@ -459,6 +483,9 @@ sections:
 - id: delete-api-users-userid-auth-factors
   title: '`DELETE /api/users/{userId}/auth-factors`'
   chars: 280
+- id: get-api-users-userid-gateway-sessions
+  title: '`GET /api/users/{userId}/gateway-sessions`'
+  chars: 302
 - id: post-api-users-userid-invite
   title: '`POST /api/users/{userId}/invite`'
   chars: 320
@@ -486,7 +513,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-09-27 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-09-29 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -524,6 +551,8 @@ Request body (JSON):
   - `user_ai_assistant_groups` (array of string, optional): Group IDs whose members may use the AI assistant when user_ai_assistant_enabled is set. With the switch on and no groups listed, no regular user may.
   - `clientless_access_enabled` (boolean, optional): Lets users reach internal resources from a browser with only the Netzilo extension, through a Netzilo gateway (Settings → Permissions → Allow clientless access). Off, management computes no PAC for anyone; a profile's custom PAC is served regardless. — e.g. `False`
   - `clientless_proxy_address` (string, optional): The gateway proxy address (host:port) browsers are pointed at. Empty means the default, the management server's host on port 8443; reads return the effective value. — e.g. `srv.example.com:8443`
+  - `published_apps_enabled` (boolean, optional): Lets administrators publish private web applications at addresses of their own, opened in any browser through a gateway's reverse-proxy mode. Off, no address of this account is published. — e.g. `False`
+  - `published_app_domains` (array of ?, optional): The base domains the account publishes under, each with the reverse-proxy addresses its wildcard record points at. Used to suggest addresses and to check that an address resolves to the gateway.
   - `extra` (?, optional)
 
 Responses: `200` An Account object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
@@ -1599,6 +1628,82 @@ Parameters:
 
 Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
+## `GET /api/published-apps`
+
+List published applications
+
+Responses: `200` A JSON array of published applications, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `POST /api/published-apps`
+
+Publish an application
+
+Request body (JSON):
+- `name` (string, **required**): Shown on the Workplace — e.g. `CRM`
+- `description` (string, optional)
+- `domain` (string, **required**): The application's address (a hostname), lowercase; one address is one application — e.g. `crm.acme.com`
+- `target` (string, **required**): Where the gateway forwards to through the user's tunnel, http(s)://host[:port], no path — e.g. `http://10.1.2.3:8080`
+- `groups` (array of string, **required**): Group IDs whose members may open the application. Empty means nobody.
+- `enabled` (boolean, **required**)
+- `preserve_host` (boolean, optional): Send the application's address as the Host header instead of the target's
+
+Responses: `200` The published application, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/published-apps/check`
+
+Whether an address can be published
+
+Parameters:
+- `domain` (query, required)
+- `except` (query, optional)
+
+Responses: `200` The answer, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/published-apps/domains/check`
+
+Whether a base domain's wildcard points at the gateway
+
+Parameters:
+- `domain` (query, required)
+
+Responses: `200` The resolution, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/published-apps/exists`
+
+Whether an address is published
+
+Parameters:
+- `domain` (query, required)
+
+Responses: `200` The answer
+
+## `PUT /api/published-apps/{appId}`
+
+Update a published application
+
+Parameters:
+- `appId` (path, required)
+
+Request body (JSON):
+- `name` (string, **required**): Shown on the Workplace — e.g. `CRM`
+- `description` (string, optional)
+- `domain` (string, **required**): The application's address (a hostname), lowercase; one address is one application — e.g. `crm.acme.com`
+- `target` (string, **required**): Where the gateway forwards to through the user's tunnel, http(s)://host[:port], no path — e.g. `http://10.1.2.3:8080`
+- `groups` (array of string, **required**): Group IDs whose members may open the application. Empty means nobody.
+- `enabled` (boolean, **required**)
+- `preserve_host` (boolean, optional): Send the application's address as the Host header instead of the target's
+
+Responses: `200` The published application, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `DELETE /api/published-apps/{appId}`
+
+Unpublish an application
+
+Parameters:
+- `appId` (path, required)
+
+Responses: `200` Unpublished, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
+
 ## `POST /api/register`
 
 Register a new tenant
@@ -2027,6 +2132,12 @@ Parameters:
 
 Responses: `200` The PAC script, `204` No PAC for this user (mode disabled): the browser must configure no proxy., `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
 
+## `GET /api/users/current/published-apps`
+
+The applications the current user may open
+
+Responses: `200` A JSON array, `401` Requires authentication, `500` Internal Server Error
+
 ## `GET /api/users/current/routing`
 
 Get the caller's browser routing
@@ -2083,6 +2194,15 @@ Parameters:
 - `userId` (path, required)
 
 Responses: `200` Reset status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/users/{userId}/gateway-sessions`
+
+List a user's gateway sessions
+
+Parameters:
+- `userId` (path, required): The unique identifier of a user
+
+Responses: `200` The user's gateway sessions, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
 
 ## `POST /api/users/{userId}/invite`
 

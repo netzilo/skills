@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.15.0
-  released: "2026-09-27"
+  version: 2.16.0
+  released: "2026-09-29"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 2.15.0, released 2026-09-27.** Confirm it is current before
+**This copy is version 2.16.0, released 2026-09-29.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -151,7 +151,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.15.0** above.
+Compare its `version:` with **2.16.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -358,6 +358,11 @@ customer's problem.
   extension reaches internal resources through the **Netzilo gateway**, an HTTPS proxy on
   `8443` that runs next to management or anywhere else; each browser session is an
   ephemeral `vp-<n>-PROXY` peer of its user, under that user's policies.
+- **Published applications:** an administrator publishes a private web application at
+  an address of its own (`crm.apps.example.com`); users open it in **any browser**, with
+  nothing installed, after signing in at the Workplace, through the **Netzilo reverse
+  proxy** (a second container, `*.netzilo.app` on Cloud); each request travels through
+  that user's own tunnel, a `vp-<n>-RPROXY` peer under the user's policies.
 
 Server delivery paths: on-prem one-liner, AWS/Azure Marketplace image, or Netzilo Cloud
 (nothing to install).
@@ -378,6 +383,7 @@ is instructions for the admin rather than work you performed.
 | Install the server: on-prem, AWS, Azure, external DB, air-gapped, provided TLS | `references/01-server-install.md`, `references/18-server-install-gated.md` (scripted gates), `references/19-server-install-handout.md` (hand to the customer) | server shell |
 | Upgrade / backup / restore / rotate cert / domain / disk / logs / metering / decommission | `references/02-server-operations.md` | server shell |
 | Clientless access: browsers with only the extension reaching internal resources; the gateway bundled with the server, added to a server installed without it, or run on any other host or on Kubernetes; its options, logs, health and every error; "Private access unavailable"; introducing it to existing installations; the Netzilo Gateway posture item and policies for browser users only | `references/43-clientless-access-gateway.md` — §3 to turn it on (API), §3.4 for posture, §6 to add it in place, §11 to troubleshoot | server shell; API for §3 and §12 |
+| Published applications: a private web app at its own address opened in any browser without the client; turning it on (Settings → Permissions, application domains, DNS), publishing (Edge → Applications), what users see, API access with a token, the reverse proxy on self-hosted servers (install, add to an existing server, certificates, Kubernetes), its logs, peers and every symptom, and supporting a user who cannot open one | `references/44-published-applications.md` — §3–4 to turn it on and publish (API), §5 and §12 for users, §8 to install, §11 to troubleshoot | server shell; API for §3, §4 and §12 |
 | The AI Assistant on a self-hosted server: how Management and the support worker fit, their configuration, deploying the worker on compose or Kubernetes, runbook source and air-gapped use, proxies, token rotation, and why it does not answer | `references/42-ai-assistant-self-hosted.md` | server shell |
 | Server down, cert warning, container restarting, can't log in, slow | `references/03-server-troubleshooting.md` | server shell |
 | Users, invites, SSO (Entra/Okta/Google/SAML), MFA, lockout, SMTP, roles | `references/04-identity-and-sso.md` | IdP console, server shell |
