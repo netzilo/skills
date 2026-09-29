@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 18269
+chars: 20402
 sections:
 - id: '1'
   title: The shape of a workflow
@@ -47,6 +47,9 @@ sections:
   title: 'Workflow: the server is down or unreachable'
   chars: 1398
 - id: '13'
+  title: 'Workflow: one browser insists on HTTPS for an internal name'
+  chars: 2133
+- id: '14'
   title: When to write a new workflow
   chars: 319
 ---
@@ -248,7 +251,22 @@ read shows it did not happen.
 
 ---
 
-## 13. When to write a new workflow
+## 13. Workflow: one browser insists on HTTPS for an internal name
+
+| Element | |
+|---|---|
+| Applicability | The Netzilo extension (clientless access) or the Netzilo client; one browser on one computer; the resource is served over plain HTTP; the caller is that user, or an administrator relaying it |
+| Preconditions | All four conditions of `references/43-clientless-access-gateway.md` §11.3a: the name works by IP, from another browser or another device; the resource answers `http://` and refuses `https://`; the failing browser shows `https://<name>` and the guest or client log shows only `<name>:443 … connection was refused`; the name resolves to the tunnel address where it is resolved. If the application itself redirects to `https://`, this workflow does not apply |
+| Authorization | The reset clears that one site's stored data in that browser, cookies and logins for the site included: it runs on the user's own browser, by the user, after an explicit "yes" in this turn. No device tool does it (browsers are outside device tools) |
+| Action | The per-browser steps of `references/43-clientless-access-gateway.md` §11.3a: Firefox *Forget About This Site*; Chrome and Edge `net-internals/#hsts` delete plus cached files; Safari *Manage Website Data* remove plus history. One site, one browser |
+| Recovery | Nothing to restore: the pin and the cache are re-created by the next HTTPS answer for that name. Cookies for the site are re-created by signing in to it again |
+| Verification | `http://<name>/` loads, the address bar stays `http://`, and the guest or client log shows the dial on the real port |
+| Limits | One browser per turn. If the same browser is pinned again within a day, stop: the source is still answering for the name over HTTPS, and that is the administrator's DNS or reverse-proxy configuration (`references/43-clientless-access-gateway.md` §11.3a, `references/44-published-applications.md` §3) |
+| Record | The four preconditions with their evidence (which browser, which log line), the browser reset, the public DNS answer for the name, and the record or reverse proxy that must be fixed |
+
+---
+
+## 14. When to write a new workflow
 
 Add a workflow here when a change is made for the third time by hand, or when a change
 went wrong once. Fill in all eight elements from what actually happened, including the

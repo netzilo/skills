@@ -8,7 +8,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 27719
+chars: 28145
 sections:
 - id: '0'
   title: Classify the target (2 minutes)
@@ -30,7 +30,7 @@ sections:
   chars: 3078
 - id: '6'
   title: Name resolution
-  chars: 2464
+  chars: 2890
 - id: '7'
   title: Server-side checks (self-hosted only)
   chars: 928
@@ -337,6 +337,7 @@ getent hosts <internal-name>               # names behind a private DNS server
 | match-domain resolver ignored | A's DNS manager cannot do match domains: on Linux, resolvconf or direct-file mode (`System DNS manager discovered: <x>` in the log); on Windows, a GPO-pushed NRPT policy overriding local rules (`Get-DnsClientNrptPolicy`) | add a primary (no match domains) nameserver group for `All`; on Linux move the host to systemd-resolved or NetworkManager |
 | name resolves to a public IP while a private one is expected | split-horizon: match domain missing or wrong; or the group was deactivated after upstream timeouts (next row) | add the domain to the nameserver group's Match Domains |
 | lookups take ~15–45 s, or work intermittently | each upstream gets 15 s; after 5 failures the group is deactivated (`all queries to the upstream nameservers failed with timeout`), its domains leave the host configuration, and a primary group stops being the catch-all, until `upstreams … are responsive again` | make the upstream reachable through the tunnel (route + policy for port 53) |
+| the name resolves correctly but one browser dials port 443 for a plain-HTTP site (`<name>:443 … connection was refused` in the client or guest log), and the IP works | the browser pinned the name to HTTPS (HSTS or a cached redirect), usually after a public wildcard record for the internal domain answered for it over HTTPS | the one-site reset in that browser and the DNS record: `43-clientless-access-gateway.md` §11.3a |
 | domain route not applied | domain routes are resolved on A through the host resolver about every minute; the resolved IPs must be routable through R; `Failed to resolve domains for route [<id>]` in A's log | wait / `netzilo refresh`; check "Keep Routes" |
 
 Testing peer names from the agent: `diag.dns` without `server` asks the nameserver

@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 11481
+chars: 11830
 sections:
 - id: '1'
   title: Tell people before you install, not after
@@ -16,7 +16,7 @@ sections:
   chars: 4869
 - id: '3'
   title: Translating what the employee says
-  chars: 4366
+  chars: 4715
 - id: '4'
   title: What to tell an employee who asks what is monitored
   chars: 808
@@ -165,6 +165,7 @@ When an admin forwards a complaint, this maps it to a cause and the file that fi
 | "The application tile is missing" / "Access Denied" on a published application | The user's groups do not admit the application, or publishing is off for the tenant | `44-published-applications.md` §4, §12 |
 | "Access Failed" / "took too long to answer" on a published application | The user's tunnel does not reach the application's network: route, policy or a posture check the reverse-proxy peer cannot pass | `44-published-applications.md` §11.3 |
 | "I can open public sites but not our internal ones in the browser" | The user's policies, a posture check a browser cannot pass, or the gateway port | `43-clientless-access-gateway.md` §11.3, §3.4 |
+| "Our internal site works by IP but not by name, only in this browser" / "the browser switches it to https" | That browser pinned the name to HTTPS after something answered for it over HTTPS outside the tunnel; a one-site reset in that browser, then remove the source | `43-clientless-access-gateway.md` §11.3a, `41-remediation-workflows.md` §13 |
 | "The app closes as soon as I open it" (recording enabled) | Recording consent was declined or the recording storage is not configured; the workspace closes when it cannot record | `26-profiles-secure-workplace.md` §9 |
 
 ---

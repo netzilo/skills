@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 48954
+chars: 49567
 sections:
 - id: '1'
   title: How it works
@@ -52,7 +52,7 @@ sections:
   chars: 6306
 - id: '11'
   title: Troubleshooting
-  chars: 9005
+  chars: 9618
 - id: '12'
   title: Supporting a user who cannot open an application
   chars: 2606
@@ -685,6 +685,7 @@ curl -sS -H "Authorization: Token $USER_TOKEN" https://<api-host>/api/users/curr
 | Verify says **No wildcard record found** | `dig +short nz-check.<domain> @1.1.1.1` | the record is missing at the DNS provider, or a proxy-style DNS record (Cloudflare "proxied") hides the address; use a plain record |
 | Verify says **points elsewhere** | the addresses shown | the record points at another server or an old IP; fix the record or the addresses in the row |
 | after a restart every user is sent through the Workplace again | expected (§10.4) | sessions live in memory; nothing to fix |
+| users of **another** name under the application domain (a peer name, an internal site) lose plain-HTTP access in one browser: it insists on `https://` | `dig +short <name> @1.1.1.1` shows the reverse proxy's address; the browser's history shows `https://` | the application domain overlaps a name space that is resolved inside tunnels (never use the peer DNS zone, §3), and a reverse proxy older than the September 2026 release sent `Strict-Transport-Security` on its 404, pinning the name in that browser; upgrade, fix the domain, and reset the site in the browser (`43-clientless-access-gateway.md` §11.3a) |
 | the `reverse-proxy` container restarts | `logs --tail=50 reverse-proxy` | a start error in the command (`management URL …: want http(s)://host[:port]`), or `management not reachable yet` for 5 minutes, then exit: management is down |
 
 ### 11.3 Reading *Access Failed* correctly

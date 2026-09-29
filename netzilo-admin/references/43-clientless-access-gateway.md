@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 61494
+chars: 65955
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 12185
+  chars: 12445
   requires:
   - api
   executable_on:
@@ -46,7 +46,7 @@ sections:
   chars: 7860
 - id: '11'
   title: Troubleshooting
-  chars: 9819
+  chars: 14020
 - id: '12'
   title: Introducing it to existing installations
   chars: 2301
@@ -312,14 +312,17 @@ seen within seven days blocked the PAC). Sessions appear in **Endpoint → Peers
 The dashboard's **Workplace** page shows tabs for what is on the computer: with the
 Netzilo client (with or without the extension) **Applications** and **Devices**; without
 the client but with the extension routing through a gateway, **Applications** and a
-**Private access** status; with neither, **Applications** only. The status is for **this
-browser's own session**: the page asks the Netzilo extension in this browser for its
-device id and matches the session on it; without an answer (no extension, one older than
-5.0.458, or no routing for this user) nothing about private access is shown. **Online**
-(green) while that session is connected,
-**Suspended** (amber) when it is not, even if the same user is online from another
-browser or computer (the hover says so). Hovering shows the gateway, the session's name,
-its browser and OS, and since when it is connected (or when it was last seen). The page
+**Private access** status; with neither, **Applications** only. The status is **the
+extension's own report**, the way the desktop client reports its own device: the page
+asks the Netzilo extension in this browser, and the extension answers with whether its
+proxy is installed, through which gateway, the session's peer as the gateway named it on
+the last credential probe (name, tunnel address, since when) and its last error. Nothing
+is looked up on the server and nothing is inferred from the user's other browsers.
+Without an answer (no extension, one older than 5.0.458, or gateway mode off in it)
+nothing about private access is shown. **Online** (green) while the extension has its
+proxy installed and no error, **Suspended** (amber) otherwise, with the extension's
+reason in the hover. Hovering shows the gateway, the session's name and address, since
+when it is up, and the extension's version. The page
 asks every 30 seconds while it is visible and not at all in a background tab; a new
 session can take up to 30 seconds to appear, while online/offline follows at the next
 poll. With the client running, the Devices tab is back as before.
@@ -942,7 +945,7 @@ matching enabled profile for the OS, or the profile is Disabled).
 | a policy with the Netzilo Gateway item admits nobody | the posture check's other items | an endpoint item in the same check fails every session; keep the gateway item alone in its check (§3.4) |
 | desktop or mobile clients lose a domain, a workspace or MCP tools after a posture check was attached | whether it carries the Netzilo Gateway item | clients evaluate profile and filter checks themselves and are never gateway sessions; attach the gateway item to network policies only (§3.4) |
 | the activity log fills with *Peer access blocked* for `vp-<n>-PROXY` peers | the reasons | expected for policies with endpoint checks (§3.4); scope those policies' source groups, or leave it |
-| Workplace shows **Private access · Suspended** | the popup's Private access row; §10.3 for the user | no session connected: the extension is off, logged out or paused, or the gateway is down (`/readyz`); a session ended by the idle timeout comes back on the next internal request |
+| Workplace shows **Private access · Suspended** | the hover (the extension's own reason); the popup's Private access row; §10.3 for the user | the extension has no proxy installed or its last gateway probe failed: it is off, logged out or paused, its proxy setting is blocked (the reason says so), or the gateway is down (`/readyz`); it turns Online within 15 s of the gateway answering the extension |
 | Workplace still shows **Devices** on a browser-only computer | the popup | the user's routing is off for this browser (§3.2), so no private access is expected; or a Netzilo client answers on this computer |
 | Workplace shows *Netzilo extension — connect to this server* although the user is signed in | the popup's server line | the extension follows another server (§3.4a); press the button, confirm in the extension's window |
 | the Connect window says the site is not a Netzilo server | `curl -s https://<portal>/.well-known/netzilo.json` | the dashboard is older than the descriptor, or a proxy blocks `/.well-known/`; update the dashboard, allow the path |
@@ -950,6 +953,59 @@ matching enabled profile for the OS, or the profile is Disabled).
 | popup button says **Session expired – Login**; Workplace shows Applications only | the popup row's hover text ("credential refused") | the token lapsed while the browser was closed and the renewal failed; open the Workplace (5.0.460+ signs the extension in from the dashboard's session) or click Login |
 | popup says **Off** and no PAC although the client is not running | the extension version | before 5.0.456 a client seen within seven days blocked the gateway PAC; update the extension, or wait for the marker to expire |
 | every new session refused, log `the gateway's service credential was refused` | the service token | expired or revoked: rotate (§10.5) |
+| **one browser** cannot open an internal `http://` name while the same user reaches it by IP, from another browser, or from another device; the guest log shows only `failed to dial … <name>:443 … connection was refused` | the browser's address bar or history shows `https://<name>` although `http://` was typed | the browser pinned the name to HTTPS (HSTS, or a cached permanent redirect) after something answered for that name over HTTPS outside the tunnel; reset that site in the browser and remove what served it (§11.6) |
+
+### 11.3a One browser pinned an internal name to HTTPS: the cache reset
+
+The one browser-side reset worth doing, and only under these conditions, all of them:
+
+1. **One browser, one computer.** The same name works for the same user from another
+   browser on that computer, from another device, or by the resource's IP address in the
+   failing browser. (The IP working rules out policy, route and posture.)
+2. **The resource is plain HTTP.** From somewhere that works, `curl -sI http://<name>/`
+   answers and `https://<name>/` is refused or times out. The application itself sends
+   no `Location: https://…` redirect (if it does, that is the application's base URL,
+   §11.3 "links go to its internal name", not the browser).
+3. **The failing browser goes to HTTPS.** Its address bar or history shows
+   `https://<name>/` although `http://` was typed; the error page says *Secure
+   Connection Failed*, *The proxy server is refusing connections* or
+   `ERR_CONNECTION_REFUSED`; the gateway's guest log for that browser's session (§10.1)
+   shows `failed to dial via Netzilo route <name>:443: … connection was refused` and
+   no dial on the real port. With the Netzilo client instead of the extension, the
+   client log shows the same `:443` dials.
+4. **The name resolves correctly where it is resolved.** The `:443` line names the
+   tunnel address, or `diag.dns` on a client returns it.
+
+Then the cause is the browser: it stored an HSTS pin for the name, or a cached
+permanent redirect, because something once answered for that name **over HTTPS outside
+the tunnel**: a public wildcard record for the internal domain pointing at a public
+server (a staging server, a reverse proxy whose application domain overlaps the peer
+DNS zone), a captive portal, or a Netzilo reverse proxy older than the September 2026
+release, which sent `Strict-Transport-Security` on its *There is no application at this
+address* page. Firefox does not upgrade a typed `http://` name by itself; without the
+pin, look at the application.
+
+**The reset.** It removes that one site's stored data in that browser (cookies and
+logins for the site included), nothing else. Say so and get a "yes" first
+(`41-remediation-workflows.md` §13).
+
+| Browser | Steps |
+|---|---|
+| Firefox | Library (Ctrl/Cmd+Shift+H) → search the name → right-click the entry → **Forget About This Site**. Removes the HSTS pin, the cache and the cookies for that host. No restart. |
+| Chrome, Edge | `chrome://net-internals/#hsts` (`edge://net-internals/#hsts`) → **Delete domain security policies** → the host name → Delete. Then Settings → Privacy → Clear browsing data → **Cached images and files**, last hour (the cached redirect). |
+| Safari | Settings → Privacy → **Manage Website Data** → the site → Remove (Safari keeps HSTS with site data); then History → Clear History, last hour. |
+
+Then open `http://<name>/` again. Verified when the page loads, the address bar stays
+`http://`, and the guest or client log shows the dial on the real port. Never reset
+the whole browser, reinstall the extension or the client, or change the server or DNS
+for this symptom.
+
+**Then the cause, for the administrator:** `dig +short <name> @1.1.1.1`. An internal
+name that resolves publicly points at what served it over HTTPS; remove that record (a
+reverse proxy's application domain must never be the peer DNS zone,
+`44-published-applications.md` §3), and update a reverse proxy that sends HSTS on its
+404 (§11.3 of `44`). Until that is gone, every user who resolves the name outside the
+tunnel is pinned again.
 
 ### 11.4 Debugging the extension
 

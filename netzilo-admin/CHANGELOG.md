@@ -28,6 +28,13 @@ Published applications and the Netzilo reverse proxy.
   applications domain*) and adding it to an existing server, certificates per TLS mode
   (Caddy on-demand per name on Let's Encrypt), the configuration reference, logs with
   the request id, peers and posture, a symptom table, and the regular-user seat.
+- **`43` §11.3a, `41` §13, `39` §3, `17` §3, `11` §6:** the browser-side cache reset for
+  one browser that insists on `https://` for an internal plain-HTTP name (works by IP or
+  in another browser; the guest or client log shows only `:443 … connection was
+  refused`): four conditions, the per-browser steps (Firefox *Forget About This Site*,
+  Chrome/Edge `net-internals/#hsts` plus cached files, Safari website data), the "yes"
+  before it, and the cause to remove afterwards (a public record for the internal domain,
+  a reverse proxy that sent HSTS on its 404 before this release).
 - **`43`:** the reverse proxy is a second container, not the gateway; §10.3 and §13 tell
   `vp-<n>-RPROXY` peers from `vp-<n>-PROXY` sessions.
 - **`21` Operating System check:** an operating system the check does not list is

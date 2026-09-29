@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14165
+chars: 14785
 sections:
 - id: '1'
   title: What a regular user can see through the API
@@ -18,7 +18,7 @@ sections:
   chars: 2164
 - id: '3'
   title: The questions a regular user brings, and where each one ends
-  chars: 4575
+  chars: 5195
 - id: '4'
   title: Ending on the administrator's side of the boundary
   chars: 1418
@@ -135,6 +135,7 @@ administrator.
 | "It worked yesterday" | `diag.grep` around the time it stopped; `diag.status` for a version change | Either; the log says which (`38-device-diagnosis-method.md` §4, *worked yesterday*) |
 | "My workspace won't open" / "the secure browser is missing or blocked" / anything about Enterprise Workspace, Enterprise Browser or Disposable Browser | `GET /api/profiles` — which profiles their device receives; then the workspace troubleshooting steps | `26-profiles-secure-workplace.md` §9 "Troubleshooting the Workspace"; **administrator** if no profile reaches their device |
 | "I can't open <a published application>" / "the tile is missing" / "Access Denied" / "Access Failed" / "There is no application at this address" (an address of its own, any browser, nothing installed) | `GET /api/users/current/published-apps` — is the address in their list; their `vp-<n>-RPROXY` peer in `GET /api/peers` (connected). No device tools for a browser | Their side only for cookies blocked on the address or an old link; **administrator** for the groups, the tenant switch, the policy to the target, or the address (`44-published-applications.md` §12) |
+| "Our internal site opens by IP but not by name" / "it works in Chrome but not in Firefox" / "the browser says Secure Connection Failed for an http site" | their gateway session or peer in `GET /api/peers` (connected); ask whether the address bar shows `https://` after typing `http://`, and whether the IP or another browser works. No device tools for a browser | Their side, with the one-site browser reset of `43-clientless-access-gateway.md` §11.3a once all four conditions hold (ask before: it clears that site's cookies in that browser); **administrator** for what served the name over HTTPS outside the tunnel |
 | "Private access says unavailable" / "I can't open our internal sites in the browser" (browser extension, no Netzilo app) | Ask what hovering over **unavailable** shows; their `vp-<n>-PROXY` session in `GET /api/peers` (connected, public IP). There are no device tools for a browser | Their side for Firefox private-window access or a proxy owned by another extension; **administrator** for an operating-system proxy the profile does not name, the account switch, the profile, the gateway port, or a policy (`43-clientless-access-gateway.md` §11.2) |
 
 Work the symptom with the loop in `38-device-diagnosis-method.md` §2 and stop at the
