@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 15847
+chars: 16012
 sections:
 - id: '1'
   title: Peer lifecycle
   chars: 2395
 - id: '2'
   title: Peers page — field and action reference
-  chars: 3234
+  chars: 3399
 - id: '3'
   title: Setup keys — reference
   chars: 2100
@@ -109,11 +109,14 @@ How the score is computed (points for each signal that is true; the total is cla
 | Enterprise Workspace | +30 | +30 | +30 |
 | Enterprise Browser | +30 | +30 | +30 |
 | Netzilo Gateway session | +50 | +50 | +50 |
+| Netzilo Extension | +15 | +15 | — |
 | Virtual device | −5 | −5 | −50 |
 | Being debugged | −50 | −30 | not debugged: **+80** |
 
 A gateway session reports only the gateway signal: 50 (C) on a desktop OS, 100 (A) on a
-mobile one. The score is informational; posture checks, not the grade, decide access.
+mobile one. Every desktop client reports the extension signal, so its 15 points are a
+constant on Windows, Linux and macOS, not a measure. The score is informational; posture
+checks, not the grade, decide access.
 
 ---
 

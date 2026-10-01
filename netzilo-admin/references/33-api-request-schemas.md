@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 75531
+chars: 78553
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -314,7 +314,7 @@ sections:
   chars: 193
 - id: post-api-published-apps
   title: '`POST /api/published-apps`'
-  chars: 901
+  chars: 1205
 - id: get-api-published-apps-check
   title: '`GET /api/published-apps/check`'
   chars: 250
@@ -326,7 +326,7 @@ sections:
   chars: 141
 - id: put-api-published-apps-appid
   title: '`PUT /api/published-apps/{appId}`'
-  chars: 982
+  chars: 1286
 - id: delete-api-published-apps-appid
   title: '`DELETE /api/published-apps/{appId}`'
   chars: 240
@@ -465,6 +465,9 @@ sections:
 - id: get-api-users-current-published-apps
   title: '`GET /api/users/current/published-apps`'
   chars: 179
+- id: post-api-users-current-published-apps-access
+  title: '`POST /api/users/current/published-apps/access`'
+  chars: 2414
 - id: get-api-users-current-routing
   title: '`GET /api/users/current/routing`'
   chars: 214
@@ -513,7 +516,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-09-29 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-10-01 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -1646,6 +1649,8 @@ Request body (JSON):
 - `groups` (array of string, **required**): Group IDs whose members may open the application. Empty means nobody.
 - `enabled` (boolean, **required**)
 - `preserve_host` (boolean, optional): Send the application's address as the Host header instead of the target's
+- `posture_checks` (array of string, optional): Posture check IDs the accessing device must satisfy at the application's door
+- `any_check_must_pass` (boolean, optional): Posture check evaluation logic. If false (default), all posture checks must pass. If true, at least one posture check set must pass.
 
 Responses: `200` The published application, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
 
@@ -1692,6 +1697,8 @@ Request body (JSON):
 - `groups` (array of string, **required**): Group IDs whose members may open the application. Empty means nobody.
 - `enabled` (boolean, **required**)
 - `preserve_host` (boolean, optional): Send the application's address as the Host header instead of the target's
+- `posture_checks` (array of string, optional): Posture check IDs the accessing device must satisfy at the application's door
+- `any_check_must_pass` (boolean, optional): Posture check evaluation logic. If false (default), all posture checks must pass. If true, at least one posture check set must pass.
 
 Responses: `200` The published application, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
@@ -2137,6 +2144,53 @@ Responses: `200` The PAC script, `204` No PAC for this user (mode disabled): the
 The applications the current user may open
 
 Responses: `200` A JSON array, `401` Requires authentication, `500` Internal Server Error
+
+## `POST /api/users/current/published-apps/access`
+
+Authorize the current user at a published application's door
+
+Request body (JSON):
+- `host` (string, **required**): The application's address the user is signing in at
+- `browser` (object, optional): The device as the sign-in request describes it
+  - `os` (string, optional)
+  - `os_version` (string, optional)
+  - `browser` (string, optional)
+  - `browser_version` (string, optional)
+  - `mobile` (boolean, optional)
+- `public_ip` (string, optional): The connection's public address
+- `device` (string, optional): The browser's device seed, from the Workplace, behind the session's device ID
+- `extension` (boolean, optional): The Netzilo extension answered the Workplace page in this browser
+- `extension_device_id` (string, optional): The extension's gateway device ID, when it has one; a live gateway session with it verifies the extension
+- `enterprise_browser` (boolean, optional): The Netzilo Enterprise Browser answered the Workplace page
+- `endpoint` (object, optional): A device's posture as its Netzilo client reports it
+  - `goos` (string, optional)
+  - `os` (string, optional)
+  - `os_version` (string, optional)
+  - `kernel_version` (string, optional)
+  - `platform` (string, optional)
+  - `client_version` (string, optional)
+  - `meta` (object, optional)
+    - `device_id` (string, optional)
+    - `domain_name` (string, optional)
+    - `is_being_debugged` (boolean, optional)
+    - `is_virtual_device` (boolean, optional)
+    - `is_firewall_enabled` (boolean, optional)
+    - `is_disk_encryption_enabled` (boolean, optional)
+    - `is_av_enabled` (boolean, optional)
+    - `is_av_updated` (boolean, optional)
+    - `is_screen_locked` (boolean, optional)
+    - `is_os_updated` (boolean, optional)
+    - `is_netzilo_container` (boolean, optional)
+    - `is_netzilo_browser` (boolean, optional)
+    - `is_netzilo_extension` (boolean, optional)
+    - `integrity_level` (integer, optional)
+  - `check_results` (array of object, optional)
+    - `id` (string, optional)
+    - `result` (string, optional)
+- `api` (boolean, optional): A credential caller, not a browser at the Workplace
+- `revalidation` (boolean, optional): A running session's evidence presented again, not a sign-in; recorded as an access event only when it no longer passes
+
+Responses: `200` The decision, `400` Bad Request, `401` Requires authentication, `500` Internal Server Error
 
 ## `GET /api/users/current/routing`
 

@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 49567
+chars: 59335
 sections:
 - id: '1'
   title: How it works
-  chars: 3956
+  chars: 4411
 - id: '2'
   title: Requirements and support
   chars: 2320
@@ -25,7 +25,7 @@ sections:
   - human-operator
 - id: '4'
   title: Publishing an application
-  chars: 4142
+  chars: 9417
   requires:
   - api
   executable_on:
@@ -34,7 +34,7 @@ sections:
   - human-operator
 - id: '5'
   title: What users see
-  chars: 2116
+  chars: 3071
 - id: '6'
   title: 'Non-interactive access: scripts and services'
   chars: 2156
@@ -49,13 +49,13 @@ sections:
   chars: 2160
 - id: '10'
   title: Operating it
-  chars: 6306
+  chars: 7347
 - id: '11'
   title: Troubleshooting
-  chars: 9618
+  chars: 10715
 - id: '12'
   title: Supporting a user who cannot open an application
-  chars: 2606
+  chars: 3425
   requires:
   - api
   executable_on:
@@ -64,7 +64,7 @@ sections:
   - human-operator
 - id: '13'
   title: Limits
-  chars: 1171
+  chars: 1297
 ---
 # Published applications and the Netzilo reverse proxy
 
@@ -102,12 +102,15 @@ customers skip those. Logs and health are §10; symptoms are §11.
    that the address is one the user may open, and hands the user's sign-in token to the
    application's address (`POST https://crm.apps.example.com/.netzilo/login`, a
    form post bound to a state the reverse proxy set on the browser). The reverse proxy
-   verifies the token with management, reads what this user may open
-   (`GET /api/users/current/published-apps`), and admits or refuses.
+   asks management to authorize it (`POST /api/users/current/published-apps/access`,
+   with the user's own token): admission by the application's groups first, then the
+   application's own **posture checks** against the evidence the Workplace collected
+   about the device (§4.1). The reverse proxy holds no list and no posture logic.
 5. Admitted: the reverse proxy sets a **session cookie for that address only**, sends
    the browser back to the Workplace's dialog, which shows *Logging in* while the user's
    tunnel comes up and then opens the application. Refused: the dialog shows **Access
-   Denied** with a single **Logout** button.
+   Denied** with the reason, or **Additional Protection Required** when the Netzilo
+   extension alone is missing (§5). Every decision is an activity event (§4.1).
 6. From then on every request on that address is proxied through the user's **tunnel**:
    a virtual peer of the user, named `vp-<n>-RPROXY`, registered in the account as an
    ephemeral peer, with that user's policies, routes and DNS. The target is dialled
@@ -117,8 +120,10 @@ customers skip those. Logs and health are §10; symptoms are §11.
    to the published address. Its certificate is never verified (a private service behind
    an authenticated tunnel; self-signed and internal certificates are the rule).
 7. The session lasts 12 hours at most and is re-checked against management every
-   10 minutes: an application removed, a group changed or a user blocked takes effect
-   within that interval; a token management no longer accepts ends the session at once.
+   10 minutes with the evidence of its sign-in: an application removed, a group or a
+   posture check changed, or a user blocked takes effect within that interval; a token
+   management no longer accepts ends the session at once. A change on the device itself
+   is seen at the next sign-in, not at a re-check.
    The next navigation goes through the Workplace again, silently when the Workplace
    session is still alive.
 8. The user's tunnel is **one per user, public address and operating system**, shared
@@ -228,11 +233,73 @@ search box. **Add Application** opens a two-step modal:
 | **Send the address as Host header** (`preserve_host`) | off by default: the target sees its own host name. On for applications that compare the `Host` header with the address they were published under. |
 | **Enable Application** | an application off is kept but not served (`404` at its address). |
 
+**Posture Checks** (second tab): the account's posture checks the accessing device must
+satisfy at the application's door, chosen as a policy's are (`posture_checks`, IDs) with
+the same **All / Any** evaluation switch (`any_check_must_pass`, default false: every
+check must pass). The Applications table shows the count per row, and a check named by an
+application cannot be deleted while it is (the Posture Checks table lists the applications
+using it, with *Go to Applications*). Enforced at every sign-in and re-check, §4.1.
+
 **Name & Description**: a name, unique within the tenant, shown on the Workplace tile
 and in the activity log; an optional description.
 
 Activity (`34-event-catalogue.md`, *Administration*): **Application published**,
 **Published application updated**, **Application unpublished**.
+
+### 4.1 Posture checks at the door
+
+The application's checks are judged **at the door** — at the sign-in, before a session
+exists — against the device the browser runs on, which may or may not have the Netzilo
+client. The checks on *policies* are a second, later judgement against the reverse-proxy
+peer (§10.3). Management decides; the Workplace page only collects, the reverse proxy
+only forwards.
+
+| Evidence | Source | Rules it serves |
+|---|---|---|
+| OS and version, browser, public address | the sign-in request: client hints and User-Agent (Chrome and Edge give the real OS version; Firefox and Safari freeze macOS at 10.15 and Windows at 10.0), the connection | Operating System, Country & Region, Peer Network Range |
+| the Netzilo extension | the extension in that browser answers the Workplace page; when it has a gateway session, its device id is checked against this user's **live** gateway sessions | Netzilo Extension |
+| the Enterprise Browser | its own User-Agent (it names itself; nothing installed or asked); also satisfies Netzilo Extension | Enterprise Browser, Netzilo Extension |
+| the device's posture | the Netzilo client on the device, asked by the Workplace page over its local socket (`localhost:41336`), answering the same posture it reports for its peer — Security Settings items, Virtual Device, Device Integrity, Enterprise Workspace, Registry / File / Process results. A Workspace answers for itself (it is the Workspace) whether or not it is registered as a peer | every endpoint item |
+
+Facts to hold on to:
+
+- **Without a Netzilo client on the device the endpoint items fail**, as for any browser.
+  A client older than this feature answers nothing, so the same: the reason reads *Peer is
+  not using Netzilo Enterprise Workspace* from a Workspace whose client is old.
+- **Reported, not attested.** The device's posture is what the device says about itself,
+  as a peer's metadata is; the page relays it unchanged. Accepted by design: the door
+  judges the device on its own word, like management judges a connected peer.
+- **Netzilo Gateway never passes at the door.** It is for policies admitting gateway
+  browser sessions (`43-clientless-access-gateway.md` §3.4). On an application it refuses
+  everybody.
+- **Frozen for the session.** The 10-minute re-check re-presents the sign-in's evidence;
+  a device that turns its firewall off after signing in is seen at the next sign-in
+  (12 hours, or after a Workplace logout). A changed check or group is seen at the re-check.
+- **All / Any** is between checks; within a check every item must pass, as on a policy.
+- **Remediation.** When the extension alone stands between the user and the door
+  (adding `is_netzilo_extension` would pass), the decision carries `remediation:
+  "extension"` and the dialog shows *Additional Protection Required* (§5). Nothing else
+  is offered: an admin fixes groups and checks, the user fixes the device.
+
+**Activity** (`34-event-catalogue.md`), one event per decision:
+
+| Event | Category | When | Meta |
+|---|---|---|---|
+| **Application access allowed** (`published_app.access_allowed`) | Access Control | a sign-in passed — once per sign-in; a re-check that still passes writes nothing | `domain`, `name`, `target`, `real_ip` (the **device's** public address, geolocated), `os`, `browser`, `api` for credential callers |
+| **Application access denied by posture** (`published_app.access_denied`) | Policy Violation | a sign-in, or a re-check, failed a check | the same plus `check` (name) and `reason` (the item's string, `21-posture-checks.md` §5), `revalidation: true` on a re-check |
+| **Application access denied: not admitted** (`published_app.access_not_admitted`) | Access Control | a signed-in user asked for an address none of their groups is admitted to, or where nothing is published | `domain`; plus the application's fields when one exists at that address |
+
+Identical events from the same device within 5 minutes are stored once (the event store
+de-duplicates). On a busy tenant the routine `workspace.app.started` and `peer.access.*`
+rows bury these within minutes: filter **Activity → Events** by the code. The reverse
+proxy's log has the same decisions with the request id (§10.1).
+
+API: `POST /api/users/current/published-apps/access` is what the reverse proxy sends
+(`33-api-request-schemas.md`): `host`, `browser`, `public_ip`, `device` (seed),
+`extension`, `extension_device_id`, `enterprise_browser`, `endpoint` (the client's
+posture JSON, ≤ 8 KB), `api`, `revalidation`. Useful to **reproduce a decision** with a
+user's token and chosen evidence; the answer is `{allowed, app}` or `{allowed:false,
+reason: not_admitted | posture, check, detail, remediation}`.
 
 **How long until it works.** Management answers the reverse proxy's *is this name
 published?* from a cache of 30 seconds, and the reverse proxy keeps its own answer for
@@ -245,7 +312,7 @@ API (`33-api-request-schemas.md` for the bodies):
 
 ```
 GET    /api/published-apps                     the tenant's applications (administrators)
-POST   /api/published-apps                     {name, description, domain, target, groups, enabled, preserve_host}
+POST   /api/published-apps                     {name, description, domain, target, groups, enabled, preserve_host, posture_checks, any_check_must_pass}
 PUT    /api/published-apps/{appId}             same body
 DELETE /api/published-apps/{appId}
 GET    /api/published-apps/check?domain=crm.apps.example.com[&except=<appId>]
@@ -279,6 +346,17 @@ widens what a policy allows.
 - **Access Denied** — *Your account is not allowed to open <address>.* — with **Logout**:
   the user is not in the application's groups (§4), or the switch is off. The user's
   administrator decides; nothing on the user's side changes it.
+- **Access Denied** — *Access to <address> was denied because posture check <name>
+  failed. Reason: <reason>* — with **Logout**: admitted, but the device failed one of the
+  application's checks (§4.1). The reason is the item's own string (`21-posture-checks.md`
+  §5), for example *Peer is not using Netzilo Enterprise Workspace*.
+- **Additional Protection Required** — *<address> requires the Netzilo browser extension
+  in order to continue* — with **Install the extension** or **Connect**, and **Logout**:
+  the extension alone is missing in this browser, or an installed one follows another
+  server. The dialog asks the extension to connect, keeps asking every two seconds, and
+  opens the application again when it answers; an old extension that ignores the request
+  is connected from its own popup. Shown only when the extension is what is missing — the
+  dialog never blocks a sign-in on the extension when the application does not require it.
 - **Access Failed** — *<address> took too long to answer* or *<address> did not answer* —
   with **Logout**: signed in and admitted, but the application could not be reached
   through the user's connection (§11.3).
@@ -547,7 +625,11 @@ finds the line.
 | `gateway: publishing on [::]:8444 (tls none, sign-in at https://…)` | the mode is on; the sign-in address in use |
 | `gateway: access GET crm.apps.example.com/path 200 12345B 8ms user=a@example.com app=<app id> ip=<public ip> id=<request id>` | one request: method, address and path, status, bytes, duration, user (empty before sign-in), application, the client's address |
 | `gateway: <email> signed in at <address> from <ip> (<id>)` | a browser sign-in accepted |
-| `gateway: <email> refused at <address>: not admitted (<id>)` | signed in at the Workplace, but not in the application's groups: the user saw *Access Denied* |
+| `gateway: <email> refused at <address>: not admitted (<id>)` | signed in at the Workplace, but not in the application's groups: the user saw *Access Denied*; event *Application access denied: not admitted* |
+| `gateway: <email> refused at <address>: posture: <check>: <reason> (fix="extension"\|"", <id>)` | admitted, but the application's posture check failed at the door (§4.1); `fix="extension"` means the dialog offered the extension; event *Application access denied by posture* |
+| `gateway: <email> signed in at <address> from <ip> (<id>)` | admitted and the checks passed; event *Application access allowed* |
+| `gateway: <email> at <address>: no longer authorized: <reason> <check> <detail>` | the 10-minute re-check refused a running session (groups, checks or the token changed); the browser is sent through the Workplace again |
+| management (debug): `published app <address>: door evidence for <user>: endpoint=<bool> goos=… client=… extension=… container=… browser=… gateway=…` | what management judged: `endpoint=false` means the page reached no Netzilo client on the device; `container`/`browser`/`extension` are the facts the Workspace, Enterprise Browser and extension items read |
 | `gateway: publish login for <address>: …` | the sign-in could not be checked (management unreachable, token refused): *Sign-in unavailable* / *Sign-in refused* |
 | `gateway: <email>: API access at <address> from <ip> (<id>)` | a non-interactive session started (§6) |
 | `gateway: API access at <address>: …` | a non-interactive credential could not be checked |
@@ -665,7 +747,9 @@ curl -sS -H "Authorization: Token $USER_TOKEN" https://<api-host>/api/users/curr
 | **There is no application at this address** (page or JSON `404`) | `exists?domain=` (§11.1) | `false`: the switch is off (§3), the application is disabled or deleted, the address differs (case, a trailing dot, a typo), or another tenant's server. `true` but still 404: the reverse proxy's 30-second cache; wait a minute |
 | the address does not resolve, or a certificate error | `dig +short` the address; `openssl s_client -servername <address> -connect <front door>:443` | the wildcard record is missing or points elsewhere (**Settings → Permissions → Verify** says so); on Let's Encrypt installs the first visit is issuing the certificate (retry), or Caddy could not: `logs caddy` (§10.2) — `/tls-ask` answered 404 because management does not publish the name yet; a provided certificate without the wildcard (§8.2) |
 | the page shows *Not published* or a Netzilo error page with a **request id** | the access line with that `id=` (§10.1) | the line's status and user say which case below |
-| **Access Denied** | `refused at <address>: not admitted` in the log; the application's groups | the user is in none of the application's groups; add the group, or the switch is off. Take effect within 10 minutes for an existing session, at once for a new sign-in |
+| **Access Denied** — *not allowed to open* | `refused at <address>: not admitted` in the log; the application's groups | the user is in none of the application's groups; add the group, or the switch is off. Take effect within 10 minutes for an existing session, at once for a new sign-in |
+| **Access Denied** — *because posture check … failed* | the event *Application access denied by posture* (`check`, `reason`); management's `door evidence` debug line (§10.1) | the device failed one of the application's checks (§4.1). *Enterprise Workspace* from a Workspace → its client is old or not running (`endpoint=false`): update it. *Enterprise Browser* from the Enterprise Browser → the user is in another browser on that machine. Security Settings items → compare the device's peer page; without a client on the device they always fail. *Netzilo Gateway* → remove it from the application; it never passes at the door. Passes now but still refused → the session is judged on its sign-in's evidence: Workplace logout, open again |
+| **Additional Protection Required** | the browser's extension (popup: which server it follows) | the application requires the Netzilo extension and this browser has none, or one following another server; the dialog adds or connects it and retries by itself. An old extension ignores the dialog's request: connect it from its popup |
 | **Access Failed — took too long to answer / did not answer** | `session: …` line with the request id; the `vp-<n>-RPROXY` peer in Peers: connected? its groups; the tunnel line `Posture check … FAILED`; the routes and policies of the user's groups | the target is not reachable **through the user's tunnel**: no route to its network for the user's groups, a policy that does not include them, a posture check the reverse-proxy peer fails (§10.3), a wrong target address or port, the target down, or its name unresolved by the user's DNS. `11-connectivity-diagnosis.md` from the peer's point of view; the same user with the Netzilo client reaching the target proves the policy, not the reverse proxy |
 | stuck at **Logging in** | `sudo docker compose logs -f reverse-proxy` while the user retries; `/readyz` | management unreachable from the reverse proxy; the user's tunnel cannot connect (signal, relay: `03-server-troubleshooting.md`); on a self-hosted server whose Caddy sets a strict `Content-Security-Policy` for the dashboard, the dialog's status polling and form post to the application's address are blocked — allow `https:` in `connect-src` and `form-action` for `/publish-auth` |
 | **Sign-in refused — The sign-in did not come from the Workplace** | `--workplace-url` in the container's command | it does not match the dashboard's origin the user signed in at (`https://` scheme and host exactly); fix it and recreate the container |
@@ -722,7 +806,9 @@ a browser; nothing on the user's machine is Netzilo's.
 | They say | Check first | Where it usually ends |
 |---|---|---|
 | "The tile is not there" / "I don't see the application" | `GET /api/users/current/published-apps` | not admitted: **administrator** (groups, §4) or the switch is off (§3). An application the user opened yesterday that is gone today was disabled or its groups changed |
-| "Access Denied" | the same list: the address is not in it | **administrator**: the user is in none of the application's groups |
+| "Access Denied — not allowed to open" | the same list: the address is not in it | **administrator**: the user is in none of the application's groups |
+| "Access Denied — because posture check … failed. Reason: …" | the reason text; whether they are in the Workspace / Enterprise Browser they think they are; the Netzilo client on the device running and current | the device: start or update the Netzilo client (a Workspace's client must be current), use the Enterprise Browser itself, fix the named setting (firewall, disk encryption …), then sign out of the Workplace and open the application again. **Administrator** when the check is wrong for the audience (a Netzilo Gateway item on an application, an endpoint item for users without the client) |
+| "Additional Protection Required" | the extension popup: installed? which server? | user's side: add the extension, or connect it to this server from its popup, then open the application again |
 | "Access Failed — took too long / did not answer" | their reverse-proxy peer in `GET /api/peers`: connected? | **administrator**: the target is not reachable for this user's groups (§11.3). Nothing on the user's side |
 | "It keeps asking me to log in" / "Sign-in expired" | which browser; cookies allowed for the address? private window? | user's side: cookies blocked for the application's address or the Workplace, a browser extension that strips cookies, or a link older than 10 minutes; open the application from the Workplace tile again. Every 12 hours a fresh sign-in is normal |
 | "There is no application at this address" | `exists?domain=` (§11.1); the exact address they typed | a typo or an old bookmark; if the address is right, **administrator** (§3, §4) |
@@ -746,7 +832,8 @@ line), the time, and the user's e-mail.
   browsers through the Workplace again (§10.4).
 - A sign-in lasts 12 hours per address; the Workplace session makes renewals silent.
 - Reverse-proxy peers pass no endpoint posture check; the operating system they report
-  is what the browser says about itself (§10.3).
+  is what the browser says about itself (§10.3). The application's own checks are judged
+  at the door on what the device reports about itself, frozen for the session (§4.1).
 - Addresses are unique across the server; on Cloud the application domain is shared
   between tenants (§3).
 - On self-hosted Let's Encrypt installs each published name gets its own certificate on

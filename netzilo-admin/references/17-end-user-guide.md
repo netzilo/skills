@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 11830
+chars: 12240
 sections:
 - id: '1'
   title: Tell people before you install, not after
   chars: 845
 - id: '2'
   title: The page to publish
-  chars: 4869
+  chars: 5279
 - id: '3'
   title: Translating what the employee says
   chars: 4715
@@ -120,9 +120,14 @@ may be given an address of their own (such as `crm.apps.example.com`) that works
 browser, on any device, with nothing installed. Open the tile on the Workplace's
 **Applications** page, or the address directly: the first time, and once every 12 hours,
 you sign in with your work account and see *Logging in* for a few seconds. *Access
-Denied* means the application is not shared with your account; *Access Failed* means it
-could not be reached right now: both are for your administrator, nothing on your side
-changes them. Allow cookies for the application's address if your browser blocks them.
+Denied* with *not allowed to open* means the application is not shared with your account;
+*Access Failed* means it could not be reached right now: both are for your administrator,
+nothing on your side changes them. *Access Denied* with *because posture check … failed*
+names what your device is missing — the Netzilo Workspace or Enterprise Browser your
+company asks for, a firewall, disk encryption — and *Additional Protection Required*
+means this browser needs the Netzilo extension, which the dialog offers to add or connect.
+Fix that, sign out of the Workplace and open the application again. Allow cookies for the
+application's address if your browser blocks them.
 
 **If your company uses the Netzilo Workspace (Windows only).** Some applications may
 be set up to open inside a protected workspace. You start them from the shortcuts folder

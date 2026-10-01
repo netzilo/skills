@@ -6,17 +6,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 8725
+chars: 8944
 sections:
 - id: administration
   title: Administration
   chars: 5496
 - id: access-control
   title: Access Control
-  chars: 454
+  chars: 600
 - id: policy-violation
   title: Policy Violation
-  chars: 689
+  chars: 762
 - id: data-exfiltration
   title: Data Exfiltration
   chars: 496
@@ -32,8 +32,8 @@ sections:
 ---
 # Event catalogue — what each activity is called
 
-Generated from Netzilo Server's activity table on 2026-09-29 by
-`scripts/gen-event-codes.py`. 143 activities.
+Generated from Netzilo Server's activity table on 2026-10-01 by
+`scripts/gen-event-codes.py`. 146 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
 name), `activity_code` (the stable identifier) and `activity_category`. **Say the
@@ -161,6 +161,8 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Peer access granted | `peer.access.granted` |
 | Target access granted | `peer.access.target` |
 | Target access blocked | `peer.access.target.blocked` |
+| Application access allowed | `published_app.access_allowed` |
+| Application access denied: not admitted | `published_app.access_not_admitted` |
 | Session recorded | `session.recorded` |
 | User logged in | `user.login` |
 | User logged out | `user.logout` |
@@ -180,6 +182,7 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | URL posture check failed | `browser.posture.check` |
 | Upload blocked | `browser.upload.file` |
 | Blocked URL | `browser.url.blocked` |
+| Application access denied by posture | `published_app.access_denied` |
 | Posture check failed | `workspace.posture.check` |
 
 ## Data Exfiltration

@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16445
+chars: 17979
 sections:
 - id: '1'
   title: Check types (cards in the Create/Update Posture Check modal)
-  chars: 6948
+  chars: 8028
 - id: '2'
   title: Creating and attaching
   chars: 985
@@ -23,7 +23,7 @@ sections:
   chars: 1979
 - id: '5'
   title: Diagnosis
-  chars: 3892
+  chars: 4346
 ---
 # Admin Skill — Posture Checks
 
@@ -53,7 +53,7 @@ All settings of this check will be lost."
 | **Operating System** | OS and version | per tab Linux / Windows / macOS / iOS / Android: Allow / Block; "All versions" or "Equal or greater than" a named version (Windows 11, macOS Sonoma, iOS 17, Android 15 …) or custom number; Linux/Windows compare **kernel** version | all |
 | **Peer Domain Membership** | AD/directory domain the device is joined to | Allow / Block; domain names | Windows |
 | **Endpoint Security Settings** | device hygiene; **all enabled items must pass** | Antivirus (active — Windows reads Defender / Security Center state; Linux reads the ClamAV daemon; macOS: consult the peer detail indicator), Firewall (Windows, macOS), Disk Encryption (Windows, Linux, macOS), Screen Lock (password-protected lock — Windows, Linux, macOS), OS Updates (Linux, macOS; the Windows value does not reflect Windows Update state) | per item; see the signal caveats below |
-| **Advanced Endpoint Settings** | presence/absence indicators; **all enabled items must pass** | Enterprise Workspace and Enterprise Browser (true only on the workspace's own peer / the browser's own peer, **never on the host peer**; on a normal policy they block every ordinary device), Netzilo Gateway (true only for a browser session of a Netzilo gateway, `43-clientless-access-gateway.md`; every device with the Netzilo client fails it, so it belongs on policies meant for browser users), Virtual Device (must **not** be a VM — Windows, Linux, macOS), Device Integrity (not rooted/jailbroken/debugged — Windows, Linux, macOS, iOS, Android), Registry Key & Value (Windows; All/Any; hive HKLM/HKCU/HKCR/HKCC/HKU, key, value; glob wildcards on key path and value name; value data is not compared), File & Folder (All/Any; per OS path + optional content regex), Running Processes (All/Any; per OS path patterns) | per item |
+| **Advanced Endpoint Settings** | presence/absence indicators; **all enabled items must pass** | Enterprise Workspace and Enterprise Browser (true only on the workspace's own peer / the browser's own peer, **never on the host peer**; on a normal policy they block every ordinary device), Netzilo Gateway (true only for a browser session of a Netzilo gateway, `43-clientless-access-gateway.md`; every device with the Netzilo client fails it, so it belongs on policies meant for browser users), Netzilo Extension (the Netzilo browser extension on the device: always true for a desktop client — Windows, macOS, Linux — and for the Enterprise Browser, always false on iOS and Android, true for a gateway browser session, false for a reverse-proxy session; nothing is inspected on the device), Virtual Device (must **not** be a VM — Windows, Linux, macOS), Device Integrity (not rooted/jailbroken/debugged — Windows, Linux, macOS, iOS, Android), Registry Key & Value (Windows; All/Any; hive HKLM/HKCU/HKCR/HKCC/HKU, key, value; glob wildcards on key path and value name; value data is not compared), File & Folder (All/Any; per OS path + optional content regex), Running Processes (All/Any; per OS path patterns) | per item |
 
 Version semantics for **Operating System**: Block = the OS is excluded entirely; Allow
 "All versions" = any version; Allow "Equal or greater than" = minimum. Only the operating
@@ -96,6 +96,16 @@ device fails, instead of telling the customer the device is misconfigured:
   applications.
 - *Enterprise Workspace / Enterprise Browser*: true only for the workspace's or browser's
   own peer; the macOS workspace signal means "MDM-enrolled Mac"; Linux never reports it.
+  At a **published application's door** (`44-published-applications.md` §4.1) the
+  Workspace item reads the posture of the Netzilo client inside the Workspace (so an old
+  or stopped client fails it), and the Enterprise Browser item reads the browser's own
+  User-Agent.
+- *Netzilo Extension*: the Netzilo browser extension on the device. Not probed: a desktop
+  client (Windows, macOS, Linux) and the Enterprise Browser always report it, iOS and
+  Android never do; a gateway browser session reports it (the extension is what it
+  serves), a reverse-proxy session does not. Clients older than the item report nothing,
+  which reads as false. API field `netzilo_extension_check`; peer signal
+  `meta.netzilo_meta.is_netzilo_extension`, shown on the peer page beside the Gateway one.
 - *Netzilo Gateway*: true only for a gateway's browser session (a `vp-<n>-PROXY` peer); it
   is not probed on any device, so an endpoint can never satisfy it. It is also the one
   Advanced item a browser session can pass: the others fail for browser sessions
@@ -217,10 +227,12 @@ to allow all versions of an OS.
 | Check passes on the dashboard but access still blocked | another policy/check, or the filter's own posture check (AI Edge) | resolve rules (`20-policies-access-control.md` §6) |
 
 Events to search: `posture.check.created/updated/deleted`, `peer.access.blocked`,
-`workspace.posture.check`, `browser.posture.check`, `tool.blocked`.
+`workspace.posture.check`, `browser.posture.check`, `tool.blocked`, and for a published
+application's door `published_app.access_denied` (`44-published-applications.md` §4.1).
 
-**Failure reasons.** The `reason` in `peer.access.blocked` meta names the failing item
-with one of these strings:
+**Failure reasons.** The `reason` in `peer.access.blocked` meta, and in
+`published_app.access_denied` meta (also shown to the user in the sign-in dialog), names
+the failing item with one of these strings:
 
 | Reason | Item |
 |---|---|
@@ -229,9 +241,10 @@ with one of these strings:
 | `Disk encryption is not enabled` | Disk Encryption |
 | `A screenlock with a password is not enabled` | Screen Lock |
 | `Peer operating system is not updated` | OS Updates |
-| `Peer is not using a Netzilo container` | Enterprise Workspace |
-| `Peer is not using a Netzilo browser` | Enterprise Browser |
+| `Peer is not using Netzilo Enterprise Workspace` | Enterprise Workspace (servers before this wording said `a Netzilo container`) |
+| `Peer is not using Netzilo Enterprise Browser` | Enterprise Browser (before: `a Netzilo browser`) |
 | `Peer is not a Netzilo gateway session` | Netzilo Gateway |
+| `Peer is not using the Netzilo extension` | Netzilo Extension: an iOS or Android device, a reverse-proxy session, or a client older than the item |
 | `Endpoint checks cannot be satisfied by a browser session` | any endpoint item (Security Settings, Workspace, Browser, Virtual Device, Device Integrity, Registry, File & Folder, Processes, Domain) on a browser session; by design (`43-clientless-access-gateway.md` §3.4) |
 | `Peer is using a virtual device` | Virtual Device |
 | `Peer's device integrity is breached` | Device Integrity |

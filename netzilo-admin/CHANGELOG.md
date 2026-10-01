@@ -7,6 +7,47 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.17.0 — 2026-10-01
+
+Posture checks at a published application's door, the access events, and the rule to
+validate rather than assume.
+
+- **`SKILL.md` rule 1 is now "Validate, don't assume":** every statement about the
+  customer's deployment rests on evidence obtained in the session or on these references;
+  verified, inferred and unknown are kept apart in the answer; a matching symptom is a
+  lead, not a finding; what cannot be validated is said so, with the call or log that
+  would; a change is "done" only after the result is read back. Rule 10 and *Closing a
+  task* point back to it.
+- **`44` §4.1 (new):** posture checks on a published application are enforced at the
+  door at every sign-in and 10-minute re-check — what the Workplace page collects (OS,
+  browser and address from the request; the extension's answer, verified against a live
+  gateway session when it has one; the Enterprise Browser from its own User-Agent; the
+  device's posture from the Netzilo client on it over its local socket, a Workspace
+  included, registered as a peer or not), what fails without a client, reported-not-
+  attested by design, frozen for the session, the Netzilo Gateway item never passes,
+  All / Any, the extension remediation, the three access events with their meta
+  (`published_app.access_allowed`, `.access_denied`, `.access_not_admitted`: the device's
+  address, OS, browser, check and reason), the 5-minute de-duplication, and
+  `POST /api/users/current/published-apps/access` to reproduce a decision. §1, §5 (the
+  posture *Access Denied* and *Additional Protection Required* dialogs — the dialog no
+  longer blocks a sign-in on the extension unless the application requires it), §10.1
+  (the refused/signed-in/no-longer-authorized log lines and management's `door evidence`
+  debug line), §11.2, §12 and §13 follow.
+- **`21` Netzilo Extension item** (Advanced Endpoint Settings, `netzilo_extension_check`,
+  peer signal `is_netzilo_extension`): desktop clients and the Enterprise Browser always
+  report it, phones never, gateway browser sessions do, reverse-proxy sessions do not.
+  §5 reasons: the Workspace and Enterprise Browser strings are now *Peer is not using
+  Netzilo Enterprise Workspace* / *… Netzilo Enterprise Browser* (older servers say
+  *a Netzilo container* / *a Netzilo browser*); the same strings appear in
+  `published_app.access_denied` and in the sign-in dialog.
+- **`24` §2:** Netzilo Extension +15 on Windows, Linux and macOS (a constant for desktop
+  clients, not a measure).
+- **`34` regenerated:** the three access events; *Application access denied by posture*
+  moved to *Policy Violation*. **`33` regenerated:** `endpoint` and `revalidation` on the
+  access request.
+- **`43` §3.4, `17` §3, `39` §3:** pointers to the door and the user-side steps for a
+  posture refusal.
+
 ## 2.16.0 — 2026-09-29
 
 Published applications and the Netzilo reverse proxy.

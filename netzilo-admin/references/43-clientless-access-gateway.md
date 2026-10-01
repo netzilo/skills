@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 66327
+chars: 66635
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 12445
+  chars: 12753
   requires:
   - api
   executable_on:
@@ -219,6 +219,11 @@ gateway host).
 | Process | always fails for browser sessions |
 | Netzilo endpoint checks (firewall, antivirus, disk encryption, …) | always fail for browser sessions when enforced |
 | **Netzilo Gateway** (Advanced Endpoint Settings) | **passes only for browser sessions**: the guest reports itself as a gateway session; every device with the client reports false |
+
+A **published application's** own posture checks are a different door: there the
+Workplace page collects richer evidence (the extension, the Enterprise Browser's
+User-Agent, and the posture of a Netzilo client on the device), and the Netzilo Gateway
+item never passes — `44-published-applications.md` §4.1.
 
 A browser is not a managed endpoint; this is by design, not a fault. To give browser users
 a resource that desktop users reach behind endpoint checks, add a separate policy for the
