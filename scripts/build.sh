@@ -18,7 +18,7 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(dirname "$here")"
-schemas="$repo/netzilo-admin/references/33-api-request-schemas.md"
+schemas="$repo/skills/netzilo-admin/references/33-api-request-schemas.md"
 
 if [ "$#" -gt 1 ]; then
     echo "usage: scripts/build.sh [path/to/openapi.yml | https://<server>/api/support/openapi.yml]" >&2

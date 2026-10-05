@@ -6,13 +6,13 @@ can always be rebuilt from the exact version a customer runs:
 
     # from a running server (admin token; Netzilo Cloud or self-hosted)
     scripts/gen-api-schemas.py https://<server>/api/support/openapi.yml \
-        --token "$NETZILO_API_TOKEN" > netzilo-admin/references/33-api-request-schemas.md
+        --token "$NETZILO_API_TOKEN" > skills/netzilo-admin/references/33-api-request-schemas.md
 
     # or from a description you already have on disk
-    scripts/gen-api-schemas.py openapi.yml > netzilo-admin/references/33-api-request-schemas.md
+    scripts/gen-api-schemas.py openapi.yml > skills/netzilo-admin/references/33-api-request-schemas.md
 
 The token may also come from the NETZILO_API_TOKEN environment variable. The
-committed copy under netzilo-admin/references/ is the offline fallback for
+committed copy under skills/netzilo-admin/references/ is the offline fallback for
 operators with no server to ask; regenerate it whenever the API changes and run
 scripts/gen-frontmatter.py afterwards so the section index matches.
 """

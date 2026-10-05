@@ -19,7 +19,7 @@ The front matter is generated, never hand-edited. The only hand-edited piece is
 
 ## Front matter contract
 
-Written by `gen-frontmatter.py` at the top of every `netzilo-admin/references/*.md`:
+Written by `gen-frontmatter.py` at the top of every `skills/netzilo-admin/references/*.md`:
 
 | Field | Meaning |
 |---|---|
@@ -70,7 +70,7 @@ cannot.
 
 ## Adding a reference file
 
-1. Write `netzilo-admin/references/NN-name.md` with an H1 and `## ` sections.
+1. Write `skills/netzilo-admin/references/NN-name.md` with an H1 and `## ` sections.
 2. Add an entry to `capabilities.json`:
    ```json
    "NN-name.md": {"requires": ["api"], "sections": {"7": ["server-shell"]}}

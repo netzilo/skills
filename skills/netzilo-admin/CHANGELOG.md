@@ -7,6 +7,27 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 3.0.0 — 2026-10-05
+
+The repository is a Claude Code plugin and its own marketplace. Nothing in the runbooks
+changed; the major version marks the move of the files.
+
+- **New layout.** The skill moved from `netzilo-admin/` at the repository root to
+  `skills/netzilo-admin/`, the location Claude Code plugins scan. `.claude-plugin/plugin.json`
+  (plugin `netzilo`) and `.claude-plugin/marketplace.json` (marketplace `netzilo`, one
+  plugin with `"source": "./"`) were added. Install: `/plugin marketplace add
+  netzilo/skills`, then `/plugin install netzilo@netzilo`; the skill answers to
+  `/netzilo:netzilo-admin` and updates with `/plugin update netzilo`.
+- **Every address that named the old path moved with it:** the `VERSION` and
+  `CHANGELOG.md` URLs in `SKILL.md`, `VERSION`, `manifest.json` and the READMEs now read
+  `…/main/skills/netzilo-admin/…`. An installed 2.x copy still checks the old URL, gets
+  a 404, and must say so rather than claim it is current; update it once by hand.
+- **Maintainer scripts** read the new path; `check-skills.py` also verifies that
+  `plugin.json` and `marketplace.json` carry this version and the plugin name.
+- **The self-hosted AI Assistant's worker** finds skills in both layouts (`*/SKILL.md`
+  and `skills/*/SKILL.md`) from its next image; an older worker keeps the copy it has and
+  logs a sync warning until it is rebuilt.
+
 ## 2.18.0 — 2026-10-05
 
 The on-prem one-liner can upgrade a server instead of wiping it, and update or

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render the activity event catalogue as a runbook reference.
 
-    scripts/gen-event-codes.py path/to/codes.go > netzilo-admin/references/34-event-catalogue.md
+    scripts/gen-event-codes.py path/to/codes.go > skills/netzilo-admin/references/34-event-catalogue.md
 
 Netzilo Server names every audited activity three ways: a display name ("Code
 injection detected"), a stable code ("workspace.injection.detected") and a

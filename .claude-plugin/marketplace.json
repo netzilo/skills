@@ -1,0 +1,24 @@
+{
+  "name": "netzilo",
+  "owner": {
+    "name": "Netzilo",
+    "email": "support@netzilo.com",
+    "url": "https://www.netzilo.com"
+  },
+  "description": "Official Netzilo skills for Claude Code.",
+  "plugins": [
+    {
+      "name": "netzilo",
+      "source": "./",
+      "description": "Operate Netzilo end to end: self-hosted server install and day-2 operations, identity and SSO, client deployment, network policy, AI security (AIDR), REST API automation, clientless access, published applications, the AI Assistant on self-hosted servers, and connectivity diagnosis.",
+      "version": "3.0.0",
+      "category": "operations",
+      "tags": [
+        "netzilo",
+        "zero-trust",
+        "ai-security",
+        "administration"
+      ]
+    }
+  ]
+}

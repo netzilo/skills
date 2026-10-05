@@ -25,7 +25,8 @@ import skillmeta as sm  # noqa: E402
 import importlib.util  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
-SKILL = REPO / "netzilo-admin"
+SKILL = REPO / "skills" / "netzilo-admin"
+PLUGIN_NAME = "netzilo"
 SCRIPTS = REPO / "scripts"
 
 # A reference over this size must be loadable in parts, so it needs a real
@@ -186,7 +187,7 @@ def check_versions() -> None:
     version = str(version_file.get("version", "")).strip()
     released = as_date(version_file.get("released", ""))
     if not version or not released:
-        error("netzilo-admin/VERSION: missing 'version:' or 'released:'")
+        error("skills/netzilo-admin/VERSION: missing 'version:' or 'released:'")
         return
 
     skill_md = (SKILL / "SKILL.md").read_text(encoding="utf-8")
@@ -243,6 +244,37 @@ def check_versions() -> None:
         found = [c for c in cells if re.fullmatch(r"\d+\.\d+\.\d+", c)]
         if found and version not in found:
             error(f"README.md table lists netzilo-admin at {found[0]}, VERSION says {version}")
+
+    # The plugin manifest and the marketplace catalog carry the same version, so
+    # /plugin update sees a change whenever the skill changes.
+    plugin_path = REPO / ".claude-plugin" / "plugin.json"
+    market_path = REPO / ".claude-plugin" / "marketplace.json"
+    if not plugin_path.exists():
+        error(".claude-plugin/plugin.json is missing")
+    else:
+        plugin = json.loads(plugin_path.read_text(encoding="utf-8"))
+        if plugin.get("name") != PLUGIN_NAME:
+            error(f".claude-plugin/plugin.json name is {plugin.get('name')!r}, expected {PLUGIN_NAME!r}")
+        if str(plugin.get("version", "")).strip() != version:
+            error(f".claude-plugin/plugin.json version is {plugin.get('version')!r}, VERSION says {version!r}")
+    if not market_path.exists():
+        error(".claude-plugin/marketplace.json is missing")
+    else:
+        market = json.loads(market_path.read_text(encoding="utf-8"))
+        entry = next((p for p in market.get("plugins", []) if p.get("name") == PLUGIN_NAME), None)
+        if entry is None:
+            error(f".claude-plugin/marketplace.json lists no plugin named {PLUGIN_NAME!r}")
+        else:
+            if str(entry.get("version", "")).strip() != version:
+                error(f".claude-plugin/marketplace.json version is {entry.get('version')!r}, VERSION says {version!r}")
+            if entry.get("source") not in (".", "./"):
+                error(f".claude-plugin/marketplace.json: plugin {PLUGIN_NAME!r} source must be './' (this repository), got {entry.get('source')!r}")
+    for u in ("version_url", "changelog_url"):
+        url = str((manifest_entry := next((s for s in manifest.get("skills", []) if s.get("name") == "netzilo-admin"), {})).get(u, ""))
+        if "/main/skills/netzilo-admin/" not in url:
+            error(f"manifest.json {u} does not point at skills/netzilo-admin/: {url!r}")
+    if not (SKILL / "SKILL.md").exists():
+        error("skills/netzilo-admin/SKILL.md is missing; plugins scan skills/<name>/SKILL.md")
 
 
 # --- (e) links ---------------------------------------------------------------

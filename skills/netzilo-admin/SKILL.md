@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 2.18.0
+  version: 3.0.0
   released: "2026-10-05"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 2.18.0, released 2026-10-05.** Confirm it is current before
+**This copy is version 3.0.0, released 2026-10-05.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -160,14 +160,14 @@ is `https://github.com/netzilo/skills`.
 **How to check** (one fetch, no authentication needed):
 
 ```
-https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION
+https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **2.18.0** above.
+Compare its `version:` with **3.0.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
-  `https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/CHANGELOG.md`,
+  `https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/CHANGELOG.md`,
   read only the entries above your version, and tell the user what changed *in the area
   they are working on*. If a change affects the task at hand, ask them to update before
   you proceed; otherwise note it and carry on.
@@ -182,10 +182,10 @@ All skills in the repository and their versions: `https://raw.githubusercontent.
 
 | Installed as | Update |
 |---|---|
-| Claude Code skill folder | `git -C <clone> pull`, or re-copy `netzilo-admin/` into `~/.claude/skills/` (or the project's `.claude/skills/`) |
-| Claude Desktop / claude.ai upload | download the current `netzilo-admin/` folder, zip it so the zip contains `netzilo-admin/SKILL.md`, then re-upload under Settings → Customize → Skills |
+| Claude Code plugin (`/plugin install netzilo@netzilo`) | `/plugin update netzilo`; if the marketplace itself was added long ago, `/plugin marketplace update netzilo` first |
+| Claude Code skill folder | `git -C <clone> pull`, or re-copy `skills/netzilo-admin/` into `~/.claude/skills/` (or the project's `.claude/skills/`) |
+| Claude Desktop / claude.ai upload | download the current `skills/netzilo-admin/` folder, zip it so the zip contains `netzilo-admin/SKILL.md`, then re-upload under Settings → Customize → Skills |
 | Claude API / Agent SDK | create a new skill version from the updated folder and point the agent at it |
-| Plugin marketplace | `/plugin marketplace update` then reinstall the plugin |
 
 ## First things first: intake, then access
 

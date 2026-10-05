@@ -14,7 +14,7 @@ venv/
 *.swp
 
 # Generated locally while testing a generator; the committed copies are the
-# ones under netzilo-admin/references/.
+# ones under skills/netzilo-admin/references/.
 /tmp/
 *.tmp
 .reviews/

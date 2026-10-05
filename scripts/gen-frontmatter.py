@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import skillmeta as sm  # noqa: E402
 
-ROOT = Path(__file__).resolve().parent.parent / "netzilo-admin"
+ROOT = Path(__file__).resolve().parent.parent / "skills" / "netzilo-admin"
 
 
 def build(ref: sm.Reference, curated: dict) -> dict:

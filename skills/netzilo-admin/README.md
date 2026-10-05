@@ -7,9 +7,14 @@ security — without contacting Netzilo support.
 ## Installing this skill
 
 This folder is a self-contained Agent Skill: `SKILL.md` at the root plus supporting
-runbooks in `references/`.
+runbooks in `references/`. It ships inside the `netzilo` Claude Code plugin, whose
+manifest and marketplace catalog live two levels up in `.claude-plugin/`.
 
-- **Claude Code** — copy or symlink the whole `netzilo-admin/` folder to
+- **Claude Code plugin** (recommended) — in Claude Code run
+  `/plugin marketplace add netzilo/skills`, then `/plugin install netzilo@netzilo`.
+  The skill is then `/netzilo:netzilo-admin`, loads on its own when a task matches its
+  description, and `/plugin update netzilo` brings new releases.
+- **Claude Code, this folder alone** — copy or symlink the whole `netzilo-admin/` folder to
   `~/.claude/skills/netzilo-admin/` (personal, all projects) or `.claude/skills/netzilo-admin/`
   inside a project repo (project-scoped). Claude discovers it automatically; no restart
   needed for a new session.
@@ -24,10 +29,10 @@ runbooks in `references/`.
   (`client.skills.create(files=files_from_dir("netzilo-admin"))`) or the `ant skills create`
   CLI, then attach the returned `skill_id` to an agent. In a mounted repo, placing this
   folder at `.claude/skills/netzilo-admin/` is discovered automatically with no upload step.
-- **Plugin marketplace** (to distribute to a team) — wrap this folder as a plugin
-  (`.claude-plugin/plugin.json` + this directory under `skills/netzilo-admin/`) and list
-  it in a `marketplace.json`; users run `/plugin marketplace add <repo>` then
-  `/plugin install netzilo-admin@<marketplace>`.
+- **Your own marketplace** (to distribute a fork to a team) — this repository already
+  is one: `.claude-plugin/marketplace.json` lists the `netzilo` plugin with
+  `"source": "./"`. Fork it, keep the layout, and point users at your fork with
+  `/plugin marketplace add <owner>/<repo>`.
 
 Load `SKILL.md` first — it is the index: rules of engagement, a one-paragraph model of
 the product, and a table routing every task to the right file in `references/`.

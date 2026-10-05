@@ -5,12 +5,19 @@
   "skills": [
     {
       "name": "netzilo-admin",
-      "version": "2.18.0",
+      "version": "3.0.0",
       "released": "2026-10-05",
-      "path": "netzilo-admin",
+      "path": "skills/netzilo-admin",
       "summary": "Operate Netzilo end to end: server install and day-2 operations, identity and SSO, client deployment, network policy, AI security (AIDR), REST API automation, connectivity diagnosis, Windows hosts, the secure Workspace, device tools that diagnose and repair a peer from the agent, bounded remediation workflows, the AI Assistant on self-hosted servers, published applications through the Netzilo reverse proxy, and support escalation.",
-      "version_url": "https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/VERSION",
-      "changelog_url": "https://raw.githubusercontent.com/netzilo/skills/main/netzilo-admin/CHANGELOG.md"
+      "version_url": "https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/VERSION",
+      "changelog_url": "https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/CHANGELOG.md"
     }
-  ]
+  ],
+  "plugin": {
+    "name": "netzilo",
+    "marketplace": "netzilo",
+    "install": "/plugin marketplace add netzilo/skills, then /plugin install netzilo@netzilo",
+    "manifest": ".claude-plugin/plugin.json",
+    "catalog": ".claude-plugin/marketplace.json"
+  }
 }

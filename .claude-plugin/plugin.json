@@ -1,0 +1,24 @@
+{
+  "name": "netzilo",
+  "displayName": "Netzilo",
+  "version": "3.0.0",
+  "description": "Operate Netzilo end to end: self-hosted server install and day-2 operations, identity and SSO, client deployment, network policy, AI security (AIDR), REST API automation, clientless access, published applications, the AI Assistant on self-hosted servers, and connectivity diagnosis.",
+  "author": {
+    "name": "Netzilo",
+    "email": "support@netzilo.com",
+    "url": "https://www.netzilo.com"
+  },
+  "homepage": "https://doc.netzilo.com",
+  "repository": "https://github.com/netzilo/skills",
+  "license": "Proprietary — see https://www.netzilo.com/terms-of-service",
+  "keywords": [
+    "netzilo",
+    "zero-trust",
+    "network-access",
+    "ai-security",
+    "aidr",
+    "sso",
+    "administration",
+    "operations"
+  ]
+}
