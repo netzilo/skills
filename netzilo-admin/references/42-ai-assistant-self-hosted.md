@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 28752
+chars: 29480
 sections:
 - id: '1'
   title: What it is made of
@@ -25,7 +25,7 @@ sections:
   chars: 2410
 - id: '6'
   title: Compose installs (one-liner, AWS, Azure)
-  chars: 6891
+  chars: 7619
 - id: '7'
   title: Kubernetes and other orchestrators
   chars: 3253
@@ -228,6 +228,18 @@ on AWS and Azure images (`02-server-operations.md` §4).
 
 ### 6.1 Adding the worker to a server installed without it
 
+On an on-prem server, a one-liner with the upgrade mode adds the worker, its token and
+its `SupportConfig` block as part of an upgrade, and `install support-worker` adds it
+alone, or replaces a broken one keeping the token (`02-server-operations.md` §4.10,
+including the check that the published script has these commands):
+
+```bash
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh | sudo bash -s -- install support-worker
+```
+
+Use the procedure below when that script is not available yet, or on an AWS or Azure
+server.
+
 A compose install made from an engine published before the worker existed runs eight
 containers and has no `SupportConfig`. The check is `01-server-install.md` §0: zero
 `support-worker` lines in `$C/docker-compose.yml`. Re-running the installer is not the
@@ -324,7 +336,10 @@ without `SupportConfig`, which on this layout means the edit went to a different
 the one mounted. Then, in the dashboard, an owner connects a provider and approves a model
 (§8); the Assistant button appears and the first question answers.
 
-Rollback, if a gate fails and the cause is not obvious:
+Rollback, if a gate fails and the cause is not obvious. A worker added by `install
+support-worker` rolls back from the folder that command printed instead
+(`02-server-operations.md` §4.10.2, case 1); the lines below are for the in-place
+procedure:
 
 ```bash
 cd "$C"

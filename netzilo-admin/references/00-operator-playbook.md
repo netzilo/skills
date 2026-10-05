@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 23238
+chars: 23469
 sections:
 - id: '1'
   title: Rules of engagement
@@ -26,7 +26,7 @@ sections:
   chars: 2842
 - id: '6'
   title: Known product gaps to warn about proactively
-  chars: 1905
+  chars: 2136
 - id: '7'
   title: Closing a task
   chars: 329
@@ -322,8 +322,11 @@ It is a tool you may use; it is never evidence about the customer's environment.
 - **No automatic backups** on self-hosted servers → set up `02` §6 on day one.
 - **No SMTP** configured by the installer → e-mail invitations and password-reset mails
   do not work until `04` §6 is done; use "Create password" meanwhile.
-- **Re-running the installer wipes the server** (the older public guide says it is safe;
-  it is not).
+- **Re-running the installer wipes the server** unless it is a one-liner with the upgrade
+  mode, which upgrades in place and updates or (re)installs one component with
+  `update`/`install <component>`; check the published script first
+  (`02-server-operations.md` §4.10). The older public guide says any re-run is safe; it
+  is not.
 - **No log rotation** for containers → configure Docker log limits.
 - **Redis published on host port 6379 without a password** on on-prem installs → bind to
   localhost or firewall it.

@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 34429
+chars: 34844
 sections:
 - id: '0'
   title: What gets installed (all paths)
-  chars: 5931
+  chars: 6069
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
-  chars: 8641
+  chars: 8918
 - id: '2'
   title: Path B — AWS Marketplace (CloudFormation)
   chars: 4206
@@ -97,8 +97,10 @@ grep -c 'support-worker' /opt/netzilo/run/docker-compose.yml    # AWS / Azure im
 
 A pre-worker install gains the worker in place, without a reinstall:
 `42-ai-assistant-self-hosted.md` §6.1 adds the service, the shared token and the
-`SupportConfig` block, with gates and a rollback. Do not re-run the installer for this: it
-wipes the server (§1.4, §8).
+`SupportConfig` block, with gates and a rollback. A one-liner with the upgrade mode adds
+it as part of an upgrade, or alone with `install support-worker`
+(`02-server-operations.md` §4.10). Re-running any other installer for this wipes the
+server (§1.4, §8).
 
 Inputs every path needs:
 
@@ -249,11 +251,14 @@ Netzilo images), `NETZILO_INSTALLER_URL` (where the core installer is downloaded
    refuses to start if that variable is empty, so a mismatch fails loudly.
 6. Prints `==> Done. Netzilo is starting at https://<domain>` and the credentials.
 
-**Re-running the installer on the same host is destructive.** Because the wrapper
-always runs with `NETZILO_ASSUME_YES=1`, the installer detects the existing
-`docker-compose.yml`/`zitadel.env` and **wipes all containers, volumes (including
-Postgres) and config without asking**. Only re-run after an intentional teardown or on a
-throwaway host.
+**Re-running the one-liner on the same host: check the script first.** Newer wrappers
+detect the existing `docker-compose.yml`/`zitadel.env` and **upgrade the server in place**,
+and take `update <component>` / `install <component>` for one service at a time
+(`02-server-operations.md` §4.10). Older ones run the engine with `NETZILO_ASSUME_YES=1`,
+which detects the same files and **wipes all containers, volumes (including Postgres) and
+config without asking**. Which one the URL serves changes with each release, so run the
+check in §4.10 before every re-run, and treat a re-run without the upgrade mode as
+destructive.
 
 ### 1.5 Verification gates (Gate 2–8)
 

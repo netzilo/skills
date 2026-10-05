@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 30955
+chars: 31186
 sections:
 - id: '1'
   title: Nothing loads / certificate problems
@@ -37,7 +37,7 @@ sections:
   chars: 517
 - id: '8'
   title: Upgrade went wrong
-  chars: 754
+  chars: 985
 - id: '9'
   title: Metering / billing (marketplace)
   chars: 1030
@@ -371,6 +371,10 @@ Coturn advertises the host's addresses; a changed private IP requires no config 
 ---
 
 ## 8. Upgrade went wrong
+
+If the upgrade was a one-liner command (`02-server-operations.md` §4.10), it printed the
+rollback and left a backup folder in `/opt/netzilo/backups/`; §4.10.2 there is the
+procedure, with the same three cases as below. Otherwise:
 
 1. `docker compose ps` — which container is failing; read its log (§2).
 2. Roll back that one component to the digest recorded before the upgrade

@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 27922
+chars: 28223
 sections:
 - id: '0'
   title: Gather inputs from the user (mandatory — do not assume)
@@ -28,7 +28,7 @@ sections:
   chars: 656
 - id: '6'
   title: Diagnostics (when a gate fails)
-  chars: 3018
+  chars: 3319
 - id: '7'
   title: Cleanup / teardown
   chars: 829
@@ -455,12 +455,15 @@ rssh 'cd /opt/netzilo && sudo -n docker compose ps && echo "--- caddy ---" && su
 | `Host key verification failed.` | pinned key does not match, or `KH` not exported to this shell | Re-run §1.1 and have the operator confirm the fingerprint again; if it **changed**, stop and report |
 | Peers reach the dashboard and management but cannot connect to each other | relay ports closed (`3478/udp`, `49152–65535/udp`, `5349/tcp`) or host firewall blocking coturn | Open them per §1.2; verify with `03-server-troubleshooting.md` §4a.3 |
 
-**Re-running the installer is DESTRUCTIVE.** The installer detects an existing
-install (by `docker-compose.yml` / `zitadel.env` in `/opt/netzilo`) and, because the
-wrapper always runs with `NETZILO_ASSUME_YES=1`, it **wipes all containers, volumes
-(including the Postgres database) and config without asking**. Only re-run on a
-throwaway host or after an intentional teardown (§7) with the customer's explicit
-consent. Never re-run it to "repair" a server that holds data — see
+**Re-running the installer is DESTRUCTIVE unless the wrapper has the upgrade mode.** A
+wrapper with it detects an existing install (by `docker-compose.yml` / `zitadel.env` in
+`/opt/netzilo`) and upgrades in place, or updates and (re)installs one component with
+`update`/`install <component>` (`02-server-operations.md` §4.10, with the check of the
+published script that must come first). An older wrapper detects the same files and,
+because it runs the engine with `NETZILO_ASSUME_YES=1`, **wipes all containers, volumes
+(including the Postgres database) and config without asking**. Without that check
+passing, only re-run on a throwaway host or after an intentional teardown (§7) with the
+customer's explicit consent. Never re-run it to "repair" a server that holds data — see
 `02-server-operations.md` §10.
 
 ---

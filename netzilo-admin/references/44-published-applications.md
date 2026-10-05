@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 59335
+chars: 61621
 sections:
 - id: '1'
   title: How it works
@@ -43,7 +43,7 @@ sections:
   chars: 1532
 - id: '8'
   title: Self-hosted installation
-  chars: 7348
+  chars: 9454
 - id: '9'
   title: Configuration reference
   chars: 2160
@@ -52,7 +52,7 @@ sections:
   chars: 7347
 - id: '11'
   title: Troubleshooting
-  chars: 10715
+  chars: 10895
 - id: '12'
   title: Supporting a user who cannot open an application
   chars: 3425
@@ -472,11 +472,30 @@ image set gains `netzilo-reverse-proxy.tar.gz`, optional. Nothing new in the fir
 ### 8.3 Adding published applications to a server installed without them
 
 For a server installed before September 2026, or installed without an application
-domain. Never re-run the installer for this: it wipes the server (`01-server-install.md`
-§1.4, §8). Needs a server shell; management and the dashboard must already be a release
-with published applications (§2), else upgrade them first (`02-server-operations.md`
-§4.2). Let's Encrypt installs only; for a provided certificate the wildcard must be in
-it, or add the second certificate as §8.2 and use `tls /data/caddy/apps-certificates/fullchain.pem /data/caddy/apps-certificates/privkey.pem` in place of the `tls { on_demand }` block below.
+domain. Management and the dashboard must already be a release with published
+applications (§2), else upgrade them first (`02-server-operations.md` §4.2).
+
+**On a server installed with the on-prem one-liner**, one command adds them, once the
+check of `02-server-operations.md` §4.10 says the published script has the component
+commands:
+
+```bash
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh | sudo bash -s -- install reverse-proxy
+```
+
+It asks for the applications domain, refuses the server's own domain and
+`netzilo.network`, checks the wildcard DNS, reuses the server's certificate when it covers
+the wildcard, asks for a second certificate and key when it does not (Let's Encrypt
+servers need none), validates the new Caddyfile before the running Caddy sees it, and
+ends with the dashboard steps. Everything it does and what stops it: `02-server-operations.md`
+§4.10. The same command reinstalls a broken reverse proxy, keeping its domain and data.
+Then the gates below and **Settings → Permissions**.
+
+**Anywhere else** (AWS and Azure image servers, or a published one-liner without the
+component commands), the reverse proxy joins in place with the procedure below. Never
+re-run the installer for it: that wipes the server (`01-server-install.md` §1.4, §8).
+Needs a server shell. Let's Encrypt installs only; for a provided certificate the wildcard
+must be in it, or add the second certificate as §8.2 and use `tls /data/caddy/apps-certificates/fullchain.pem /data/caddy/apps-certificates/privkey.pem` in place of the `tls { on_demand }` block below.
 
 ```bash
 C=/opt/netzilo            # /opt/netzilo/run on AWS and Azure images
@@ -559,15 +578,27 @@ and a site at the end:
 Apply and gate:
 
 ```bash
-sudo docker compose config -q && sudo docker compose up -d reverse-proxy && sudo docker compose restart caddy
+sudo docker compose config -q
+sudo docker run --rm -v "$C/Caddyfile":/etc/caddy/Caddyfile:ro "$(sudo docker inspect caddy --format '{{.Config.Image}}')" \
+  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile | tail -1   # Gate 0b: "Valid configuration" (provided-certificate servers: add the certificate mounts from the caddy service)
+sudo docker compose up -d reverse-proxy && sudo docker compose restart caddy
 sudo docker compose logs --tail=20 reverse-proxy | grep 'publishing on'          # Gate 1: "publishing on [::]:8444"
-curl -sS -o /dev/null -w '%{http_code}\n' -H 'Accept: application/json' "https://nz-check.$APPS/"   # Gate 2: 404 (a name nobody publishes)
+sudo docker exec caddy wget -qS -O /dev/null "http://reverse-proxy:9090/tls-ask?domain=nz-check.$APPS" 2>&1 | head -1   # Gate 2: "HTTP/1.1 404" — Caddy reaches the reverse proxy
 ```
 
-Gate 2 proves DNS, the certificate path and Caddy → reverse proxy in one request; `000`
-or a TLS error means the wildcard record or the certificate (§11.3). Then **Settings →
+Gate 2 is Caddy asking the reverse proxy about a name nobody publishes, which is the
+request on-demand TLS makes before issuing. It does not test DNS or the certificate. On a
+**provided-certificate** server, one more request does: `curl -sS -o /dev/null -w
+'%{http_code}\n' -H 'Accept: application/json' "https://nz-check.$APPS/"` returns `404`
+over the wildcard certificate; `000` or a TLS error means the wildcard record or the
+certificate (§11.3). On a **Let's Encrypt** server that request fails its TLS handshake by
+design (an unpublished name never gets a certificate, §8.2), so the end-to-end proof is
+the first published application: publish one, then §11.1. Then **Settings →
 Permissions**: the switch and the domain with the server's IP. Rollback: restore the two
 `.bak-` files, `sudo docker compose up -d --remove-orphans && sudo docker compose restart caddy`.
+A reverse proxy added by `install reverse-proxy` rolls back from the folder that command
+printed (`02-server-operations.md` §4.10.2, case 1), which also holds the Caddyfile and
+the `apps-certs/` it staged.
 
 ### 8.4 Kubernetes
 
@@ -718,7 +749,9 @@ curl -sS -w '\nunpublished -> %{http_code}\n' -H 'Accept: application/json' "htt
 
 Expected: `302` to `https://<workplace>/publish-auth?host=…&rd=…&state=…`; `401` with
 `{"error":"sign in required","login":"…"}`; `404` with `{"error":"There is no application
-at this address"…}`. All three over a valid certificate.
+at this address"…}`. All three over a valid certificate — except the third on a
+self-hosted server with Let's Encrypt, where an unpublished name has no certificate and
+the handshake fails instead (§8.2); that is the design, not a fault.
 
 With a user's token (§6; never paste it into a ticket):
 

@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 66635
+chars: 67653
 sections:
 - id: '1'
   title: How it works
@@ -31,7 +31,7 @@ sections:
   chars: 2386
 - id: '6'
   title: Adding the gateway to a server installed without it
-  chars: 8411
+  chars: 9258
 - id: '7'
   title: Running the gateway on another host
   chars: 4441
@@ -49,7 +49,7 @@ sections:
   chars: 14020
 - id: '12'
   title: Introducing it to existing installations
-  chars: 2301
+  chars: 2472
   requires:
   - api
   executable_on:
@@ -438,9 +438,20 @@ admin endpoints from the host, see §10.2.
 ## 6. Adding the gateway to a server installed without it
 
 A compose server installed before the gateway existed runs nine containers and has no
-`gateway` service. **Do not re-run the installer to add it: that wipes the server**
-(`02-server-operations.md` §10). The gateway joins in place, like the AI worker does
-(`42-ai-assistant-self-hosted.md` §6.1).
+`gateway` service. On a server installed with the on-prem one-liner, its upgrade mode
+adds the gateway when the server serves HTTPS, and `install gateway` adds it alone, or
+replaces a broken one keeping its data (`02-server-operations.md` §4.10, including the
+check that the published script has these commands):
+
+```bash
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh | sudo bash -s -- install gateway
+```
+
+Run the gates of §6.3 afterwards and skip §6.1–6.2. Anywhere else (AWS and Azure image
+servers, or when the published one-liner has no upgrade mode) **do not re-run the
+installer: that wipes the server** (`02-server-operations.md` §10). The gateway joins in
+place with the procedure below, like the AI worker does (`42-ai-assistant-self-hosted.md`
+§6.1).
 
 ### 6.1 Before you start
 
@@ -601,6 +612,11 @@ A host firewall (`ufw`, `firewalld`) does not see Docker-published ports; the cl
 what matters there.
 
 ### 6.5 Rollback
+
+A gateway added by the one-liner's upgrade or `install gateway` rolls back from the
+folder that command printed (`02-server-operations.md` §4.10.2, case 1); it holds
+`caddy-data-seed/` as well, Caddy's certificates as they were. The lines below are for
+the in-place procedure:
 
 ```bash
 cd "$C"
@@ -1050,7 +1066,7 @@ in this order.
 |---|---|---|---|
 | Netzilo Cloud | already current | provided at `srv.netzilo.com:8443`; optional own gateway (§7, bound) | — |
 | Custom one-liner, current installer | current | bundled (§5) | open `8443/tcp` on a self-managed host |
-| Custom one-liner, older | update both (`02-server-operations.md` §4.2) | add in place (§6), never re-run the installer | open `8443/tcp` |
+| Custom one-liner, older | `update all`, or `update management` then `update dashboard` (`02-server-operations.md` §4.10; §4.2 when the published script lacks the commands) | `install gateway` (§4.10 there), or in place (§6) when the script lacks it; never any other re-run of the installer | open `8443/tcp` |
 | AWS or Azure image, current | current | bundled | template opens `8443` |
 | AWS or Azure image, older | update both (`02-server-operations.md` §4.5) | add in place (§6) | add the rule (§6.4) |
 | Kubernetes | update both | deploy the container (§8) | expose the Service |

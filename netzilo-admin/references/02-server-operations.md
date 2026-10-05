@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 68611
+chars: 85720
 sections:
 - id: '1'
   title: Know which layout you are on
@@ -19,16 +19,16 @@ sections:
   chars: 1203
 - id: '4'
   title: Upgrading
-  chars: 13208
+  chars: 29253
 - id: '5'
   title: Configuration changes
   chars: 2332
 - id: '6'
   title: Backup
-  chars: 15758
+  chars: 16007
 - id: '7'
   title: Restore
-  chars: 8686
+  chars: 9043
 - id: '8'
   title: TLS certificates
   chars: 3490
@@ -37,7 +37,7 @@ sections:
   chars: 965
 - id: '10'
   title: Re-running the installer — DESTRUCTIVE
-  chars: 1203
+  chars: 1593
 - id: '11'
   title: Firewall reference
   chars: 2955
@@ -52,7 +52,7 @@ sections:
   chars: 566
 - id: '15'
   title: Quick reference
-  chars: 816
+  chars: 884
 - id: '16'
   title: Answers to the architecture questions customers ask
   chars: 1918
@@ -350,7 +350,9 @@ pinned to a digest and a pull changes nothing until you edit the reference (§4.
 
 This is the procedure to use when asked to update management, the dashboard, signal or
 the identity provider. Pull and recreate only the named service; leave everything else
-alone.
+alone. On a server installed with the on-prem one-liner, `install-netzilo.sh update
+<component>` does the same with a backup first and the readiness wait built in (§4.10);
+the commands below are what it runs, and the way on every other layout.
 
 ```bash
 S=management                      # or: signal | dashboard | zitadel
@@ -472,7 +474,10 @@ sudo sed -E "s#^([[:space:]]*image:[[:space:]]*)${IMG//./\\.}[@:].*#\1$OLD#" "$B
 sudo docker compose up -d --no-deps "$S"
 ```
 
-The previous image is still on the host, so this needs no network.
+The previous image is still on the host, so this needs no network. After a §4.10
+command the same information is in its backup folder: `images-before.txt` holds the
+image IDs, and the folder's `docker-compose.yml` names the references that were running,
+so the rollback there is the file restore of §4.10.2, not this edit.
 
 Two cases need more than that:
 
@@ -496,6 +501,12 @@ sudo docker image prune -f
 This removes images no container references. The digests in your pre-upgrade file remain
 pullable from the registry if ever needed.
 
+On a one-liner server also clear the backup folders the §4.10 commands left once the
+server is confirmed healthy, keeping the newest if you like: each holds every secret the
+server has. `sudo ls -1 /opt/netzilo/backups/` lists them; `sudo rm -rf
+/opt/netzilo/backups/<folder>` removes one. Copy a folder off the host first if the
+customer wants to keep that rollback point.
+
 ### 4.9 Things an upgrade does not do
 
 - It does not change `management.json`, the `Caddyfile`, `turnserver.conf` or the
@@ -504,7 +515,217 @@ pullable from the registry if ever needed.
 - It does not require clients to be upgraded. There is no protocol version gate; clients
   keep working across a server upgrade (§16).
 - It does not renew or reissue certificates, change the domain, or alter the plan.
-- It is **not** achieved by re-running the installer. That wipes the server (§10).
+- It is **not** achieved by re-running the installer, with one exception: a one-liner
+  whose wrapper has the upgrade mode (§4.10), for the whole server or one component at a
+  time. Any other re-run wipes the server (§10).
+
+### 4.10 The on-prem one-liner: upgrade the server, or one component
+
+For servers installed with the custom one-liner, compose files in `/opt/netzilo`. Newer
+releases of its wrapper upgrade an existing server in place instead of wiping it, and
+update or (re)install one component at a time. **Older releases wipe it.** The URL does
+not tell them apart, so check the script you are about to run, every time:
+
+```bash
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh > /tmp/nz-wrapper.sh
+grep -q -- '--upgrade' /tmp/nz-wrapper.sh && echo "upgrade mode: available" \
+  || echo "upgrade mode: NOT available — do not re-run it; upgrade with §4.2–4.3"
+grep -q 'install <component>' /tmp/nz-wrapper.sh && echo "component commands: available" \
+  || echo "component commands: NOT available — add components in place (42 §6.1, 43 §6, 44 §8.3)"
+```
+
+When they are available, the commands are:
+
+| Command | What it does |
+|---|---|
+| `… \| sudo bash -s -- --upgrade` (or `update all`) | upgrades the whole server: backup and database dump, the configuration newer releases add, every Netzilo image, one service at a time |
+| `… \| sudo bash -s -- update <component>` | moves one component to the latest image, after a backup; nothing else is touched |
+| `… \| sudo bash -s -- install <component>` | adds a component the server lacks, or replaces a broken one with a fresh container and definition; its data volume and settings are kept |
+| `… \| sudo bash -s -- --reinstall` | the only command that erases the server; asks you to type `ERASE` |
+
+`<component>` is one of `zitadel`, `management`, `dashboard`, `signal`, `support-worker`,
+`gateway`, `reverse-proxy`. The full form:
+
+```bash
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh | sudo bash -s -- --upgrade
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh | sudo bash -s -- update gateway
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh | sudo bash -s -- install reverse-proxy
+```
+
+`--upgrade` is also what happens without any argument when the script finds an existing
+installation; the flag only makes the intent explicit. Every command asks for one
+confirmation; `--yes` skips it. Set `NETZILO_IMAGE_TAG` to move to a specific release
+instead of `latest`. All of them refuse a server in the AWS or Azure image layout,
+`/opt/netzilo/run`; upgrade those as §4.5.
+
+**The full upgrade**, in order:
+
+| Step | What happens | What stops it |
+|---|---|---|
+| 1. Backup | copies every configuration file, the identity provider's `machinekey/`, `certs/`, `apps-certs/`, `CREDENTIALS`, the state file and the image each container runs into `/opt/netzilo/backups/upgrade-<UTC time>/` (root-only), and takes a full database dump, `postgres-all.sql.gz` | a dump that fails or does not contain the `netzilo` database stops it before anything changes. With an external database it cannot dump, it stops unless `NETZILO_UPGRADE_DB_BACKED_UP=1` says you took a snapshot |
+| 2. Configuration | adds only what newer releases render and the server lacks: the AI Assistant's `support-worker` service with its `SupportConfig` block and one shared token; on an HTTPS server, the clientless-access `gateway` service (see below); the dashboard's package mirror setting; the identity provider's database pool settings. Switches the identity provider to `start-from-setup`, so a newer image runs its schema migrations before it starts. Existing values are never changed | the two token copies disagreeing stops it without writing anything. A result that does not validate is undone from the backup |
+| 3. Images | pulls the latest `zitadel`, `management`, `dashboard`, `signal`, `support-worker`, `gateway` and `reverse-proxy` images (the last two where the server runs them) and recreates them one at a time, the identity provider first, waiting for each: sign-in discovery answering `200`, the API answering `401`, the dashboard page, `signal` running, the worker healthy, the gateway logging `proxy listening`, the reverse proxy logging `publishing on` | a service that does not come back stops it and prints the rollback commands |
+| 4. Report | the image list before and after, the backup location, and how to roll back | — |
+
+The gateway is added only to a server that serves HTTPS; a plain-HTTP or IP-only server
+gets none. It is the same service a fresh install renders, and it reads the certificate
+Caddy serves:
+
+- **Provided certificate:** the gateway mounts the same certificate folder Caddy does.
+  Caddy is not touched.
+- **Let's Encrypt:** Caddy keeps its certificates inside its container, where the gateway
+  cannot read them. The upgrade copies them out (`caddy-data-seed/` in the backup) into a
+  new named volume, `netzilo_caddy_data`, mounts it as Caddy's `/data` and read-only into
+  the gateway, and recreates Caddy once. The sign-in page is down for those seconds; the
+  upgrade waits for the dashboard to answer `200` again before it goes on.
+
+Then run the gateway's gates (`43-clientless-access-gateway.md` §6.3), open `8443/tcp`
+inbound and switch clientless access on (§3 there); the report says so. Caddy, coturn,
+Postgres and Redis keep the images they run (§4.6). The full upgrade never adds published
+applications, because they need a domain, DNS and a certificate chosen by the operator:
+that is `install reverse-proxy`, below.
+
+**One component.** `update <component>` and `install <component>` back up the same
+files into `/opt/netzilo/backups/<command>-<component>-<UTC time>/`, with the database
+dump only for `zitadel` and `management` (the two that migrate the database); then they
+change that one service, recreate it with `--no-deps`, wait for the same readiness check
+the full upgrade uses, and print the rollback. `update` moves it to the latest image and
+nothing else. `install` writes the definition a fresh install would render, over any
+existing one, so a service someone edited into a broken state comes back as shipped; its
+named volume, token and settings survive, and on an installed component the script says
+so before it asks for confirmation. `install zitadel|management|dashboard|signal` is the
+same as `update` for them plus a forced recreation of the container.
+
+- `install support-worker` adds the AI Assistant's worker with its `SupportConfig` block
+  and shared token (`42-ai-assistant-self-hosted.md` §6.1 explains what that is). The
+  Assistant appears once an owner connects an AI provider.
+- `install gateway` adds the clientless-access gateway as the full upgrade does (above);
+  it refuses a plain-HTTP server. Then §6.3 of `43-clientless-access-gateway.md`.
+- `install reverse-proxy` adds published applications. It asks for the **applications
+  domain** (default `apps.<server domain>`, or the one already configured when the reverse
+  proxy is being reinstalled), refuses the server's own domain and anything under
+  `netzilo.network`, checks that a random name under the wildcard resolves to the same
+  address as the server, warning when it does not, and decides the certificate:
+
+  | The server's certificate | What happens |
+  |---|---|
+  | Let's Encrypt | nothing more to answer: Caddy gets one certificate per published name on its first visit, after asking the reverse proxy whether the name is published (`44-published-applications.md` §8.2) |
+  | provided, and it lists `*.<applications domain>` | reused as is |
+  | provided, and it does not | asks for a second certificate and key for the wildcard (`NETZILO_APPS_CERT_FILE` / `NETZILO_APPS_KEY_FILE` with `--yes`), checks the wildcard name, that the key belongs to it and that it has not expired, stages them in `/opt/netzilo/apps-certs/`, and mounts them for Caddy; a staged pair from an earlier run is reused |
+
+  It then confirms the image can serve published applications, writes the
+  `reverse-proxy` service and the Caddy site for `*.<applications domain>`, validates the
+  new Caddyfile in a throwaway Caddy container before the running Caddy sees it (a
+  rejected file restores the backup), starts the reverse proxy, reloads Caddy, and checks
+  that Caddy reaches the reverse proxy's `/tls-ask`. It ends with the three steps the
+  customer still owns: the wildcard DNS record, **Settings → Permissions** (allow
+  published applications, add the domain with the server's address), **Edge →
+  Applications**. With `--yes`, `NETZILO_APPS_DOMAIN` is required.
+
+Afterwards run the gates of §4.1 and `01-server-install.md` §1.5.
+
+#### 4.10.1 What every command backs up
+
+Before any command changes anything it writes `/opt/netzilo/backups/<command>-<UTC
+time>/`, readable by root only:
+
+| In the backup | Content |
+|---|---|
+| `docker-compose.yml`, `management.json`, `zitadel.env`, `dashboard.env`, `Caddyfile`, `turnserver.conf`, `.env` | every configuration file as it was, image references included |
+| `CREDENTIALS`, `netzilo-state.env` | the admin credentials and the install's state file |
+| `machinekey/`, `certs/`, `apps-certs/` | the identity provider's bootstrap key, the provided certificate, the applications certificate; whichever exist |
+| `images-before.txt`, `images-after.txt` | each container's image reference and local image ID before and after: the same role as the pre-upgrade file of §4.1, with the IDs of images still on the host instead of registry digests |
+| `postgres-all.sql.gz` | a `pg_dumpall` of the bundled Postgres: the `netzilo` and `zitadel` databases and the roles, as plain SQL. Taken by the full upgrade, `update`/`install zitadel` and `update`/`install management`, the commands that can migrate the schema; verified (`gzip -t`, and the `netzilo` database must be in it) before anything changes. An external database is never dumped: the command stops until `NETZILO_UPGRADE_DB_BACKED_UP=1` says you took the provider's snapshot |
+| `caddy-data-seed/` | Caddy's data with its Let's Encrypt certificates, only when the gateway was added to a Let's Encrypt server |
+
+Not copied, because no command deletes or rewrites them: the named volumes. Postgres's
+data, Redis, the identity provider's certificates, Caddy's certificates and the gateway
+and reverse-proxy data stay where they are through every command, and a rollback does
+not need copies of them. Peers, users, groups, policies and identities are in Postgres,
+which the dump covers.
+
+This backup is the rollback anchor for that one command. It is **not** the disaster
+recovery backup of §6: it has no management data volume, no manifest, no checksums and
+no off-host copy. Keep the scheduled backup running; before a full upgrade, run it as
+§4.1 step 3 says, so a complete backup exists from the same hour.
+
+#### 4.10.2 Restoring from it
+
+Three cases, from the common one to the rare one. In every case, the command printed the
+first one as its rollback hint.
+
+**1. The new configuration or image is wrong, the database is fine.** Any failed
+`update`, any `install` whose component does not come back, an upgrade after which the
+dashboard, the gateway or published applications misbehave but sign-in works. Putting the
+files back also puts the old images back, because `docker-compose.yml` names them:
+
+```bash
+cd /opt/netzilo
+B=/opt/netzilo/backups/<the folder the command printed>
+sudo cp -a "$B"/{docker-compose.yml,management.json,zitadel.env,dashboard.env,Caddyfile} .
+sudo docker compose up -d --remove-orphans && sudo docker compose restart caddy
+```
+
+`--remove-orphans` stops a container the backup's compose file does not know, such as a
+reverse proxy that `install reverse-proxy` added. Its volume stays; the next `install`
+reuses it. A certificate pair staged in `apps-certs/` stays too. Then the §2.1 gates.
+
+**2. Management will not start on the new image, or the old one after case 1.** The log
+shows `auto migrate:` and the container restarts in a loop: the schema moved and the
+image you run cannot read it. Restore the dump **and** the old images together, never one
+of them alone (§4.7). Do case 1 first, with its final line left out, then the restore
+below.
+
+**3. The identity provider.** If zitadel started cleanly on the new image, leave it on
+that image and restore nothing of its database: its migrations are forward-only and the
+old image on the new schema is what breaks every login. Restore the dump only when
+zitadel itself failed to start and sign-in is already down.
+
+The restore of `postgres-all.sql.gz`, as one fail-stop script. It keeps the current
+databases under a `prerestore_` name instead of dropping them, so a failed restore is
+undone by renaming them back (§7.1's recovery steps apply unchanged); it needs disk space
+for a second copy of both (`df -h /var/lib/docker`). Every change since the backup is
+lost; tell the customer and get a "yes" first.
+
+```bash
+sudo B=/opt/netzilo/backups/<the folder> bash -s <<'EOF'
+set -Eeuo pipefail
+cd /opt/netzilo
+[ -s "$B/postgres-all.sql.gz" ] && gzip -t "$B/postgres-all.sql.gz" || { echo "REFUSING: no usable dump in $B"; exit 1; }
+PGU=$(docker exec postgres printenv POSTGRES_USER 2>/dev/null || echo postgres)
+OLD=prerestore_$(date -u +%Y%m%d_%H%M%S)   # digits only: Postgres lowercases unquoted names
+trap 'rc=$?; [ "$rc" -eq 0 ] || echo "RESTORE FAILED (exit $rc). Stack left STOPPED. Do not start it; rename the _$OLD databases back as 02 §7.1 describes." >&2' EXIT
+sql() { docker exec -i postgres psql -X -q -v ON_ERROR_STOP=1 -U "$PGU" -d postgres "$@"; }
+
+docker compose stop $(docker compose config --services | grep -vxE 'db|redis')
+docker compose up -d db redis
+for i in $(seq 1 60); do docker exec postgres pg_isready -U "$PGU" -q && break; sleep 2; done
+docker exec postgres pg_isready -U "$PGU" -q
+
+sql -c "ALTER DATABASE netzilo RENAME TO netzilo_$OLD"
+sql -c "ALTER DATABASE zitadel RENAME TO zitadel_$OLD"
+# pg_dumpall recreates the roles and databases; the roles exist, so their CREATE lines
+# are dropped and the ALTER lines that follow reset them to the same values.
+gzip -dc "$B/postgres-all.sql.gz" | grep -v '^CREATE ROLE ' | sql
+docker compose exec -T redis redis-cli FLUSHALL        # the cache describes the replaced data
+echo "RESTORED. Previous databases kept as netzilo_$OLD and zitadel_$OLD"
+docker compose up -d
+EOF
+```
+
+Then the §2.1 gates and a sign-in. Once the customer confirms the restored state, drop
+the kept copies: `sudo docker exec postgres psql -U postgres -c 'DROP DATABASE netzilo_<suffix>' -c 'DROP DATABASE zitadel_<suffix>'`.
+The dump restores only what it holds; a gateway or reverse proxy added by the command
+after the dump keeps its definition in the compose file you restored in case 1.
+
+Each backup folder holds every secret the server has (`ZITADEL_MASTERKEY`, the
+`DataStoreEncryptionKey`, database passwords, the worker token, private keys). Once the
+server is confirmed healthy, copy the folder off the host or delete it; a server that
+has been upgraded many times should not accumulate them (§4.8).
+
+`--reinstall` is the only way this script still erases a server. It asks you to type
+`ERASE`, and `--yes` skips that prompt, so never pass `--yes --reinstall` to a server you
+mean to keep.
 
 ---
 
@@ -572,6 +793,10 @@ backup; never proceed with a destructive operation on the strength of one.
 | `/opt/netzilo/metering.env`, `/opt/netzilo/.provisioned` (images) | Optional | metering settings; `.provisioned` stops first boot from installing over a restored image host |
 | Let's Encrypt certificates | Not captured | re-issued automatically on the first HTTPS request after restore |
 | Redis | Not captured | a cache; rebuilt from the database at start |
+
+The folders a one-liner command leaves in `/opt/netzilo/backups/` (§4.10.1) hold the
+configuration and a `pg_dumpall` but no management data volume, manifest, checksums or
+off-host copy. They roll back one command; they do not replace this backup.
 
 Compose prefixes volume names with the project (directory) name, so the volumes appear
 as `netzilo_netzilo_management` (on-premises) or `run_netzilo_management` (images). Find
@@ -848,6 +1073,11 @@ Rules for every restore:
 
 ### 7.1 Same host, data corruption or bad upgrade
 
+For the dump a §4.10 command took (`postgres-all.sql.gz`, plain SQL from `pg_dumpall`),
+use the restore in §4.10.2; the `pg_restore` lines below read the custom-format dumps of
+§6.2 only. Both keep the replaced databases under a `prerestore_` name and share the
+recovery steps at the end of this section.
+
 Needs free disk space for a second copy of both databases (`df -h /var/lib/docker`).
 After a bad upgrade, first put the old image references back in `docker-compose.yml`
 (§4.7, without its final `up` line), then run the restore: its last step starts the
@@ -863,7 +1093,7 @@ sha256sum -c --quiet SHA256SUMS || { echo "REFUSING: checksum mismatch in $B"; e
 grep -qx 'db_mode=container' MANIFEST || { echo "REFUSING: external database; use 7.3"; exit 1; }
 cd "$C"
 PGU=$(sed -n 's/^[[:space:]]*- POSTGRES_USER=//p' docker-compose.yml | head -n 1); PGU=${PGU:-postgres}
-OLD=prerestore_$(date -u +%Y%m%dT%H%M%SZ)
+OLD=prerestore_$(date -u +%Y%m%d_%H%M%S)   # digits only: Postgres lowercases unquoted names
 trap 'rc=$?; [ "$rc" -eq 0 ] || echo "RESTORE FAILED (exit $rc). Stack left STOPPED. Do not start it; follow the recovery steps in 7.1. Suffix: $OLD" >&2' EXIT
 sql() { docker exec -i postgres psql -X -q -v ON_ERROR_STOP=1 -U "$PGU" -d postgres "$@"; }
 
@@ -1085,6 +1315,12 @@ If the customer insists on migrating, the honest answer is:
 
 ## 10. Re-running the installer — DESTRUCTIVE
 
+The exception is the one-liner's upgrade mode and its `update`/`install <component>`
+commands, on on-prem servers, once you have checked that the published script has them
+(§4.10). Everything below applies to every other re-run:
+the engine `install_netzilo.sh` itself, a one-liner without the upgrade mode, `--reinstall`,
+and marketplace first boot.
+
 The installer detects a previous installation **only by the presence of
 `docker-compose.yml` or `zitadel.env` in its working directory**, and when it runs
 non-interactively (the on-prem wrapper, AWS/Azure firstboot, or `NETZILO_ASSUME_YES=1`)
@@ -1096,8 +1332,8 @@ the admin account are lost.**
 
 Therefore:
 
-- Never re-run `install-netzilo.sh` / `install_netzilo.sh` on a working server to
-  "repair" or "reconfigure" it.
+- Never re-run `install_netzilo.sh`, or an `install-netzilo.sh` without the upgrade mode
+  (§4.10), on a working server to "repair" or "reconfigure" it.
 - Never remove `/opt/netzilo/.provisioned` on a marketplace image and start
   `netzilo-firstboot.service` — same effect.
 - If a re-install really is wanted (e.g. new domain), run the backup (§6.2), pass the
@@ -1248,7 +1484,7 @@ S=management; sudo docker compose pull "$S" && sudo docker compose up -d --no-de
 sudo test -s /opt/netzilo/CREDENTIALS && echo "admin login: /opt/netzilo/CREDENTIALS"   # read it only when handing over
 ```
 
-Never: re-run the installer on a live server; change the domain in place; `down --volumes`
+Never: re-run the installer on a live server, except the one-liner's upgrade mode and component commands (§4.10); change the domain in place; `down --volumes`
 or any other destructive step without a passing backup gate (§6.3) and explicit customer
 consent.
 

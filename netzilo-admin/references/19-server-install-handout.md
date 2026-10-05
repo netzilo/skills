@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 10364
+chars: 11649
 sections:
 - id: step-1-check-the-prerequisites
   title: Step 1 — Check the prerequisites
@@ -28,7 +28,7 @@ sections:
   chars: 1722
 - id: managing-your-server
   title: Managing your server
-  chars: 2000
+  chars: 3285
 - id: troubleshooting
   title: Troubleshooting
   chars: 1254
@@ -248,8 +248,31 @@ done
 ```
 
 Your data is in named volumes and in files next to this compose file; updating containers
-does not touch it. Never add `-v` to `docker compose down`, and never re-run the installer
-to update: both erase the server.
+does not touch it. Never add `-v` to `docker compose down`: it erases the server.
+
+To update, use the install script's upgrade command. Check first that the script you
+fetch has it; an older script erases the server when run again:
+
+```bash
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh > /tmp/nz-wrapper.sh
+grep -q -- '--upgrade' /tmp/nz-wrapper.sh && echo "safe to upgrade" || echo "STOP: this script would erase the server"
+```
+
+If it says safe:
+
+```bash
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh | sudo bash -s -- update all        # everything
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh | sudo bash -s -- update gateway    # one component
+curl -fsSL https://pkg.netzilo.com/download/install-netzilo.sh | sudo bash -s -- install reverse-proxy   # add published applications
+```
+
+Each command backs up your configuration (and the database for the whole-server upgrade)
+to `/opt/netzilo/backups/` before it changes anything, and prints how to roll back: three
+lines that copy the files back and restart. If something is wrong after an update, run
+those lines and tell support which folder you used. Those folders contain your server's
+secrets: once the server works, delete the old ones (`sudo rm -rf
+/opt/netzilo/backups/<folder>`). They are a rollback for one update, not a backup of your
+server; keep the backup from the operations guide running.
 
 ---
 

@@ -7,6 +7,77 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 2.18.0 — 2026-10-05
+
+The on-prem one-liner can upgrade a server instead of wiping it, and update or
+(re)install one component at a time.
+
+- **New `02-server-operations.md` §4.10 — upgrading with the one-liner.** Newer releases
+  of the one-liner's wrapper detect an existing installation in `/opt/netzilo` and
+  upgrade it in place: a full backup and database dump first, which stops the upgrade if
+  it fails; only the configuration newer releases add and the server lacks (the AI
+  Assistant's worker with its `SupportConfig` and shared token, the package mirror
+  setting, the identity provider's pool settings, the identity provider starting with
+  `start-from-setup` so it migrates its schema); the Netzilo images pulled and recreated
+  one at a time, identity provider first, with a readiness check after each and the
+  rollback printed if one does not come back. `--upgrade` makes it explicit, `--yes`
+  skips the confirmation, `--reinstall` is the only way left to erase a server and asks
+  for `ERASE`. On an HTTPS server it also adds the clientless-access gateway, the same
+  service a fresh install renders: with a provided certificate it mounts Caddy's
+  certificate folder; with Let's Encrypt it moves Caddy's data into the named volume
+  `netzilo_caddy_data`, seeded from the running container so no new certificate is
+  requested, and recreates Caddy once. Gateway and reverse-proxy images are upgraded where
+  they run. It refuses AWS and Azure image servers and does not add published
+  applications. `43-clientless-access-gateway.md` §6 now points one-liner servers there
+  and keeps the manual procedure for the rest.
+- **One component at a time: `update <component>` and `install <component>`** (§4.10),
+  for `zitadel`, `management`, `dashboard`, `signal`, `support-worker`, `gateway` and
+  `reverse-proxy`; `update all` is the full upgrade. `update` moves one component to the
+  latest image after a backup (with a database dump for the two that migrate it) and
+  waits for its readiness check. `install` adds a component the server lacks, or writes
+  the definition a fresh install renders over a broken one, keeping its volume, token and
+  settings. `install reverse-proxy` adds published applications: it asks for the
+  applications domain, refuses the server's own domain and `netzilo.network`, checks the
+  wildcard DNS, reuses the server's certificate when it covers the wildcard, asks for a
+  second certificate and key when it does not and checks them (wildcard name, key match,
+  expiry), validates the new Caddyfile in a throwaway Caddy before the running one
+  reloads, and ends with the dashboard steps. `42-ai-assistant-self-hosted.md` §6.1,
+  `43-clientless-access-gateway.md` §6 and §12.1, `44-published-applications.md` §8.3,
+  `01-server-install.md` §0 and §1.4, `18-server-install-gated.md`,
+  `19-server-install-handout.md` and `02` §4.2 point one-liner servers at these commands
+  and keep the in-place procedures for AWS and Azure images and for a published script
+  without them.
+- **The command's backup, and restoring from it: `02` §4.10.1–4.10.2.** What every
+  command writes to `/opt/netzilo/backups/<command>-<time>/` (configuration, keys,
+  certificates, image digests, a verified `pg_dumpall` for the commands that can migrate
+  the schema, Caddy's data when the gateway was added) and what it leaves alone (the
+  volumes); that it rolls back one command and does not replace the §6 backup; the three
+  restore cases (configuration and images; management that cannot read the schema, dump
+  and old image together; the identity provider, left alone once it started), with a
+  fail-stop restore of the `pg_dumpall` that keeps the replaced databases under a
+  `prerestore_` name. §4.7, §4.8, §6.1 and §7.1 point at it, as do
+  `03-server-troubleshooting.md` §8 and the rollbacks of `42` §6.1, `43` §6.5 and `44`
+  §8.3 for a component the command added; the handout tells the customer what to do with
+  the folder. The restore was run against a real Postgres 16: rows and schema back to the
+  dump, the kept copy intact, the identity provider's role and ownership kept. One
+  correction from that run, in §4.10.2 and the older §7.1: the `prerestore_` suffix is
+  now digits only, because Postgres lowercases an unquoted name and the printed suffix
+  with `T`/`Z` did not match the database it named.
+- **Check before every re-run.** Older wrappers still wipe the server, and the URL is
+  the same, so §4.10 opens with a check of the published script for the upgrade mode and
+  for the component commands, and every passage that said re-running wipes the server
+  now says it does so unless that check passes: `01-server-install.md` §0 and §1.4, `02`
+  §4.9, §10 and the closing summary, `00-operator-playbook.md`,
+  `42-ai-assistant-self-hosted.md` §6.1, `43-clientless-access-gateway.md` §6 and
+  `44-published-applications.md` §8.3.
+- **Correction, `44-published-applications.md` §8.3 and §11.1.** The gate that asked
+  `https://nz-check.<apps domain>/` for a `404` cannot pass on a Let's Encrypt server: an
+  unpublished name never gets a certificate there (§8.2), so the handshake fails by
+  design. §8.3 now proves Caddy → reverse proxy with the `/tls-ask` request Caddy itself
+  makes, keeps the `404` request for provided-certificate servers, validates the Caddyfile
+  before Caddy restarts, and names the first published application as the end-to-end
+  proof; §11.1 says the same about its third request.
+
 ## 2.17.0 — 2026-10-01
 
 Posture checks at a published application's door, the access events, and the rule to
