@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 67653
+chars: 68352
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 12753
+  chars: 12785
   requires:
   - api
   executable_on:
@@ -25,7 +25,7 @@ sections:
   - human-operator
 - id: '4'
   title: Where the gateway can run
-  chars: 3084
+  chars: 3527
 - id: '5'
   title: The bundled gateway (compose installs)
   chars: 2386
@@ -40,13 +40,13 @@ sections:
   chars: 1514
 - id: '9'
   title: Configuration reference
-  chars: 2761
+  chars: 3007
 - id: '10'
   title: Operating it
   chars: 7860
 - id: '11'
   title: Troubleshooting
-  chars: 14020
+  chars: 13998
 - id: '12'
   title: Introducing it to existing installations
   chars: 2472
@@ -235,9 +235,9 @@ a running session within about a minute, as any policy change does.
 
 Rules for the **Netzilo Gateway** item (API: `advanced_settings_check.netzilo_gateway_check`):
 
-- **Attach it to network policies only.** On a profile's domain settings, a workspace or an
-  MCP filter it is evaluated by the device's client, which is never a gateway session, so
-  it blocks every device.
+- **Attach it to network policies only.** On a profile's domain settings or a workspace
+  it is evaluated by the device's client, which is never a gateway session, so it blocks
+  every device. (Edge filters carry no posture checks at all.)
 - **Combine it with nothing an endpoint must report.** A check holding the gateway item
   and, say, a firewall item fails for sessions on the firewall item and for devices on the
   gateway item: it admits nobody.
@@ -341,6 +341,12 @@ poll. With the client running, the Devices tab is back as before.
 The gateway is a single stateless-enough container (it keeps only a session counter and,
 in node mode, its peer key). It does not have to run next to management: it talks to
 management over its public URL like any client does.
+
+Two binaries share this code. `gateway` is this file's subject: browser access on `8443`
+and, in the reverse-proxy container, published applications (`44-published-applications.md`).
+`netzilo-aigw` (`27-ai-gateway.md`) is the same binary with the LLM/MCP upstream built in:
+it runs the browser proxy on `:8443` as well (always on; bind it to loopback when only
+the AI gateway is wanted), takes the same flags, and adds the AI door on `8447`.
 
 | Form | When | Section |
 |---|---|---|
@@ -754,7 +760,7 @@ container's `args`. Change them there and recreate the container
 | `--listen` | `:8443` | proxy address |
 | `--tls-cert`, `--tls-key` | — | PEM certificate and key; reloaded when the files change |
 | `--tls-cert-dir`, `--tls-domain` | — | take the certificate for a domain from a Caddy storage directory (`…/caddy/certificates`) |
-| `--insecure-plain-http` | off | serve without TLS on a non-loopback address; credentials travel in clear. Never for browsers |
+| `--insecure-plain-http` | off | serve without TLS on a non-loopback address; credentials travel in clear. Never for browsers. The AI Gateway binary (`netzilo-aigw`, `27-ai-gateway.md`) shares these flags and its installer defaults to plain HTTP on both of its listeners with `--workplace-url` set; this file's advice (TLS for browsers) still stands for the browser proxy |
 | `--admin-listen` | `127.0.0.1:9090` | `/healthz` and `/readyz`; empty disables |
 | `--idle-timeout` | `60m` | stop a session's tunnel after this long without traffic |
 | `--revalidate` | `10m` | re-present each session's credential to management this often |
@@ -968,7 +974,7 @@ matching enabled profile for the OS, or the profile is Disabled).
 | Peers show the gateway's IP for sessions | §7.4 | remote gateway behind the server's Caddy without `trusted_proxies` |
 | Mac or Windows browser users refused a resource that the PAC does send to the gateway | the policy's OS version check | the session's OS version comes from the User-Agent (macOS `10.15.7`, Windows `10.0`); remove OS minimums from browser users' policy or gate it on the Netzilo Gateway item (§3.4) |
 | a policy with the Netzilo Gateway item admits nobody | the posture check's other items | an endpoint item in the same check fails every session; keep the gateway item alone in its check (§3.4) |
-| desktop or mobile clients lose a domain, a workspace or MCP tools after a posture check was attached | whether it carries the Netzilo Gateway item | clients evaluate profile and filter checks themselves and are never gateway sessions; attach the gateway item to network policies only (§3.4) |
+| desktop or mobile clients lose a domain or a workspace after a posture check was attached | whether it carries the Netzilo Gateway item | clients evaluate profile checks themselves and are never gateway sessions; attach the gateway item to network policies only (§3.4) |
 | the activity log fills with *Peer access blocked* for `vp-<n>-PROXY` peers | the reasons | expected for policies with endpoint checks (§3.4); scope those policies' source groups, or leave it |
 | Workplace shows **Private access · Suspended** | the hover (the extension's own reason); the popup's Private access row; §10.3 for the user | the extension has no proxy installed or its last gateway probe failed: it is off, logged out or paused, its proxy setting is blocked (the reason says so), or the gateway is down (`/readyz`); it turns Online within 15 s of the gateway answering the extension |
 | Workplace still shows **Devices** on a browser-only computer | the popup | the user's routing is off for this browser (§3.2), so no private access is expected; or a Netzilo client answers on this computer |

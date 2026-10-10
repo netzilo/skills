@@ -7,26 +7,26 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 23469
+chars: 27734
 sections:
 - id: '1'
   title: Rules of engagement
   chars: 3399
 - id: '2'
   title: What Netzilo is (30-second model)
-  chars: 2148
+  chars: 2938
 - id: '3'
   title: 'Triage: route the request'
-  chars: 5273
+  chars: 6662
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
 - id: '5'
   title: Canonical facts (memorize)
-  chars: 2842
+  chars: 3651
 - id: '6'
   title: Known product gaps to warn about proactively
-  chars: 2136
+  chars: 3413
 - id: '7'
   title: Closing a task
   chars: 329
@@ -100,9 +100,19 @@ this folder. Read it fully before your first action.
   **dashboard**. Cloud tenants use `https://go.netzilo.com` (dashboard) and
   `https://srv.netzilo.com` (management); self-hosted customers have one domain serving
   everything on 443.
-- **AI Detection & Response (AIDR):** the client also runs a TLS-inspecting proxy, an
-  MCP gateway, hooks for coding agents, and an SDK; **Edge Tools / Scanners / Filters**
-  in the dashboard define what AI agents may do; events feed Activity and Reports.
+- **AI Detection & Response (AIDR):** on the device the client runs a TLS-inspecting
+  proxy, hooks for coding agents, and an SDK (there is no local MCP gateway any more);
+  the dashboard's **Edge** pages hold the policy objects — **Providers**, **MCP** servers
+  and bundles, **Guardrails**, **Limits** and **Filters** (endpoint filters for devices,
+  gateway filters for users); verdicts arrive as `ai.*` events and feed Activity, Reports
+  and the home page's **Agentic Activity** (`10-ai-security-aidr.md`).
+- **AI Gateway:** the **Netzilo AI Gateway** (`netzilo-aigw`, a peer of the account) sits
+  between any agent and the organisation's LLM providers and MCP servers: it identifies
+  callers as Netzilo users from the bearer token (or the calling peer), applies their
+  gateway filters — model grants, limits, MCP servers and bundles, guardrails — and
+  records usage facts. Users find their gateways, models, MCP servers and the token to
+  paste at Workplace → **Agentic Access** (`27-ai-gateway.md`,
+  `47-agentic-access-workplace.md`).
 - **Secure workplace:** **Profiles** deliver Enterprise Workspace (isolated enclave for
   Windows apps), Enterprise Browser, Disposable Browser, and the browser extension
   (DLP: redaction, watermark, clipboard/print/download controls).
@@ -150,7 +160,13 @@ first; go to the device to see what the account cannot.
 | "Automate with the API / export-import / bulk changes / tokens / IaC" | `09-api-and-automation.md` |
 | "Reach internal apps from a browser without the client" / "Private access unavailable" in the extension / install, add or debug the gateway / proxy errors in the browser | `43-clientless-access-gateway.md` |
 | "Publish an internal web app at its own address" / "the application tile is missing" / "Access Denied" or "Access Failed" opening a published application / "There is no application at this address" / install or add the reverse proxy / call an application from a script | `44-published-applications.md` |
-| "Govern AI agents / MCP / Claude Code hooks / SDK / browser extension / Enterprise Browser / Edge filters / test detection rules" | `10-ai-security-aidr.md` |
+| "Govern AI agents / Claude Code hooks / SDK / browser extension / Enterprise Browser / which enforcement point (device or AI gateway) / test detection rules" | `10-ai-security-aidr.md` (the gateway side continues in `27-ai-gateway.md`) |
+| "Set up / run the AI gateway", connect Claude Code / Cursor / Codex / Claude Desktop to it, 401 / 403 / 405 / 429 from the gateway, the Workplace card shows Offline | `27-ai-gateway.md` (install, doors, refusals, logs) + `47-agentic-access-workplace.md` (what the user sees and pastes) |
+| "Providers, models, limits" / "model X is not granted" / spend or token quotas | `45-ai-gateway-providers-and-limits.md` |
+| "MCP servers, bundles, MCP sign-in, Needs Attention, Claude Desktop connector" | `46-ai-gateway-mcp-servers-and-bundles.md` |
+| "Guardrails" (write, replay, bind, why a rule did not fire) | `28-edge-guardrails.md` |
+| "Filters" — endpoint (devices) vs gateway (users); "the filter is not applying" | `29-edge-filters.md` |
+| "AI usage / Agentic Activity / tokens and cost per user, model, gateway" | `30-activity-reports-and-integrations.md` §2–3 |
 | "Write a detection rule for threat X" (Sigma rule or Starlark behaviour script) | `32-detection-rule-authoring.md` (rule-author persona, full field/action/Starlark reference), then `10-ai-security-aidr.md` §8 to deploy and replay it |
 
 Per-configuration deep dives (field-by-field reference, procedures, API, and "why is
@@ -161,14 +177,19 @@ it not applying" diagnosis) — load the one matching the dashboard page in ques
 | Network → Policies | `20-policies-access-control.md` |
 | Endpoint → Posture Checks | `21-posture-checks.md` |
 | Network → Routes, exit nodes, routing peers | `22-network-routes-and-exit-nodes.md` |
-| Network → DNS Servers / DNS Settings | `23-dns-management.md` |
+| Network → DNS (Servers \| Settings) | `23-dns-management.md` |
+| Network → Applications (published applications) | `44-published-applications.md` |
 | Endpoint → Peers, Setup Keys | `24-peers-and-setup-keys.md` |
 | Team → Users / Agents, Settings, Tenant | `25-users-groups-and-account-settings.md` |
 | Endpoint → Profiles (Workspace, Enterprise Browser, Disposable Browser, Extension) | `26-profiles-secure-workplace.md` |
-| Edge → Tools (approved / discovered MCP) | `27-edge-tools-and-mcp.md` |
-| Edge → Scanners | `28-edge-scanners.md` |
-| Edge → Filters | `29-edge-filters.md` |
-| Activity → Events / Reports, Dashboard, Integrations | `30-activity-reports-and-integrations.md` |
+| Edge → Providers | `45-ai-gateway-providers-and-limits.md` §1 |
+| Edge → MCP (tabs MCP Servers \| MCP Bundles) | `46-ai-gateway-mcp-servers-and-bundles.md` |
+| Edge → Guardrails | `28-edge-guardrails.md` |
+| Edge → Limits | `45-ai-gateway-providers-and-limits.md` §2 |
+| Edge → Filters (endpoint and gateway) | `29-edge-filters.md` |
+| The AI gateway itself (`netzilo-aigw`: install, doors, refusals, logs) | `27-ai-gateway.md` |
+| Workplace → Agentic Access (what users see) | `47-agentic-access-workplace.md` |
+| Activity → Events / Reports, Dashboard home, Integrations | `30-activity-reports-and-integrations.md` |
 
 
 Cloud vs self-hosted: for **Netzilo Cloud** customers skip 01–03 and 04 §3–§8 (Netzilo
@@ -304,7 +325,7 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Domain | permanent once installed; must not be `*.netzilo.com` |
 | Zitadel console | `https://<domain>/ui/console` |
 | Client binary / service | `netzilo` / service `Netzilo`; config `/etc/netzilo/config.json` or `%PROGRAMDATA%\Netzilo\config.json`; log `client.log` next to it |
-| Client defaults | management `https://srv.netzilo.com:443`; WireGuard UDP 51820; interface `wt0`/`utun100`; MTU 1280; loopback ports 41336–41339 |
+| Client defaults | management `https://srv.netzilo.com:443`; WireGuard UDP 51820; interface `wt0`/`utun100`; MTU 1280; loopback ports 41336 (control and hooks: `/command`, `/ws`, `/evaluate`), 41337 (the same over TLS), 41339 (the inspecting SOCKS5/HTTP proxy) — 41338 is gone with the local MCP gateway |
 | Client needs | outbound TCP 443 (management/signal/relay), UDP any for direct tunnels; no inbound |
 | Downloads | `https://pkg.netzilo.com/download/…` (Windows `windows/netzilo_setup.exe`, macOS `macos/{amd64,arm64}/nz_installer_*.pkg`, Linux `linux/install_netzilo_linux.sh`), stores: Play `io.netzilo.app`, App Store `6532624291`, Chrome `kdcpnkonhjcknlkjmjapclhpoamlckji`, Edge `efflopncanncclcfnddajplbnmhoebml` |
 | Peer IPs / names | `100.64.0.0/10`; `<name>.netzilo.network` |
@@ -312,7 +333,8 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Login expiration | SSO peers default 24 h (account setting); setup-key peers never expire |
 | Setup key facts | revoking does not disconnect enrolled peers; auto-groups apply to new peers only; ephemeral = deleted 10 min after offline |
 | `netzilo down`, service stop/restart | all log the device out and reset its keys; an SSO device then needs an interactive sign-in. To re-sync without logging out use `netzilo refresh` (or `mod.refresh`) |
-| Free plan limits (cloud) | 5 users, 100 peers; Enterprise needed for Profiles, Edge Tools/Scanners/Filters; self-hosted runs unlimited |
+| Free plan limits (cloud) | 5 users, 100 peers; no posture-check edits, no event streaming; Enterprise needed for Profiles; filters and guardrails carry no plan gate; self-hosted runs unlimited |
+| AI Gateway | binary `netzilo-aigw`, Linux service `netzilo-aigw`, config `/etc/netzilo-aigw/aigw.env` (`AIG_ARGS`, `NZ_GATEWAY_SETUP_KEY`, `NZ_GATEWAY_SERVICE_PAT`), data `/var/lib/netzilo-aigw`; ports 8447 (AI door: on the peer's tunnel address always, public with `--ai-listen`) and 8443 (browser-access proxy, always on); `--workplace-url https://go.netzilo.com` on Cloud; callers send `Authorization: Bearer <token>` (never `x-api-key`); surfaces `<gateway>/v1/…`, `<gateway>/anthropic` (`…/v1/messages`), `<gateway>/mcp/<slug>`; logs `journalctl -u netzilo-aigw` (`27-ai-gateway.md`) |
 | Support | support@netzilo.com; docs `https://doc.netzilo.com`; public rule corpus `github.com/netzilo/aidr-sigma` |
 
 ---
@@ -346,9 +368,26 @@ It is a tool you may use; it is never evidence about the customer's environment.
   session's OS version comes from the User-Agent (macOS frozen at 10.15.7, Windows 11 as
   10.0), so OS-minimum posture rules misjudge browser users (`43` §3.4); the Netzilo
   Gateway posture item belongs on network policies only (`43` §3.4).
+- **The AI Gateway governs prompts and model grants on the OpenAI chat surface only**
+  (`/v1/chat/completions`); the Responses API, the Anthropic Messages surface (Claude
+  Code), embeddings and completions are identified, limited and counted, not scanned
+  (`27` §1). Do not promise a prompt block for a Claude Code user.
+- **Windows: no service for `netzilo-aigw`** — the installer puts the binary on the PATH
+  only; a persistent gateway on Windows needs a service wrapper or scheduled task the
+  admin provides (`27` §3).
+- **Old clients report AI verdicts with codes the server no longer knows** (`tool.*`);
+  those rows show as unknown activity on the Activity page. Upgrade the clients; the
+  current codes are `ai.allowed/blocked/redacted/redirected/detected`.
+- **MCP sign-in flows live in one management process** (10 minutes in memory): a
+  self-hosted server with several management replicas needs session affinity, or a user's
+  OAuth sign-in to an MCP server can fail with "the sign-in expired or was not started
+  here" (`46` §4).
+- **Limits are per user per gateway** — there is no team pool, two gateways count
+  separately, and changing a user's grants or limits restarts their counters (`45` §2).
 - **Older documentation pages** may mention `pkgs.netzilo.com`, port 33073,
-  `app.netzilo.co`, a `netzilo/netzilo` Docker image, or a `match/except` rule syntax.
-  The values in these runbooks are current.
+  `app.netzilo.co`, a `netzilo/netzilo` Docker image, a `match/except` rule syntax, Edge
+  Tools, scanners, or a client MCP gateway on port 41338. The values in these runbooks
+  are current.
 
 ---
 

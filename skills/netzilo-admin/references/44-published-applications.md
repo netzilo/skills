@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 61621
+chars: 64244
 sections:
 - id: '1'
   title: How it works
-  chars: 4411
+  chars: 4641
 - id: '2'
   title: Requirements and support
   chars: 2320
@@ -25,7 +25,7 @@ sections:
   - human-operator
 - id: '4'
   title: Publishing an application
-  chars: 9417
+  chars: 9860
   requires:
   - api
   executable_on:
@@ -37,22 +37,22 @@ sections:
   chars: 3071
 - id: '6'
   title: 'Non-interactive access: scripts and services'
-  chars: 2156
+  chars: 2851
 - id: '7'
   title: Where the reverse proxy runs
   chars: 1532
 - id: '8'
   title: Self-hosted installation
-  chars: 9454
+  chars: 9457
 - id: '9'
   title: Configuration reference
-  chars: 2160
+  chars: 2880
 - id: '10'
   title: Operating it
   chars: 7347
 - id: '11'
   title: Troubleshooting
-  chars: 10895
+  chars: 11400
 - id: '12'
   title: Supporting a user who cannot open an application
   chars: 3425
@@ -64,7 +64,7 @@ sections:
   - human-operator
 - id: '13'
   title: Limits
-  chars: 1297
+  chars: 1324
 ---
 # Published applications and the Netzilo reverse proxy
 
@@ -115,14 +115,17 @@ customers skip those. Logs and health are §10; symptoms are §11.
    a virtual peer of the user, named `vp-<n>-RPROXY`, registered in the account as an
    ephemeral peer, with that user's policies, routes and DNS. The target is dialled
    through that tunnel and nowhere else. The application gets two headers naming the user
-   (`Nz-User-Id`, `Nz-User-Email`), and the address it was published under in
-   `X-Forwarded-Host`; redirects and cookies it sets for its internal name are rewritten
+   (`Nz-User-Id`, `Nz-User-Email`), the address it was published under in
+   `X-Forwarded-Host`, and, when **Forward the user's credential** is on (§4), the user's
+   token as `Authorization: Bearer`; redirects and cookies it sets for its internal name are rewritten
    to the published address. Its certificate is never verified (a private service behind
    an authenticated tunnel; self-signed and internal certificates are the rule).
 7. The session lasts 12 hours at most and is re-checked against management every
    10 minutes with the evidence of its sign-in: an application removed, a group or a
-   posture check changed, or a user blocked takes effect within that interval; a token
-   management no longer accepts ends the session at once. A change on the device itself
+   posture check changed, or a user blocked takes effect within that interval — and
+   within about 40 seconds for a change to the application itself, which the reverse
+   proxy watches every 10 seconds (§9); a token management no longer accepts ends the
+   session at once. A change on the device itself
    is seen at the next sign-in, not at a re-check.
    The next navigation goes through the Workplace again, silently when the Workplace
    session is still alive.
@@ -219,7 +222,7 @@ Verify link: `{"configured":true,"matches_gateway":true,"resolves_to":["203.0.11
 
 ## 4. Publishing an application
 
-**Edge → Applications** (administrators). The table lists name, **Address**, target,
+**Network → Applications** (administrators). The table lists name, **Address**, target,
 groups and an **Active** switch per row; filters All / Active / Inactive and by group; a
 search box. **Add Application** opens a two-step modal:
 
@@ -231,6 +234,7 @@ search box. **Add Application** opens a two-step modal:
 | **Target** | where the reverse proxy forwards to **through the user's private connection**: `http://` or `https://`, a host name or IP, an optional port, **no path**. Loopback, link-local and cloud-metadata addresses are refused; anything else is accepted here and judged at request time by the user's tunnel. A name is resolved by that tunnel (peer DNS, nameserver groups), so an internal name works when the user's DNS settings resolve it. |
 | **Groups** | who may open it: the user must be in one of them (auto-groups and **All** count). Empty means nobody. |
 | **Send the address as Host header** (`preserve_host`) | off by default: the target sees its own host name. On for applications that compare the `Host` header with the address they were published under. |
+| **Forward the user's credential** (`forward_credential`) | off by default. On, the reverse proxy sends the signed-in user's token to the application as `Authorization: Bearer`, for applications that verify users with Netzilo themselves — an **AI Gateway** published this way (`27-ai-gateway.md` §5.3) identifies the caller from it. Leave it off for any other application: the token is the user's Netzilo credential. |
 | **Enable Application** | an application off is kept but not served (`404` at its address). |
 
 **Posture Checks** (second tab): the account's posture checks the accessing device must
@@ -312,7 +316,7 @@ API (`33-api-request-schemas.md` for the bodies):
 
 ```
 GET    /api/published-apps                     the tenant's applications (administrators)
-POST   /api/published-apps                     {name, description, domain, target, groups, enabled, preserve_host, posture_checks, any_check_must_pass}
+POST   /api/published-apps                     {name, description, domain, target, groups, enabled, preserve_host, forward_credential, posture_checks, any_check_must_pass}
 PUT    /api/published-apps/{appId}             same body
 DELETE /api/published-apps/{appId}
 GET    /api/published-apps/check?domain=crm.apps.example.com[&except=<appId>]
@@ -389,9 +393,18 @@ curl https://grafana.apps.example.com/api/health \
 
 - `X-Netzilo-Bearer` is consumed by the reverse proxy and never reaches the application;
   **`Authorization` and every other header pass through as sent**, so an application that
-  expects a bearer of its own gets it. `Proxy-Authorization: Bearer …` is honoured too,
-  but a TLS-terminating proxy in front (Caddy on self-hosted, most ingress controllers)
-  drops it as hop-by-hop before the reverse proxy sees it: use `X-Netzilo-Bearer`.
+  expects a bearer of its own gets it. The Netzilo token may also be presented as
+  `Proxy-Authorization: Bearer <token>` or as `Authorization: Bearer <token>` (the form
+  AI agents and SDKs send; `x-api-key` is **not** a credential and is ignored as one).
+  `Proxy-Authorization` is dropped as hop-by-hop by a TLS-terminating proxy in front
+  (Caddy on self-hosted, most ingress controllers) before the reverse proxy sees it, so
+  prefer `X-Netzilo-Bearer` or `Authorization: Bearer`.
+- An **AI Gateway** published this way (`27-ai-gateway.md` §5.3) receives the user's own
+  token as `Authorization: Bearer` when **Forward the user's credential** is on (§4), and
+  identifies the caller from it; with it off the gateway sees no credential and refuses.
+- A failed **POST** gets the reverse proxy's HTML error page, while a **GET** gets the JSON
+  below: test a published API with a GET first (for an AI gateway, `GET /v1/models`),
+  then the real call.
 - The credential is checked with management like a browser sign-in, and the caller must
   be admitted to the application. The token's owner is the user the application sees.
   Requests share one tunnel with that user's browsers at the same address on the same
@@ -449,7 +462,7 @@ and Caddy's site for it. The domain must differ from the server's domain (use a 
 Before or right after the install, create the wildcard record `*.apps.example.com → <the
 server's public IP>`. The installer warns when it does not resolve yet and continues.
 After the first login: **Settings → Permissions → Allow published applications**, add the
-domain with the server's IP, then **Edge → Applications**. The install's `CREDENTIALS`
+domain with the server's IP, then **Network → Applications**. The install's `CREDENTIALS`
 file ends with these three steps.
 
 The installer refuses the server's own domain and anything under `netzilo.network`, and
@@ -624,7 +637,7 @@ The binary is the gateway's; these are the reverse-proxy options (the rest as
 | `--publish-trusted-proxies` | none | CIDRs of the proxy in front whose `X-Forwarded-For`/`-Proto` are believed. Only that proxy: any host listed may state a browser address |
 | `--workplace-url` | the management URL | where users sign in; on a self-hosted server the server's own domain, on Cloud the dashboard. A wrong value refuses every sign-in with *The sign-in did not come from the Workplace* |
 | `--publish-session-max-age` | `12h` | longest a sign-in on one address lasts before the user signs in again |
-| `--revalidate` | `10m` | how often a session's admission is re-read from management |
+| `--revalidate` | `10m` | how often a session's admission is re-read from management; also the interval at which a session is re-admitted (groups, checks, token) when nothing else prompts it |
 | `--idle-timeout` | `60m` | a user's tunnel stops after this long without traffic |
 | `--max-sessions` | `2000` | sessions (tunnels) at once |
 | `--listen 127.0.0.1:8443 --egress off` | — | the forward-proxy listener the binary always has, parked on loopback with no egress: the reverse proxy serves nothing else |
@@ -634,6 +647,14 @@ The binary is the gateway's; these are the reverse-proxy options (the rest as
 Fixed: 32 web sessions per user (the oldest goes), 256 connections per client address
 (a proxy in front is exempt), 30 seconds to send a request body before sign-in, 20 refused
 credentials per address in 5 minutes, then 5 minutes blocked.
+
+**The application-change watcher** (not configurable). Every 10 seconds the reverse proxy
+asks management whether a published application changed (`GET /api/published-apps/exists?domain=`
+answers `{published, version}`); when one did, its sessions re-check their admission on
+their next request, and the log says `gateway: application at <host> changed: N session(s)
+will ask again`. A change to the target, the groups or the switch therefore reaches
+callers within about 40 seconds. Reverse proxies older than this release have no
+watcher and keep a stale target until the next `--revalidate`, up to 10 minutes.
 
 ## 10. Operating it
 
@@ -791,6 +812,7 @@ curl -sS -H "Authorization: Token $USER_TOKEN" https://<api-host>/api/users/curr
 | **Too many attempts** (`429`) | `blocked for 5m0s` | 20 refused credentials from that address: a script with a stale token, or someone guessing; wait 5 minutes, fix the script |
 | **Connecting** (`503`, retries by itself) | the peer's `ready` line | the tunnel or its route is not up yet (the first request after an idle hour); it clears within seconds. Persisting: as *Access Failed* |
 | **Not reachable** (`502`) / **Timed out** (`504`) | debug log for the target | the target refused or did not answer within 20 seconds through the tunnel: the application itself, or the wrong port |
+| `502 The application did not answer.` on an **AI gateway** target | the application's target; the user's groups' policies; the reverse proxy's version (first log line) | the target lacks `:8447` (the proxy then dials port 80 of the gateway peer), or no policy lets the user's groups reach the gateway peer on TCP 8447, or a reverse proxy older than this release still holds a stale target (up to 10 minutes, §9). Fix the target as `http://<gateway-name>.netzilo.network:8447`; `27-ai-gateway.md` §5.3 |
 | the application loads but links, redirects or logins go to its internal name | the application's configuration | it builds absolute URLs from its configured base address: set that to the published address, or turn on **Send the address as Host header** (§4) |
 | the application works for some users only | §11.1 with each user's token; their groups and policies | groups admit them differently, or their policies reach the target differently (§4) |
 | **Peers** show the server's or the ingress's IP for `vp-<n>-RPROXY` | the container's `--publish-trusted-proxies` | it does not cover the proxy in front (compose: `172.20.0.0/24`; Kubernetes: the pod network) |
@@ -873,4 +895,4 @@ line), the time, and the user's e-mail.
   first use; a provided certificate must be a wildcard (§8.2).
 - The reverse proxy trusts the proxy in front of it for client addresses and nothing
   else; behind a proxy that does not forward `Proxy-Authorization`, API clients must use
-  `X-Netzilo-Bearer` (§6).
+  `X-Netzilo-Bearer` or `Authorization: Bearer` (§6).

@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14723
+chars: 14729
 sections:
 - id: '1'
   title: Model
@@ -20,7 +20,7 @@ sections:
   chars: 835
 - id: '4'
   title: Procedures
-  chars: 2818
+  chars: 2824
 - id: '5'
   title: What the routing peer does (for verification)
   chars: 899
@@ -166,7 +166,7 @@ egress IP that the SaaS allow-lists. Clients re-resolve every minute
 
 ### 4.5 Exit node for a group
 Peers → Linux peer → ⋮ → **Add Exit Node** → distribution group `travellers`. Then
-Network → DNS Servers → add a resolver **without match domains** for `travellers` so DNS
+Network → DNS → Servers tab → add a resolver **without match domains** for `travellers` so DNS
 also leaves through the exit node. Policy `travellers → <exit-node group>` ALL.
 IPv6 is dropped by design on exit-node clients. While no exit node in the network is
 connected to a client, that client uses its local internet connection (§1); give the

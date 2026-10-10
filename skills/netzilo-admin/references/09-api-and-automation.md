@@ -7,32 +7,32 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 22925
+chars: 29132
 sections:
 - id: '0'
   title: The server and an admin token come first
   chars: 1903
 - id: '1'
   title: Authentication
-  chars: 1556
+  chars: 2640
 - id: '2'
   title: Endpoint catalogue
-  chars: 3739
+  chars: 6007
 - id: '3'
   title: Field reference (request bodies)
-  chars: 4947
+  chars: 7132
 - id: '4'
   title: Recipes
-  chars: 3212
+  chars: 3682
 - id: '5'
   title: Client-side automation
   chars: 709
 - id: '6'
   title: Rate limits, pagination, gotchas
-  chars: 3265
+  chars: 3273
 - id: '7'
   title: How the API reports failure
-  chars: 3151
+  chars: 3343
 ---
 # Netzilo — Public API and Automation
 
@@ -93,10 +93,27 @@ A PAT sent as `Bearer nzl_…` is accepted too. Errors: `token invalid`,
 `only users with admin power can perform this operation`.
 
 Permissions follow the token owner's role. Regular users can only read (and manage their
-own tokens); admins/owners and admin-role service users can write. Admin-only paths:
-`/reports`, `/posture-checks`, `/events`, `/dns/*`, `/stats`, `/summary`, `/edge/*`
-(except `GET /edge/filters`), `/tenant`, `/integrations`, `/event-streaming`, `/mfa`,
-`/groups`, `/templates`, `/ai/providers`, `/ai/models`, `/ai/protocols` (provider writes are owner only).
+own tokens); admins/owners and admin-role service users can write. Admin-only paths
+(reads included): `/reports`, `/posture-checks`, `/events`, `/dns/*`, `/stats`,
+`/summary`, `/edge/guardrails`, `/edge/providers`, `/edge/limits`, `/edge/mcp-servers`,
+`/edge/virtual-mcps`, `/edge/mcp-catalog`, `/edge/filters/effective`, every write under
+`/edge/filters`, `/tenant`, `/integrations`, `/event-streaming`, `/mfa`, `/groups`,
+`/templates`, `/ai/providers`, `/ai/models`, `/ai/protocols` (provider writes are owner
+only).
+
+**Caller-scoped endpoints** any user may call with their own token, and which return
+only that user's view: `GET /users/current/ai-access` (their gateways, models, MCP
+servers, guardrails), `GET/POST/PUT/DELETE /users/current/mcp-connections…` (their MCP
+sign-ins), `GET /edge/filters?os=<os>` (their own endpoint filters), `GET
+/users/{own id}/gateway-sessions`, `GET /users/current/published-apps` and `POST
+/users/current/published-apps/access`.
+
+**Token scope.** A PAT is created with `scope: ""` (everything the owner's role allows)
+or `scope: "mcp"`, which only lets the token identify its user to AI gateways: `GET
+/users`, `GET /users/current/ai-access`, `GET /users/current/published-apps` and `POST
+/users/current/published-apps/access`, nothing else. The **AI Gateway** token the
+Workplace creates for a user is `mcp`-scoped and lives 90 days
+(`47-agentic-access-workplace.md` §2). Scripts need an unscoped token.
 
 Recommended: create a dedicated **Agent** (service user) with role **admin** for
 automation so tokens don't die with an employee's account.
@@ -131,11 +148,17 @@ nz /users | jq '.[] | {id,email,role,is_service_user}'
 | Profiles (Enterprise) | `GET/POST /profiles`, `PUT/DELETE /profiles/{id}`, `GET /templates`, `GET /templates/{category}` |
 | Tenant | `GET/PUT /tenant`, `POST /tenant/subscription`, `POST /tenant/subscription/confirm`, `GET/POST/DELETE /tenant/logo`, `GET /tenant/logo/info` |
 | Integrations | `GET/POST /integrations`, `PUT/DELETE /integrations/{id}` (platforms `twilio`, `cloudflare`, `static`; posting an AI platform here is refused) |
-| AI providers (Integrations → Artificial Intelligence) | `GET/POST /ai/providers`, `PUT/DELETE /ai/providers/{id}`, `POST /ai/providers/verify` (draft), `POST /ai/providers/{id}/verify`, `GET /ai/protocols`, `GET /ai/models?use=assistant\|log-analysis\|threat-analysis`, `GET /ai/capabilities` — OpenAI, Anthropic and any compatible endpoint; see `30-activity-reports-and-integrations.md` §4a |
+| AI providers (Integrations → Artificial Intelligence) | `GET/POST /ai/providers`, `PUT/DELETE /ai/providers/{id}`, `POST /ai/providers/verify` (draft), `POST /ai/providers/{id}/verify`, `GET /ai/protocols`, `GET /ai/models?use=assistant\|log-analysis\|threat-analysis`, `GET /ai/capabilities` — **management's own AI** (the Assistant, smart search, guardrail generation, the AI judge), OpenAI, Anthropic and any compatible endpoint; see `30-activity-reports-and-integrations.md` §4a. Not the AI gateway's upstream providers, which are `/edge/providers` below; the two lists are independent |
 | Event streaming | `GET/POST /event-streaming`, `DELETE /event-streaming/{id}`, `GET /event-streaming/getLogVideos`, `POST /event-streaming/sign-urls` |
 | MFA | `GET/PUT/POST /mfa` |
-| AI Edge | `GET/POST /edge/tools`, `GET /edge/tools/catalog`, `GET/PUT/DELETE /edge/tools/{id}`; `GET/POST /edge/scanners`, `GET /edge/scanners/catalog`, `GET/POST /edge/scanners/generate`, `GET/PUT/DELETE /edge/scanners/{id}`; `GET/POST /edge/filters`, `GET/PUT/DELETE /edge/filters/{id}`; `GET /edge/discovered-tools`, `POST /edge/discovered-tools/{id}/sanction\|block\|analyze`, `DELETE /edge/discovered-tools/{id}`; `POST /edge/events` |
-| AIDR | `GET /peers/{id}/aidr-snapshot[?run_id=]`, `GET …/aidr-snapshot/events`, `GET …/aidr-snapshot/search?q&run_id`, `POST …/aidr-snapshot/replay {run_id, rules_yaml}`, `GET /peers?has_aidr_graph=true` |
+| AI Edge — guardrails | `GET/POST /edge/guardrails`, `GET/PUT/DELETE /edge/guardrails/{id}`, `GET/POST /edge/guardrails/generate` (AI rule generation; 428 when no model is approved for Threat Analysis, 422 when the provider is not approved); `/edge/scanners…` still answers as an alias. `28-edge-guardrails.md` §5 |
+| AI Edge — providers, limits | `GET/POST /edge/providers`, `GET/PUT/DELETE /edge/providers/{id}`, `POST /edge/providers/discover` (list a provider's models); `GET/POST /edge/limits`, `GET/PUT/DELETE /edge/limits/{id}`. `45-ai-gateway-providers-and-limits.md` |
+| AI Edge — MCP servers, bundles | `GET/POST /edge/mcp-servers`, `GET/PUT/DELETE /edge/mcp-servers/{id}`, `POST /edge/mcp-servers/{id}/oauth` (admin's shared sign-in), `DELETE /edge/mcp-servers/{id}/credential`; `GET/POST /edge/virtual-mcps`, `GET/PUT/DELETE /edge/virtual-mcps/{id}` (bundles); `GET /edge/mcp-catalog` (reference library, not what is configured). `46-ai-gateway-mcp-servers-and-bundles.md` §7 |
+| AI Edge — filters, events | `GET/POST /edge/filters`, `GET/PUT/DELETE /edge/filters/{id}`, `GET /edge/filters/effective?type=gateway\|endpoint&user=&peer=` (what applies to someone), `GET /edge/filters/{id}/expanded`; `POST /edge/events` (devices, the extension and gateways post verdicts). `29-edge-filters.md` §3. **Gone (404):** `/edge/tools*`, `/edge/discovered-tools*`, `/edge/scanners/catalog` |
+| AI gateway (service token; read by gateways, not for scripts) | `GET /ai-gateway/providers` (credentials in clear), `GET /ai-gateway/mcp`, `GET /ai-gateway/mcp-credentials` (stored sign-ins in clear), `POST /ai-gateway/usage` (`27-ai-gateway.md` §7) |
+| Caller-scoped (any user, own view) | `GET /users/current/ai-access`; `GET /users/current/mcp-connections`, `POST /users/current/mcp-connections/{serverId}/oauth`, `POST /users/current/mcp-connections/complete`, `PUT /users/current/mcp-connections/{serverId}/headers`, `DELETE /users/current/mcp-connections/{serverId}`; `GET /users/{id}/gateway-sessions`; `GET /users/current/published-apps`, `POST /users/current/published-apps/access` |
+| Published applications | `GET/POST /published-apps`, `PUT/DELETE /published-apps/{id}`, `GET /published-apps/check?domain=[&except=]`, `GET /published-apps/exists?domain=` (no token; `{published, version}`). `44-published-applications.md` §4 |
+| AIDR (behaviour graph) | `GET /aidr/sessions`, `GET /aidr/graph`, `GET /aidr/observations`, `GET /aidr/detections`, `GET /aidr/search?q=` — all take `scope=source:<peerId>\|account\|actor:<id>\|session:<id>`, `since`, `until`; `POST /aidr/replay {scope, since, until, rules_yaml, limit}` (rule YAML above 1 MB is rejected). The former `/peers/{id}/aidr-snapshot*` paths answer 404 |
 | Smart search / AI | `GET/POST /smartsearch`, `POST /ai/scanprompt` |
 | Unauthenticated | `POST /register`, `POST /verify-recaptcha`, `GET /lookup-account?search=<subdomain>`, `GET /auth/tokens/{sessionId}`, `GET /getclient?os=windows\|macos-amd64\|macos-arm64` (301 to installer — currently redirects to filenames that return 404 on the CDN; use the dashboard download URLs instead) |
 
@@ -164,7 +187,7 @@ nz /support/openapi.yml | yq '.paths["/api/reports"].post.requestBody'     # liv
 
 **User** create: `{email, name, role:"owner|admin|user", auto_groups:[ids], is_service_user, password?, password_change_required?}`. Update: `{role, auto_groups, is_blocked, update_peer_groups}`. Read fields: `id, email, name, role, status (active|disabled|invited), last_login, auto_groups, is_current, is_service_user, is_blocked, issued, permissions.dashboard_view`.
 
-**PAT**: `POST /users/{id}/tokens {name, expires_in (days 1–365)}` → `{plain_token, personal_access_token{id,name,expiration_date,created_by,created_at,last_used}}`.
+**PAT**: `POST /users/{id}/tokens {name, expires_in (days 1–365), scope: "" | "mcp"}` → `{plain_token, personal_access_token{id,name,expiration_date,created_by,created_at,last_used}}`. `scope: "mcp"` restricts the token to identifying its user to AI gateways (§1); omit it for automation.
 
 **Peer** update: `{name, ssh_enabled, login_expiration_enabled, inactivity_expiration_enabled, approval_required}`. Read: `id, name, ip, connection_ip, connected, last_seen, os, kernel_version, version, ui_version, groups[], ssh_enabled, user_id, hostname, dns_label, login_expiration_enabled, login_expired, last_login, approval_required, country_code, city_name, serial_number, geoname_id, meta.netzilo_meta{device_id, domain_name, is_firewall_enabled, is_disk_encryption_enabled, is_av_enabled, is_av_updated, is_screen_locked, is_os_updated, is_virtual_device, is_being_debugged, is_netzilo_container, is_netzilo_browser}`.
 
@@ -184,7 +207,17 @@ nz /support/openapi.yml | yq '.paths["/api/reports"].post.requestBody'     # liv
 
 **Event streaming**: `{platform:"s3"|"min.io", enabled, config:{bucket, access_key, secret_key, region, endpoint?}}`.
 
-**Edge tool**: `{name, transport:"stdio|sse|streamable_http", description, url?, command?, args?, env?, categories:[…], icon, enabled}`. **Edge scanner**: `{name, description, severity:"low|medium|high|critical", context:[…], rule_yaml, enabled}`. **Edge filter**: `{name, description, enabled, os:["Windows","Darwin","Linux","Android","iOS"], groups:[ids], posture_checks:[ids], tools:[toolIds or "*"], scanners:[ids], agents:[process path globs], any_check_must_pass}`.
+**Guardrail** (`/edge/guardrails`): `{name, description, severity:"low|medium|high|critical", context:[…] (only the first value is stored), rule_yaml, enabled}`.
+
+**Filter** (`/edge/filters`): `{name, description, enabled, type:"endpoint"|"gateway" (empty = endpoint), groups:[ids], guardrails:[ids] (required for both types; `scanners` accepted as an alias), os:["Windows","Darwin","Linux","Android","iOS"] (endpoint, required), agents:[process path globs] (endpoint), models:["<providerId>/<model>" | "<providerId>/*"] (gateway), limits:[ids] (gateway), mcp:[{server_id, tools:["*"] | [names]}] (gateway), virtual_mcps:[bundleIds] (gateway), gateways:[{name, url}] (gateway; http(s) URL, no path)}`. On an endpoint filter the gateway-only fields are reset to empty. There are no `posture_checks`, `any_check_must_pass`, `tools` or `tool_ids` fields any more. `29-edge-filters.md` §3.
+
+**Provider** (`/edge/providers`): `{name, description, enabled, type (one of 33 types, e.g. openai, anthropic, azure, bedrock, ollama, vllm), base_url (required for ollama/vllm/sgl), credential:{… per type, e.g. api_key}, extra_headers:{}, insecure_skip_verify, models:[{name, display_name, enabled}]}`; the credential is write-only (masked on read; sending the mask keeps it). `POST /edge/providers/discover` lists a provider's models. `45` §1.
+
+**Limit** (`/edge/limits`): `{name, description, enabled, budget:{max_usd, reset}, tokens:{max, reset}, requests:{max, reset}}` — at least one of the three; `reset` is `hourly|daily|weekly|monthly|yearly`. Per user per gateway, lowest value wins across filters. `45` §2.
+
+**MCP server** (`/edge/mcp-servers`): `{name, description, enabled, slug, connection:"http"|"sse"|"stdio", url | command, args, env, extra_headers, insecure_skip_verify, code_mode, auth_type:"none"|"headers"|"per_user_headers"|"oauth"|"per_user_oauth", headers, per_user_header_keys, oauth:{client_id, client_secret, authorize_url, token_url, registration_url, scopes, resource}, icon_url, docs_url}`. **MCP bundle** (`/edge/virtual-mcps`): `{name, description, enabled, slug, tools:[{server_id, tools:["*"] | [names]}]}`. `46` §7.
+
+**Published application** (`/published-apps`): `{name, description, domain, target, groups, enabled, preserve_host, forward_credential, posture_checks, any_check_must_pass}` — `forward_credential` sends the signed-in user's token to the application as an Authorization bearer, for applications that verify users with Netzilo themselves, such as an AI gateway. `44-published-applications.md` §4.
 
 Events: `{id, timestamp, activity, activity_code, initiator_id, initiator_name, initiator_email, target_id, meta{…}}`.
 
@@ -215,14 +248,18 @@ nz /policies/$DEF | jq '.enabled=false | .rules |= map(.enabled=false)' > /tmp/d
 
 ### 4.3 Export everything (for backup or migration to a new server)
 ```bash
-mkdir -p export && for r in accounts users groups setup-keys policies posture-checks routes dns/nameservers dns/settings profiles edge/tools edge/scanners edge/filters integrations event-streaming ai/providers; do
+mkdir -p export && for r in accounts users groups setup-keys policies posture-checks routes dns/nameservers dns/settings profiles published-apps edge/guardrails edge/providers edge/limits edge/mcp-servers edge/virtual-mcps edge/filters integrations event-streaming ai/providers; do
   nz /$r > "export/$(echo $r | tr / _).json"; done
 nz "/events/paginated?limit=1000&offset=0" > export/events_page0.json
 ```
 Import order on the target: groups → posture-checks → policies → routes → dns → setup-keys
-→ edge tools → scanners → filters. Strip `id`/timestamps and remap group IDs by name.
-Users are recreated via the identity provider (`04-identity-and-sso.md`); peers must
-re-enrol (keys live on devices).
+→ published-apps → guardrails → providers → limits → mcp-servers → virtual-mcps → filters
+(filters reference all of the Edge objects by id, so they come last). Strip
+`id`/timestamps and remap group, guardrail, provider, limit and MCP ids by name; model
+grants are `<providerId>/<model>`, so rewrite the provider part. Provider credentials are
+masked in the export and must be re-entered; users' MCP sign-ins and the admin's shared
+sign-in are not exportable and are redone on the target. Users are recreated via the identity provider
+(`04-identity-and-sso.md`); peers must re-enrol (keys live on devices).
 
 ### 4.4 Find and clean stale peers
 ```bash
@@ -308,8 +345,8 @@ Two calls that are correct as written:
 # blocked-access events for one user, three-hour window
 nz "/events/paginated?date_from=2026-09-17T07:00:00Z&date_to=2026-09-17T10:00:00Z&code=peer.access.blocked&user=$UID&limit=200"
 
-# one peer's high-severity AIDR events, paged with a cursor rather than an offset
-nz "/peers/$PEER/aidr-snapshot/events?severity=high&limit=50&cursor=$LAST_EVENT_ID"
+# one peer's AIDR detections in the same window, from the behaviour-graph feed
+nz "/aidr/detections?scope=source:$PEER&since=2026-09-17T07:00:00Z&until=2026-09-17T10:00:00Z"
 ```
 
 ## 7. How the API reports failure
@@ -343,10 +380,11 @@ and check policies, routes, DNS nameserver groups, setup keys, users, profiles a
 filters for the group's identifier. Disabled DNS-management groups and identity-provider
 validator groups also block deletion and are the two people forget.
 
-**Tokens are scoped by role only.** A personal access token carries everything its
-owner's role allows. There is no per-endpoint scoping, so least privilege means choosing
-the role, not the token. Expiry is between one and 365 days and nothing warns you before
-it lapses.
+**Tokens are scoped by role, plus one optional narrowing.** A personal access token
+carries everything its owner's role allows; the only per-token restriction is
+`scope: "mcp"`, which reduces it to identifying the user to AI gateways (§1). There is no
+other per-endpoint scoping, so least privilege means choosing the role, not the token.
+Expiry is between one and 365 days and nothing warns you before it lapses.
 
 **There is no API version to pin to.** The prefix carries no version number.
 
@@ -360,7 +398,8 @@ creating.
 - A `limit` outside one to a thousand is ignored silently and the default of 25 is used.
   A bad value under-fetches instead of erroring.
 - A search term longer than 500 characters is silently truncated.
-- Scanner replay payloads above 512 KB are rejected.
+- Guardrail replay payloads (`POST /api/aidr/replay`) with more than 1 MB of rule YAML
+  are rejected.
 - Tenant logo uploads above 500 KB return 400 with a message naming the limit.
 - Devices batch their own events; the server caps a batch and says so.
 

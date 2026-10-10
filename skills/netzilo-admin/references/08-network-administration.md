@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 20510
+chars: 23891
 sections:
 - id: '1'
   title: Peers (Endpoint → Peers, `/peers`)
@@ -25,17 +25,17 @@ sections:
   title: Routes and exit nodes (Network → Routes, `/network-routes`)
   chars: 2562
 - id: '6'
-  title: DNS (Network → DNS Servers `/dns/nameservers`, DNS Settings `/dns/settings`)
-  chars: 2809
+  title: DNS (Network → DNS, one page `/dns` with tabs Servers | Settings `/dns?tab=settings`)
+  chars: 2952
 - id: '7'
   title: Posture checks (Endpoint → Posture Checks, `/posture-checks`)
-  chars: 2519
+  chars: 3696
 - id: '8'
   title: Activity, reports, integrations
-  chars: 2891
+  chars: 4889
 - id: '9'
   title: Multi-tenant / self-service (cloud and MSP servers)
-  chars: 759
+  chars: 781
 ---
 # Netzilo — Network Administration (Peers, Policies, Routes, DNS, Posture, Activity)
 
@@ -50,8 +50,8 @@ Mental model:
 - **Policies** (Network → Policies, URL `/access-control`) are the only thing that allows
   traffic between peers. There are only *allow* rules; anything not allowed is dropped.
   A new account has a **Default** policy `All → All, all protocols, bidirectional`.
-- **Posture checks** attach to policies (and to profiles/filters) and gate the *source*
-  peer.
+- **Posture checks** attach to policies (and to profiles and published applications —
+  not to Edge filters) and gate the *source* peer.
 - **Routes** publish external networks (LAN/VPC/Internet) through Linux **routing
   peers**; **DNS** distributes nameservers and gives every peer `<name>.<dns-domain>`.
 - Changes reach peers within ~30 s (peers pull the network map); `netzilo refresh` on a
@@ -234,9 +234,10 @@ replicas, `NET_ADMIN`, `SYS_ADMIN`, `SYS_RESOURCE`) → route via that peer grou
 
 ---
 
-## 6. DNS (Network → DNS Servers `/dns/nameservers`, DNS Settings `/dns/settings`)
+## 6. DNS (Network → DNS, one page `/dns` with tabs Servers | Settings `/dns?tab=settings`)
 
-Every peer gets `<dns-label>.<dns-domain>` (self-hosted servers use `netzilo.network`
+The API paths are unchanged: `/api/dns/nameservers` (the Servers tab) and
+`/api/dns/settings` (the Settings tab). Every peer gets `<dns-label>.<dns-domain>` (self-hosted servers use `netzilo.network`
 from the management `--dns-domain` flag; cloud uses `netzilo.network`). The client runs a
 local resolver that answers peer names and forwards other queries to the nameserver
 groups distributed to it.
@@ -252,7 +253,7 @@ always provide one primary group (no match domains) for `All`. A private resolve
 a routing peer needs a route to it and a policy allowing UDP 53 from the clients' group
 to the routing peer's group.
 
-DNS Settings: **Disable DNS management for these groups** — peers in those groups keep
+Network → DNS → **Settings** tab: **Disable DNS management for these groups** — peers in those groups keep
 their own OS DNS (`disabled_management_groups`).
 
 API: `POST /api/dns/nameservers` `{name, description, nameservers:[{ip, ns_type:"udp", port}], enabled, groups, primary, domains, search_domains_enabled}`; `PUT /api/dns/settings` `{disabled_management_groups}`.
@@ -276,9 +277,11 @@ Test from a peer: Linux `resolvectl query peer-a.netzilo.network` / `dig`, macOS
 ## 7. Posture checks (Endpoint → Posture Checks, `/posture-checks`)
 
 A check is a named bundle of conditions evaluated on the **source** peer; attach it to
-policies (and to profiles / Edge filters). Free-plan tenants cannot create/edit checks
-("Upgrade Plan"); self-hosted Enterprise/MSP can. A check cannot be deleted while any
-policy, profile or filter uses it: `DELETE /api/posture-checks/{id}` answers HTTP 412
+policies, to profiles and to published applications (Edge filters no longer carry
+posture checks). Free-plan tenants cannot create/edit checks ("Upgrade Plan",
+`Free customers can't update posture checks`); self-hosted Enterprise/MSP can. A check
+cannot be deleted while any policy, profile or published application uses it:
+`DELETE /api/posture-checks/{id}` answers HTTP 412
 `posture checks have been linked to policy: <policy name>` — detach it from the named
 policy (Posture Checks tab) and retry; the dashboard disables the delete control instead.
 
@@ -292,10 +295,12 @@ policy (Posture Checks tab) and retry; the dashboard disables the delete control
 | Peer Domain Membership (Netzilo) | `netzilo_check.peer_domain_check {action, domains}` | AD/domain-joined check |
 | Endpoint Security Settings (Netzilo) | `netzilo_check.security_settings_check {antivirus_check (Win), firewall_check (Win/mac), disk_encryption_check, screen_lock_check, os_updates_check}` | all enabled items must pass |
 | Advanced Endpoint Settings (Netzilo) | `netzilo_check.advanced_settings_check {netzilo_workspace_check (Win), netzilo_browser_check (Win/mac), virtual_device_check, device_integrity_check, registry_check{action all\|any, registry[{dir HKLM…,key,value}]}, file_folder_check{action, check{windows\|darwin\|linux:[{path,content}]}}, processes_check{action, check{…:[paths]}}}` | regex in key/path/content |
+| Advanced Endpoint Settings → **Netzilo Gateway**, **Netzilo Extension** | `netzilo_check.advanced_settings_check {netzilo_gateway_check, netzilo_extension_check}` | Gateway ("Peer is not a Netzilo gateway session"): true only for a gateway's browser session (`vp-<n>-PROXY`), never for a device — put it alone in a check attached to network policies only. Extension ("Peer is not using the Netzilo extension"): the Netzilo browser extension is present; desktop clients and the Enterprise Browser report it, mobile never. Valid on policies, profiles and published applications. **Old clients:** a client before 5.0.455 receives such a check as a client-version requirement and fails with the version reason (management log `… sent as a version requirement`); clients 5.0.464 and later evaluate a condition they cannot judge as FAILED (client log `Posture check '<name>' (ID=<id>) NOT EVALUATED: … treated as FAILED`); clients 5.0.455–5.0.463 are protected neither way (`21-posture-checks.md` §1) |
 
 Attach: Policies → policy → **Posture Checks** tab → **Browse Checks** / **New Posture
 Check** → choose **All** or **Any** evaluation → Save. Failures show as
-`peer.access.blocked` events with the check name and reason.
+`peer.access.blocked` events with the check name and reason; on a published application
+as `published_app.access_denied`.
 
 API: `POST /api/posture-checks` `{name, description, checks:{…}}`; countries/cities for
 geo: `GET /api/locations/countries`, `GET /api/locations/countries/{cc}/cities`.
@@ -304,19 +309,30 @@ geo: `GET /api/locations/countries`, `GET /api/locations/countries/{cc}/cities`.
 
 ## 8. Activity, reports, integrations
 
-**Activity → Events** (`/activity`): server-side paginated (`GET /api/events/paginated?limit&offset&user=<email>&code=…&date_from&date_to&q=`), default last 14 days, 25 rows. Filters: date range, event types (grouped by category: Administration, Access Control, Data Exfiltration, Policy Violation, Suspicious, Investigation, AI Edge), user (incl. "Netzilo System"). Keyword search is BM25 ranked; with an OpenAI/Anthropic integration the sparkle button runs **AI Smart Search** and stores the answer as an `ai.insight` event. **Download CSV** exports the *current page* (Timestamp, User, Email, Event code, Source, Target, More Information). Event rows for `session.recorded` play recordings; `aidr.graph` opens the session snapshot; events with a kill chain open **Kill Chain**.
+**Activity → Events** (`/activity`): server-side paginated (`GET /api/events/paginated?limit&offset&user=<email>&code=…&date_from&date_to&q=`), default last 14 days, 25 rows. Filters: date range, event types (grouped by category: Administration, Access Control, Data Exfiltration, Policy Violation, Suspicious, Investigation, AI Edge), user (incl. "Netzilo System"). Keyword search is BM25 ranked; with a model approved for Log Analysis under Integrations → Artificial Intelligence the sparkle button runs **AI Smart Search** and stores the answer as an `ai.insight` event. **Download CSV** exports the *current page* (Timestamp, User, Email, Event code, Source, Target, More Information). Event rows for `session.recorded` play recordings; `aidr.graph` opens the session snapshot; events with a kill chain open **Kill Chain**.
 
 Key event codes: `user.peer.add`, `setupkey.peer.add`, `peer.remove`, `peer.rename`,
 `peer.login.expire`, `peer.access.granted/blocked`, `policy.add/update/remove`,
 `group.add/update/delete`, `route.add/update/remove`, `nameserver.group.*`,
 `setupkey.add/revoke/overuse/deleted`, `user.invite/join/block/unblock/delete`,
 `user.login/failedlogin/logout` (imported from the IdP), `account.setting.*`,
-`profile.*`, `tool.*`, `scanner.*`, `filter.*`, `semantic.event`, `aidr.graph`,
-`browser.*`, `workspace.*`, `session.recorded`, `report.*`.
+`profile.*`, `guardrail.*`, `filter.*`, `gateway_provider.*`, `gateway_limit.*`,
+`gateway_mcp_server.*`, `gateway_virtual_mcp.*` (MCP bundles), `published_app.*`
+(created/updated/removed, access_allowed/not_admitted, access_denied for posture),
+`ai.allowed/blocked/redacted/redirected/detected` (AI Edge verdicts from devices and
+gateways), `semantic.event`, `aidr.graph`, `gateway.credential_refused` (a bearer the
+gateway refused: door proxy|publish|publish_api|ai, reason expired|unknown|no_user|not_in_account),
+`mcp.connected/disconnected/reauth_required`, `browser.*`, `workspace.*`,
+`session.recorded`, `report.*`. The old `tool.*` codes no longer exist; a row from an
+old client with one of them shows as unknown activity. The full list (159 activities):
+`34-event-catalogue.md`.
 
 **Activity → Reports** (`/reports`): **Create Report** → type **User Activity**,
-**Authentication Activity**, or **AI Activity** → date range → groups (or all) →
-generated as PDF; view/download/delete. Contains sensitive data — restrict access.
+**Authentication Activity**, **AI Agent Activity** (tabs Users | Agents, the latter =
+setup-key peers) or **AI Usage** (gateway usage only: requests, tokens, cost, latency by
+model, user, provider, gateway; MCP tool calls by server, tool, user) → date range →
+groups (or all) → generated as PDF; view/download/delete. Contains sensitive data —
+restrict access. Details: `30-activity-reports-and-integrations.md` §2.
 
 **Integrations** (`/integrations`, admins; Free plan sees "Upgrade Plan"):
 
@@ -326,14 +342,22 @@ generated as PDF; view/download/delete. Contains sensitive data — restrict acc
 | Event Streaming | Min.io | same, S3-compatible | endpoint, bucket, access key, secret |
 | Networking | Twilio / Cloudflare | managed TURN instead of the built-in relay | account SID + auth token / token id + API token |
 | Networking | TURN/STUN Servers | your own STUN/TURN (`static`) with a browser-side **Test Connection** | STUN `host:port` UDP/TCP; TURN `host:port` UDP/TCP/DTLS/HTTPS + username/password |
-| Artificial Intelligence | OpenAI / Anthropic | AI Smart Search, AI rule generation, discovered-tool risk analysis | API key, usage Assistant / Log Analysis / All |
+| Artificial Intelligence | a table of providers (OpenAI, Anthropic, any compatible endpoint), not a card | management's own AI: the Assistant, AI Smart Search, guardrail generation and the AI judge | provider + per-model approval per feature: **Assistant**, **Log Analysis**, **Threat Analysis** (`/api/ai/providers`, owner writes). These are **not** the gateway's upstream providers — those live under Edge → Providers (`/api/edge/providers`, `45-ai-gateway-providers-and-limits.md` §1); the two lists are independent |
 
 Only one of Twilio / Cloudflare / static TURN can be active. Disabling an integration
 deletes its settings.
 
-**Dashboard home** (`/dashboard`): Security Score (A ≥ 80 … F < 20, computed from peer
-posture), Users, Agents (AI agent applications seen in 7 days), Devices, AI Activity
-(top agents/models, policy violations), OS and score distribution.
+**Dashboard home** (`/dashboard`): four 7-day tiles — **Users**, **Devices**, **Agents**
+(distinct AI agents active in the last 7 days), **Tokens** (gateway tokens per day) —
+then **Agentic Activity** (window Last 24 Hours | Last Week | Last Month; tabs Overview
+with Tokens, Cost, MCP Calls, Tokens over time, Top Teams, Top Guardrails | Agents with
+LLM requests, Top Agents, Top Models | MCP with MCP calls, Top Servers, Top Tools), and a
+Devices panel with OS Distribution and the Security Score Distribution radar (per-peer
+scores still exist, `24-peers-and-setup-keys.md` §2). Cards and series come from gateway
+usage only; it is computed hourly, so `GET /api/stats` returns the last snapshot (null
+before the first run). The empty state offers **Get Started with AI Edge** → Edge →
+Providers. The former Security Score tile, AI Activity panel and Policy Violations donut
+are gone (`30-activity-reports-and-integrations.md` §3).
 
 ---
 
@@ -348,4 +372,4 @@ again creates a fresh account).
 
 Plans (Settings → Plans & Billing, owner only; hidden on MSP/self-hosted Enterprise):
 Free (5 users / 100 peers), Professional, Enterprise (14-day trial; Enterprise required
-for Profiles and premium scanners). Counts refresh daily.
+for Profiles; filters and guardrails carry no plan gate). Counts refresh daily.

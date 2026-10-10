@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 9196
+chars: 12206
 sections:
 - id: '0'
   title: What the admin sees first
@@ -32,16 +32,19 @@ sections:
   chars: 710
 - id: phase-7-ai-security-in-report-mode-first
   title: Phase 7 — AI security, in report mode first
-  chars: 548
+  chars: 680
 - id: phase-7b-clientless-access-if-browsers-without
   title: Phase 7b — Clientless access, if browsers without the client need access
   chars: 1185
+- id: phase-7c-the-ai-gateway
+  title: Phase 7c — The AI Gateway
+  chars: 2676
 - id: phase-8-roll-out-to-everyone
   title: Phase 8 — Roll out to everyone
   chars: 639
 - id: the-first-week-mistakes-in-order-of-frequency
   title: The first-week mistakes, in order of frequency
-  chars: 882
+  chars: 1084
 - id: handover
   title: Handover
   chars: 431
@@ -176,7 +179,9 @@ changed.
 
 ## Phase 7 — AI security, in report mode first
 
-1. **Create the filter** binding groups, operating systems, tools and scanners.
+1. **Create an endpoint filter** binding groups, operating systems, the Agents
+   (process paths of the AI applications to intercept on Windows and macOS) and at least
+   one guardrail (`29-edge-filters.md` §2).
 2. **Run every rule in report mode.** Collect a week of real traffic.
 3. **Review what fired.** Tune the rules that produce noise before anyone is blocked.
 4. **Switch to blocking** one rule at a time, highest confidence first.
@@ -209,6 +214,48 @@ allowed stays refused.
 
 ---
 
+## Phase 7c — The AI Gateway
+
+When agents and IDEs should reach the organisation's models and MCP servers through
+Netzilo rather than with vendor keys on every laptop. The order matters: a gateway filter
+with no models refuses everyone, and a filter without a gateway address shows nothing in
+the Workplace.
+
+1. **Install the gateway** on a Linux host (`curl -fsSL
+   https://pkg.netzilo.com/download/linux/install_aig.sh | sh`), fill
+   `/etc/netzilo-aigw/aigw.env` with the management URL, `--workplace-url
+   https://go.netzilo.com` on Cloud, a setup key for the gateway's own peer and a
+   service token of an admin Agent, then `systemctl enable --now netzilo-aigw`
+   (`27-ai-gateway.md` §3). Confirm the peer appears under Endpoint → Peers.
+2. **Add a provider** under Edge → Providers with its key, refresh the model list and
+   enable the models you intend to grant (`45-ai-gateway-providers-and-limits.md` §1).
+3. **Add a limit** — a monthly spend cap is the usual first one; it applies per user,
+   not per team (`45` §2).
+4. **Add MCP servers or a bundle** if agents need tools; decide the authentication type
+   and, for a shared OAuth server, sign in as the admin (`46-ai-gateway-mcp-servers-and-bundles.md` §2).
+5. **Create a gateway filter** for the pilot group: Models (Browse Models), the limit,
+   the MCP grants, a **Gateways** address users will paste (the tunnel address
+   `http://<gateway-name>.netzilo.network:8447`, or a published application in front of
+   it, `27` §5), and at least one guardrail in report mode. The MCP and Gateways tabs are
+   not on the Continue path; open them by clicking (`29-edge-filters.md` §2).
+6. **Test with curl** as a pilot user: `curl <gateway>/v1/models -H "Authorization:
+   Bearer <token>"` lists the granted models; a chat completion answers; an ungranted
+   model answers 403 `model X is not granted to this user`.
+7. **Check the Workplace card**: the pilot user opens Workplace → Agentic Access, sees the
+   gateway **Online**, creates their AI Gateway token and connects one client from the
+   Connect tab (`47-agentic-access-workplace.md` §2).
+8. **Tell users** which address to use and that model, token and cost usage is recorded
+   per user; prompts are not, unless a guardrail matches. State plainly that guardrails
+   govern the OpenAI chat surface; Claude Code and Codex users are limited and counted
+   only (`27` §1).
+
+**Exit test:** a pilot user's agent completes a request through the gateway, the request
+shows under Dashboard → Agentic Activity and in an AI Usage report, an ungranted model is
+refused with the exact 403 text, and the limit refuses with 429/402 when its window is
+exhausted.
+
+---
+
 ## Phase 8 — Roll out to everyone
 
 1. **Send the user communication** before the install, not with it. Use
@@ -231,6 +278,7 @@ for a week before the old path is switched off.
 | Removing the default policy too early | Everything connects, nothing works | Phase 4, after replacements are proven |
 | Attaching an impossible posture check | One platform silently loses all access | Phase 6, check the fleet first |
 | Blocking AI traffic on day one | Users blocked mid-task, trust lost | Phase 7, report mode first |
+| Gateway filter saved without Models or a Gateways address | Every user refused "no model is granted", or no card in the Workplace | Phase 7c step 5; the MCP and Gateways tabs must be opened by hand |
 | Enrolling before groups exist | Devices land ungrouped, policies miss them | Phase 2 |
 | Only approving one macOS prompt | AI features silently do nothing | Three approvals, see `05` |
 | No backup on self-hosted | Recoverable incident becomes a rebuild | Phase 1 |

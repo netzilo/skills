@@ -6,20 +6,20 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 19217
+chars: 20098
 sections:
 - id: '1'
   title: Global flags (all commands)
   chars: 1473
 - id: '2'
   title: Commands
-  chars: 9221
+  chars: 10056
 - id: '3'
   title: Environment variables beyond flags
-  chars: 3016
+  chars: 3080
 - id: '4'
   title: Files and state
-  chars: 2660
+  chars: 2642
 - id: '5'
   title: Tray application (`netzilo-ui`)
   chars: 869
@@ -101,8 +101,7 @@ legacy `WT_` prefix is also read; `NB_` wins.
 | `--unified-proxy` | false | (daemon mode forces on) local SOCKS5+HTTP proxy |
 | `--mitm` | false | (daemon mode forces on) TLS inspection on the unified proxy |
 | `--socks5-port` | `41339` when the CLI reaches the system daemon; otherwise a per-user port derived from the home directory (the same applies to the defaults of `--wireguard-port` and `--web-server-port`) | local SOCKS5 proxy port on `127.0.0.1` (`NB_SOCKS5_LISTENER_PORT` overrides); `netzilo status` does not show it |
-| `--web-server-port` | `41336` | local control server port (hooks, browser extension) |
-| `--mcp-gateway-port` | `41338` | embedded MCP gateway port |
+| `--web-server-port` | `41336` | local control server port (hooks, browser extension, `/evaluate`); the TLS variant on 41337. There is no `--mcp-gateway-port`: the local MCP gateway of earlier clients is gone |
 | `--container-name`, `--parent-pid` | | internal (Windows workspace containers) |
 
 Behaviour: if the daemon is already `Connected` prints `Already connected`. If login is
@@ -200,7 +199,17 @@ Tray: **Support → Collect Data** / **Open Logs Folder**.
 
 ### `netzilo hook` — coding-agent hooks (Claude Code, Codex, Gemini CLI, OpenClaw)
 `netzilo hook install|uninstall|verify --framework=claude-code|codex|gemini|openclaw [--url http://localhost:41336/evaluate]`.
-Details in `10-ai-security-aidr.md` §4.
+
+What `install` registers per framework: `claude-code` (alias `claude`) — `PreToolUse`,
+`PostToolUse`, `PostToolUseFailure`, `UserPromptSubmit`, `SessionStart`, `SessionEnd`;
+`codex` — `PreToolUse`, `PermissionRequest`, `PostToolUse`, `UserPromptSubmit`,
+`SessionStart`; `gemini` — `BeforeTool`, `AfterTool`, `BeforeModel`, `AfterModel`,
+`SessionStart`, `SessionEnd`; `openclaw` — an in-process plugin (installed with
+`openclaw plugins install`, configured with `openclaw config set
+plugins.entries.netzilo.config.<key>`) whose keys are `endpoint`, `timeout_ms`
+(200), `timeout_policy` (`allow` | `block`) and the circuit breaker. Hook state lives in
+`NETZILO_HOOK_STATE_DIR` (default `$TMPDIR/netzilo-hook`). Config locations, what
+`verify` prints and how a block looks to each agent: `10-ai-security-aidr.md` §4.
 
 ### `netzilo deploy-user` — provision a user + PAT and store it locally
 Flags: `--fullname`, `--email`, `--groups a,b`, `--password`, `--tokenname`,
@@ -235,7 +244,7 @@ Flags: `--fullname`, `--email`, `--groups a,b`, `--password`, `--tokenname`,
 | `NB_WG_DEBUG=true` | WireGuard-go debug logging |
 | `NB_CONN_RETRY_INTERVAL_TIME` (2m), `NB_CONN_MAX_RETRY_INTERVAL_TIME` (10m), `NB_CONN_MAX_RETRY_TIME_TIME` (14d), `NB_CONN_RETRY_MULTIPLIER` (1.7) | the daemon's outer loop that restarts the engine after it exits (Go durations, e.g. `30s`, `5m`, `48h`). It is **not** the management/signal reconnect: while the engine runs, a lost management or signal connection is retried on its own backoff for up to 3 months and needs no tuning and no restart |
 | `GRPC_GO_LOG_VERBOSITY_LEVEL=99 GRPC_GO_LOG_SEVERITY_LEVEL=info` | gRPC logging |
-| `NETZILO_HOOK_URL`, `NETZILO_HOOK_TIMEOUT_MS`, `NETZILO_HOOK_POLICY`, `NETZILO_HOOK_SKIP`, `NETZILO_HOOK_STATE_DIR` | agent hook behaviour (see `10-ai-security-aidr.md`) |
+| `NETZILO_HOOK_URL`, `NETZILO_HOOK_TIMEOUT_MS` (5000), `NETZILO_HOOK_POLICY` (`allow` \| `block`), `NETZILO_HOOK_SKIP`, `NETZILO_HOOK_STATE_DIR` (default `$TMPDIR/netzilo-hook`) | agent hook behaviour (see `10-ai-security-aidr.md` §4) |
 
 There is no environment variable for ICE / NAT-traversal detail: the connection library's
 lines are part of the client log at `debug` (tagged `[pion: …]`), so use
@@ -282,7 +291,7 @@ the same user finds it without flags; `diag.config` shows the paths in use.
 `references/40-windows-hosts.md` has the Windows detail.
 
 `config.json` keys: `PrivateKey`, `PreSharedKey`, `ManagementURL`, `AdminURL`,
-`WgIface`, `WgPort`, `UseNetstack`, `Sock5Port`, `WebServPort`, `MCPGatewayPort`,
+`WgIface`, `WgPort`, `UseNetstack`, `Sock5Port`, `WebServPort`,
 `NetworkMonitor`, `IFaceBlackList`, `DisableIPv6Discovery`, `RosenpassEnabled`,
 `RosenpassPermissive`, `ServerSSHAllowed`, `SSHKey`, `AuthFlowType` (`session|pkce|device`),
 `NATExternalIPs`, `CustomDNSAddress`, `DisableAutoConnect`, `DNSRouteInterval`,

@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 8944
+chars: 9628
 sections:
 - id: administration
   title: Administration
-  chars: 5496
+  chars: 6013
 - id: access-control
   title: Access Control
-  chars: 600
+  chars: 816
 - id: policy-violation
   title: Policy Violation
   chars: 762
@@ -28,12 +28,12 @@ sections:
   chars: 79
 - id: ai-edge
   title: AI Edge
-  chars: 335
+  chars: 286
 ---
 # Event catalogue — what each activity is called
 
-Generated from Netzilo Server's activity table on 2026-10-01 by
-`scripts/gen-event-codes.py`. 146 activities.
+Generated from Netzilo Server's activity table on 2026-10-10 by
+`scripts/gen-event-codes.py`. 159 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
 name), `activity_code` (the stable identifier) and `activity_category`. **Say the
@@ -73,10 +73,25 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Filter created | `filter.created` |
 | Filter deleted | `filter.deleted` |
 | Filter updated | `filter.updated` |
+| Limit created | `gateway_limit.created` |
+| Limit deleted | `gateway_limit.deleted` |
+| Limit updated | `gateway_limit.updated` |
+| MCP server added | `gateway_mcp_server.created` |
+| MCP server deleted | `gateway_mcp_server.deleted` |
+| MCP server updated | `gateway_mcp_server.updated` |
+| Provider created | `gateway_provider.created` |
+| Provider deleted | `gateway_provider.deleted` |
+| Provider updated | `gateway_provider.updated` |
+| MCP bundle created | `gateway_virtual_mcp.created` |
+| MCP bundle deleted | `gateway_virtual_mcp.deleted` |
+| MCP bundle updated | `gateway_virtual_mcp.updated` |
 | Group created | `group.add` |
 | Group deleted | `group.delete` |
 | Group issuer changed | `group.issuer.update` |
 | Group updated | `group.update` |
+| Guardrail created | `guardrail.created` |
+| Guardrail deleted | `guardrail.deleted` |
+| Guardrail updated | `guardrail.updated` |
 | Integration created | `integration.create` |
 | Integration deleted | `integration.delete` |
 | Integration disabled | `integration.disabled` |
@@ -120,9 +135,6 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Rule added | `rule.add` |
 | Rule deleted | `rule.delete` |
 | Rule updated | `rule.update` |
-| Scanner created | `scanner.created` |
-| Scanner deleted | `scanner.deleted` |
-| Scanner updated | `scanner.updated` |
 | Service user created | `service.user.create` |
 | Service user deleted | `service.user.delete` |
 | Setup key created | `setupkey.add` |
@@ -136,9 +148,6 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Subscription updated | `subscription.updated` |
 | Support session created | `support.session.create` |
 | Tenant updated | `tenant.updated` |
-| Tool created | `tool.created` |
-| Tool deleted | `tool.deleted` |
-| Tool updated | `tool.updated` |
 | Transferred owner role | `transferred.owner.role` |
 | User blocked | `user.block` |
 | User deleted | `user.delete` |
@@ -157,6 +166,10 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Say this | Code |
 |---|---|
 | Accessed URL | `browser.url.access` |
+| Credential refused at gateway | `gateway.credential_refused` |
+| MCP server connected | `mcp.connected` |
+| MCP server disconnected | `mcp.disconnected` |
+| MCP server needs a new sign-in | `mcp.reauth_required` |
 | Peer access blocked | `peer.access.blocked` |
 | Peer access granted | `peer.access.granted` |
 | Target access granted | `peer.access.target` |
@@ -217,11 +230,11 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 
 | Say this | Code |
 |---|---|
+| AI allowed | `ai.allowed` |
+| AI blocked | `ai.blocked` |
+| AI detected | `ai.detected` |
+| AI redacted | `ai.redacted` |
+| AI redirected | `ai.redirected` |
 | AI behavior graph updated | `aidr.graph` |
 | Semantic event | `semantic.event` |
-| Tool allowed | `tool.allowed` |
-| Tool blocked | `tool.blocked` |
-| Tool detected | `tool.detected` |
-| Discovered tool blocked | `tool.explicitly_blocked` |
-| Discovered tool approved | `tool.sanctioned` |
 

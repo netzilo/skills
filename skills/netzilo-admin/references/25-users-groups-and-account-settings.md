@@ -7,26 +7,26 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14916
+chars: 16330
 sections:
 - id: '1'
   title: Roles and visibility
-  chars: 802
+  chars: 1214
 - id: '2'
   title: Users page — reference
-  chars: 1343
+  chars: 1580
 - id: '3'
   title: Groups
   chars: 840
 - id: '4'
   title: Account settings — reference
-  chars: 4039
+  chars: 4021
 - id: '5'
   title: API
-  chars: 1273
+  chars: 1615
 - id: '6'
   title: Procedures
-  chars: 930
+  chars: 1371
 - id: '7'
   title: Diagnosis
   chars: 2396
@@ -52,7 +52,7 @@ in `04-identity-and-sso.md`; this skill is the Netzilo-account side.
 |---|---|---|
 | **Owner** (one per account) | everything, incl. Plans & Billing, Tenant (logo, delete tenant), transfer ownership | — |
 | **Admin** | all administration | owner-only items above |
-| **User** | `/workplace` portal (apps, devices, tools), own profile & access tokens; sees only own peers and what policies allow | any admin page ("You don't have access to …") |
+| **User** | `/workplace` portal (applications, devices, Agentic Access — the last only when a gateway filter grants them something), own profile & access tokens; sees only own peers and what policies allow | any admin page ("You don't have access to …") |
 | **Agent** (service user) | API access with the role given (`user` = read, `admin` = write) | interactive login |
 
 **Disable portal access for regular users** (Settings → Permissions) sends users to
@@ -60,6 +60,11 @@ in `04-identity-and-sso.md`; this skill is the Netzilo-account side.
 
 Transferring ownership: Team → Users → user → User Role → Owner → confirm "Transfer
 Ownership?" — the current owner becomes Admin.
+
+**Profile Settings** (account menu → Profile Settings, `/team/user`) is where a regular
+user manages themselves: Name, E-Mail, Status and Last login read-only, and their own
+**Access Tokens** (Create Access Token: Name, Expires in 1–365 days; delete). The
+**AI Gateway** token the Workplace creates for them appears in the same list.
 
 ---
 
@@ -82,8 +87,11 @@ once; user must change at first login).
 User detail: Name (editable), E-Mail, Status, Block User, Last login, **MFA** (Active →
 **Reset MFA**, or Not Enrolled), **Auto-assigned groups**, **User Role**, **Password →
 Change Password**, **Save Changes** (asks "Would you like to apply group change to
-user's peers?"), **Access Tokens** (own profile or Agents only): name, expires in 1–365
-days; token shown once.
+user's peers?"), **Access Tokens** (own profile, Agents, and regular users): name,
+expires in 1–365 days; token shown once. A token created here is unscoped (it carries
+the owner's role); the Workplace's **AI Gateway** token is the `mcp`-scoped kind, 90
+days, good only for identifying the user to AI gateways
+(`47-agentic-access-workplace.md` §2).
 
 Agents page: "Use agents to create API tokens and avoid losing automated access." →
 **Create Agent**: name, role.
@@ -122,7 +130,7 @@ names stable — JWT sync and scripts match by name.
 | Permissions | **Allow regular users to use the AI Assistant** + **Allowed groups** | "Admins always have the AI Assistant. When enabled, regular users in the groups below also get it on the Workplace page, for their own devices." | `user_ai_assistant_enabled` (boolean) and `user_ai_assistant_groups` (group ids). Both are needed: the switch on and the user in one of the groups; an empty list admits nobody. The server reports the outcome per user as `permissions.ai_assistant` on the user record (`GET /api/users?self=true` for the user themselves). A regular user admitted this way works with their own permissions — see `39-end-user-self-service.md` |
 | Permissions | **Allow clientless access** + **Gateway proxy address** | "Users reach internal resources from a browser with only the Netzilo extension, through a Netzilo gateway." / "The host:port browsers are pointed at. By default this server on port 8443; change it if the gateway is hosted elsewhere." | `clientless_access_enabled` (boolean) and `clientless_proxy_address` (`host:port`; empty = this server on 8443). The switch gates automatic routing only; a profile's Custom PAC is served regardless. Changes are logged as *Account clientless access enabled/disabled* and *Account clientless proxy address updated*. How it works, the gateway and the profile's Proxy tab: `43-clientless-access-gateway.md` §3 |
 | Permissions | **Allow published applications** + **Application domains** | "Administrators can publish private web applications." / "The domains you publish under and the reverse-proxy addresses their wildcard records point at." Each domain row has **Verify** (the wildcard record's answer) | `published_apps_enabled` (boolean; off = nothing is published) and `published_app_domains` (`[{domain, addresses[]}]`; on a multi-tenant server every published address must fall under one). `44-published-applications.md` §3 |
-| Plans & Billing (owner; hidden on self-hosted/MSP) | current plan, usage, Upgrade/Downgrade, payment portal | Free 5 users/100 peers; Professional; Enterprise (Profiles, premium scanners) | `POST /api/tenant/subscription` |
+| Plans & Billing (owner; hidden on self-hosted/MSP) | current plan, usage, Upgrade/Downgrade, payment portal | Free 5 users/100 peers; Professional; Enterprise (Profiles) | `POST /api/tenant/subscription` |
 | Tenant (owner) | **Company Logo** (PNG/JPG/SVG ≤ 500 KB), Tenant Name, **Tenant ID** (for support), **Delete Tenant** (irreversible) | | `/api/tenant/logo`, `DELETE /api/accounts/{id}` |
 
 Cloud only: peer approval (`extra.peer_approval_enabled`), acted on per peer.
@@ -148,6 +156,7 @@ GET/PUT /api/tenant
 Create user: `{"email":"j.doe@example.com","name":"Jane Doe","role":"user","auto_groups":["<gid>"],"is_service_user":false,"password":"…","password_change_required":true}` (omit password to invite by e-mail).
 Update user: `{"role":"admin","auto_groups":[…],"is_blocked":false,"update_peer_groups":true}`.
 Agent: `{"name":"automation","role":"admin","auto_groups":[],"is_service_user":true}`, then `POST /api/users/{id}/tokens {"name":"ci","expires_in":90}` → `plain_token`.
+Token body: `{name, expires_in (1–365 days), scope: "" | "mcp"}` — leave `scope` empty for automation; `"mcp"` yields a token that can only identify its user to AI gateways (`GET /api/users`, `/api/users/current/ai-access`, `/api/users/current/published-apps…`), which is what the Workplace creates for users (`09-api-and-automation.md` §1).
 
 ---
 
@@ -158,7 +167,12 @@ Agent: `{"name":"automation","role":"admin","auto_groups":[],"is_service_user":t
   auto-join and JWT group sync.
 - **Offboard**: Block User first (immediate, reversible: peers disconnected), then Delete
   (removes peers; on self-hosted also the identity-provider user). Rotate any Agent
-  tokens the person knew.
+  tokens the person knew. Their own tokens, including the `mcp`-scoped AI Gateway one,
+  go with the user; a gateway may honour a cached token for up to a minute.
+- **Give a user a token for the AI gateway**: nothing to do as an admin — the user
+  creates it on Workplace → Agentic Access (90 days, scope `mcp`) and manages it under
+  Profile Settings → Access Tokens. Grants come from a gateway filter on their group
+  (`29-edge-filters.md` §2), not from the token.
 - **Least-privilege admins**: keep one Owner, few Admins; use Agents with `user` role for
   read-only automation.
 - **Restrict who can log in at all**: JWT allow group (put admins in it first) or the

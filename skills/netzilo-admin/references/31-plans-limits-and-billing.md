@@ -5,29 +5,29 @@ requires:
 - dashboard-ui
 executable_on:
 - human-operator
-chars: 8736
+chars: 8703
 sections:
 - id: '1'
   title: The three plans
-  chars: 642
+  chars: 852
 - id: '2'
   title: Every hard limit, and the exact message
-  chars: 3106
+  chars: 2854
 - id: '3'
   title: What has no limit
-  chars: 305
+  chars: 341
 - id: '4'
   title: Changing plan
   chars: 1165
 - id: '5'
   title: What happens when payment lapses
-  chars: 683
+  chars: 677
 - id: '6'
   title: Self-hosted and managed instances
   chars: 690
 - id: '7'
   title: Diagnosis
-  chars: 1574
+  chars: 1553
 ---
 # Plans, Limits and Billing — Why Something Is Blocked
 
@@ -50,9 +50,13 @@ a property of the tenant, and every gate below reads it.
 
 | Plan | Users | Devices | Notable gates |
 |---|---|---|---|
-| Free | 5 | 100 | No posture checks, no profiles, no premium scanner rules, no event streaming |
-| Professional | unlimited | unlimited | No profiles, no premium scanner rules |
+| Free | 5 | 100 | No posture check edits, no profiles, no event streaming |
+| Professional | unlimited | unlimited | No profiles |
 | Enterprise | unlimited | unlimited | Everything |
+
+Filters and guardrails carry no plan gate on any plan. The AI Gateway pages (Edge →
+Providers, MCP, Limits, and the gateway itself) carry no plan gate we can point to; if a
+page shows an upgrade prompt, read its exact text and treat that text as the gate.
 
 Trials run for fourteen days on both paid plans. An Enterprise checkout bills a minimum
 of ten seats even if the account has fewer users. Both facts are shown at checkout.
@@ -65,15 +69,14 @@ of ten seats even if the account has fewer users. Both facts are shown at checko
 |---|---|---|---|
 | 5 users | Free | `maximum number of users reached`, HTTP 409, when creating or inviting the sixth (Agents count) | Delete a user or upgrade |
 | 100 devices | Free | `maximum number of personal peers reached` — returned to the **device** at enrolment, in its log as `failed to login to Management Service: rpc error: code = PermissionDenied desc = maximum number of personal peers reached` and on the terminal as `login failed: …`. Nothing is shown in the dashboard | Remove peers or upgrade |
-| Posture checks | Free | `free customers can't update posture checks`, HTTP 403. The dashboard shows **Upgrade Plan** instead of Save | Upgrade |
+| Posture checks | Free | `Free customers can't update posture checks`, HTTP 403. The dashboard shows **Upgrade Plan** instead of Save | Upgrade |
 | Profiles | Free, Professional | `only Enterprise customers can update profiles`, HTTP 403 | Upgrade to Enterprise |
-| Premium scanner rules | Free, Professional | `Enterprise subscription required to use premium scanner rule <id>`, HTTP 403, when saving a filter that binds one. In the scanner catalogue the rule shows a **Locked** badge | Upgrade to Enterprise, or bind a custom scanner instead |
 | Event streaming | Free | Refused with a message that Free customers cannot enable it | Upgrade |
 | Personal access token lifetime | all | `expiration has to be between 1 and 365` | Choose 1 to 365 days |
 | Setup key lifetime | all | `expiresIn should be between 1 day and 365 days` | Choose 1 to 365 days |
 | Peer login expiration | all | `peer login expiration can't be larger than 180 days` or smaller than one hour | Choose between one hour and 180 days |
 | Tenant logo | all | `file too large. Maximum size is 500KB`, HTTP 400 | Use a smaller PNG, JPG or SVG |
-| Scanner rule replay payload | all | Request rejected above 512 KB of rule YAML | Replay a smaller rule set |
+| Guardrail replay payload | all | Rule YAML above 1 MB is rejected by `POST /api/aidr/replay` | Replay a smaller rule set |
 | Event batch from a device | all | `too many events: maximum allowed is 1024` | Not admin-actionable; devices batch automatically |
 
 **A limit is the cause only when its exact message is present.** A refused invite, a
@@ -90,16 +93,16 @@ Service users, shown as **Agents**, count toward the Free plan's five-user limit
 an automation agent on a Free account can consume a seat a person needed. They are not
 counted in marketplace billing, which is why the two numbers can differ.
 
-Edge **Filters** themselves carry no plan restriction. Any plan can create and use them.
-Only premium catalogue scanner rules bound inside a filter require Enterprise. Do not
-tell a Professional customer to upgrade in order to use filters.
+Edge **Filters** and **Guardrails** carry no plan restriction. Any plan can create and
+use them; there is no premium rule catalogue and no Locked badge any more. Do not tell a
+Free or Professional customer to upgrade in order to use filters or guardrails.
 
 ---
 
 ## 3. What has no limit
 
 There is no cap on groups, policies, network routes, DNS nameserver groups, setup keys,
-API tokens, custom scanners, or integrations. There is no API rate limit. There is no
+API tokens, guardrails, filters, providers, limits, MCP servers, or integrations. There is no API rate limit. There is no
 automatic retention limit on activity events, so plan database growth on a busy
 self-hosted server.
 
@@ -136,7 +139,7 @@ Free**. Nothing is deleted and nothing is disconnected. Existing users, devices,
 policies, routes and rules keep working, even if they exceed the Free limits.
 
 What stops is **new** work. No new users beyond five, no new devices beyond one hundred,
-no posture check or profile edits, no premium scanner rules.
+no posture check or profile edits, no event streaming.
 
 Restoring the plan restores those actions immediately, subject to the daily reconcile in
 §4. Tell the customer plainly: nothing was lost, additions are paused.
@@ -165,8 +168,7 @@ billing one. The procedure is in `02-server-operations.md`.
 |---|---|---|
 | Invite fails with `maximum number of users reached` | Free five-user limit, possibly consumed by Agents | Count users including Agents; delete one or upgrade. A conflict with any other text is not the limit (`25` §7) |
 | New device refused with `maximum number of personal peers reached` | Free hundred-device limit | Remove stale peers, see `24-peers-and-setup-keys.md`, or upgrade. Any other refusal text (`setup key is invalid`, `account not found`, …) is an enrolment problem, `24` §6 |
-| Save button reads **Upgrade Plan** | Feature gated on this plan | Check §2 for which plan is needed |
-| A scanner shows **Locked** | Premium catalogue rule on a non-Enterprise plan | Upgrade, or write an equivalent custom rule |
+| Save button reads **Upgrade Plan** | Feature gated on this plan | Check §2 for which plan is needed; on an Edge or AI Gateway page, quote the prompt's exact text — no gate on those pages is documented here |
 | Upgraded but still blocked | Daily reconcile has not run | Wait up to twenty-four hours before investigating further |
 | Downgrade button does nothing | Over the target plan's limits | Read the message; reduce users or devices first |
 | Features stopped being addable, nothing was deleted | Subscription lapsed to Free | Restore the plan, see §5 |

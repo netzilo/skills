@@ -6,20 +6,20 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12240
+chars: 13921
 sections:
 - id: '1'
   title: Tell people before you install, not after
-  chars: 845
+  chars: 1073
 - id: '2'
   title: The page to publish
-  chars: 5279
+  chars: 6158
 - id: '3'
   title: Translating what the employee says
-  chars: 4715
+  chars: 5084
 - id: '4'
   title: What to tell an employee who asks what is monitored
-  chars: 808
+  chars: 1013
 ---
 # The End-User Guide — What to Give Employees
 
@@ -46,8 +46,10 @@ Cover four things, briefly:
 2. **What changes for them.** Usually nothing visible. They sign in once and it runs.
 3. **What is monitored.** Be honest and specific. Their ordinary web browsing and
    personal traffic are not inspected. Connections to company systems, and AI assistant
-   usage where that is in scope, are recorded. If session recording is enabled anywhere,
-   say so explicitly.
+   usage where that is in scope, are recorded. If the company runs an AI gateway, say
+   what it records about their use: which model or tool, when, how many tokens and what
+   it cost, and MCP tool calls — never the text of a prompt or answer unless a guardrail
+   matched it. If session recording is enabled anywhere, say so explicitly.
 4. **Where to get help.** One link, one address.
 
 Point four matters more than the other three. People who discover monitoring after the
@@ -100,10 +102,22 @@ what the app shows, whether other websites work, and roughly when it started.
 - You lose access to something you had yesterday and nothing changed on your side.
 - Your device is lost or stolen. Report this immediately, not tomorrow.
 
-**Your own portal.** You can see the applications, devices and tools available to you,
-and manage your own profile, from the web portal your administrator will link. It shows
-your devices and their connection quality. You can use it to check whether a device is
-connected without asking anyone.
+**Your own portal.** You can see the applications, your devices, and — under **Agentic
+Access** — the AI gateways and MCP servers granted to you, and manage your own profile,
+from the web portal your administrator will link. It shows your devices and their
+connection quality. You can use it to check whether a device is connected without asking
+anyone.
+
+**Using AI tools through the company gateway.** If your company grants you an AI
+gateway, the Workplace shows an **Agentic Access** page. The gateway is how your AI tools
+(Claude Code, Cursor, an SDK, curl) reach the company's models and tools: point the tool
+at the address on your card and use the access token the page creates for you — it is
+yours, do not share it, and delete it under Profile Settings → Access Tokens if it leaks.
+Your prompts and the tools' results are checked against the company's guardrails on the
+way, and a refused request says why. What is recorded about your use is which model or
+tool you used, when, how many tokens and what it cost; the text of a prompt only when a
+guardrail matched it. "Needs Attention" on an MCP server means you still have to connect
+it: open it and press Connect.
 
 **If you use only the browser extension (no Netzilo app).** Your company may let you open
 internal sites from Chrome, Edge or Firefox with just the Netzilo extension. Click the
@@ -155,7 +169,8 @@ When an admin forwards a complaint, this maps it to a cause and the file that fi
 | "It stopped working after I got back from the office" | Network change, captive portal, or clock drift | §2 steps 2 and 3 |
 | "It asks me to log in all the time" | Login expiration setting, working as configured | `24-peers-and-setup-keys.md` |
 | "It worked yesterday and now it doesn't" | A policy, group or posture check changed. Check Activity first | `20-policies-access-control.md`, `15-incident-response-and-recovery.md` §6.2 |
-| "My AI assistant stopped working" | Inspection, a blocked rule, or certificate trust | `10-ai-security-aidr.md` |
+| "My AI assistant stopped working" (on the device) | Inspection, a blocked guardrail, or certificate trust | `10-ai-security-aidr.md` §9 |
+| "My AI assistant stopped working" (through the company gateway: a refusal names the gateway, or the tool is configured with the Agentic Access address) | A gateway refusal: no model granted to the user, a limit reached (429/402), an MCP server that needs a new sign-in, or an expired access token (401) | `47-agentic-access-workplace.md` §5 |
 | "Everything is slow since this was installed" | Relayed connection, or an inspection rule doing too much work | `11-connectivity-diagnosis.md`, `10-ai-security-aidr.md` |
 | "I got a scary red button on the dashboard" | The admin's system status widget | `16-onboarding-and-rollout.md` §0 |
 | "I can't see the page my colleague sees" | Role, not a fault. Most pages are admin-only | `25-users-groups-and-account-settings.md` |
@@ -181,7 +196,10 @@ Answer honestly and specifically. Vague answers create escalation.
 
 What the company can see: which devices exist and their security posture, which internal
 systems were reached and when, all administrative changes, and AI assistant activity
-where it is in scope, including the content that triggers a security rule.
+where it is in scope, including the content that triggers a security rule. Through the
+company's AI gateway: which model or tool was used, when, how many tokens, what it cost
+and which MCP tools were called — never the text of a prompt or an answer unless a
+guardrail matched it.
 
 What it cannot see: the contents of ordinary encrypted traffic between the device and
 company systems, and personal browsing outside the scope of the inspection rules.

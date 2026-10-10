@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 31961
+chars: 32044
 sections:
 - id: '1'
   title: Model
@@ -17,7 +17,7 @@ sections:
   chars: 5513
 - id: '3'
   title: Enterprise Browser — reference
-  chars: 696
+  chars: 779
 - id: '4'
   title: Disposable Browser — reference
   chars: 636
@@ -176,7 +176,7 @@ applications". Tabs **Shortcuts** (bookmarks: URL, name, drag to order), **Restr
 | Encryption Key | as in Workspace; encrypts the browser's on-disk data |
 | Wipe Data When Closed | disposes downloaded data when the browser closes |
 
-The Enterprise Browser is installed separately (`10-ai-security-aidr.md` §6); the
+The Enterprise Browser is installed separately (`10-ai-security-aidr.md` §6; every installer switch and MSI property in `48-installer-command-lines.md` §13–16); the
 profile only configures it.
 
 ---

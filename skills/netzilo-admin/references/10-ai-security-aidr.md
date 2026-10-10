@@ -7,123 +7,142 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 28115
+chars: 32089
 sections:
 - id: '1'
   title: Architecture in one page
-  chars: 2577
+  chars: 3504
 - id: '2'
   title: Rollout runbook
-  chars: 2701
+  chars: 3290
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
-  chars: 2046
+  chars: 3501
 - id: '4'
   title: Coding-agent hooks (`netzilo hook`)
-  chars: 1465
+  chars: 2717
 - id: '5'
   title: SDK for custom agents
-  chars: 2573
+  chars: 4078
 - id: '6'
   title: Browser extension and Enterprise Browser
-  chars: 2351
+  chars: 2792
 - id: '7'
-  title: Edge Tools and MCP
-  chars: 948
+  title: The AI Gateway and MCP
+  chars: 1292
 - id: '8'
-  title: Writing and testing rules (Edge Scanners)
-  chars: 3913
+  title: Writing and testing rules (Guardrails)
+  chars: 1685
 - id: '9'
   title: Troubleshooting
-  chars: 6435
+  chars: 5029
 - id: '10'
   title: Reporting and evidence
-  chars: 584
+  chars: 952
 - id: '11'
   title: Constraints to disclose early
-  chars: 1961
+  chars: 2614
 ---
 # Netzilo — AI Security (AIDR) Administration
 
 **Audience:** an AI operator deploying and running Netzilo's AI Detection & Response
-features for a customer: governing coding agents, desktop AI apps, custom agents (SDK),
-browser AI use, and MCP tool access; authoring and testing detection rules; and
-troubleshooting TLS inspection.
+features for a customer: governing coding agents, desktop AI apps, custom agents (SDK)
+and browser AI use on devices; routing agents' model and MCP traffic through the
+Netzilo AI Gateway; authoring and testing guardrails; and troubleshooting TLS
+inspection.
 
-Licensing: Edge Tools, Scanners and Filters require an **Enterprise** subscription
-(self-hosted servers run as Enterprise/MSP). Premium (global) scanners show
-`locked_reason: "Enterprise subscription required"` otherwise.
+Self-hosted servers run as Enterprise. On Netzilo Cloud the Edge pages are available to
+the account; an upgrade prompt on one of them is explained in
+`31-plans-limits-and-billing.md`. Filters and guardrails themselves carry no plan gate.
 
 ---
 
 ## 1. Architecture in one page
 
-Every governed AI action produces an **event** and updates a per-device **behaviour
-graph** (agents, LLM calls, tool calls, files, processes, hosts, skills). Rules
-(**Edge Scanners**) evaluate events and the graph and return a verdict: allow, report,
-redact, block (and a few HTTP/model-rewrite actions). Verdicts and events flow to the
-dashboard (Activity, Reports, Dashboard → AI Activity, peer **Session Snapshots**).
+Every governed AI action produces an **event** and feeds a per-device or per-user
+**behaviour graph** (agents, LLM calls, tool calls, files, processes, hosts, skills).
+**Guardrails** (YAML rules, `28-edge-guardrails.md`) evaluate events and the graph and
+return a verdict: allow, report (detected), redact, block, redirect to another model, a
+few HTTP rewrites. Verdicts and events flow to the dashboard (Activity, Reports, the home
+page's **Agentic Activity**) as `ai.*` events.
 
-Three ways traffic enters the engine:
+Two enforcement points, one rule language, bound by **Filters** of two types
+(`29-edge-filters.md`):
+
+| Enforcement point | Filter type | Governs | Identity |
+|---|---|---|---|
+| **The Netzilo client on a device** | endpoint (groups × OS, Agents, guardrails) | what runs on the device: desktop AI apps through the TLS-inspecting proxy, coding agents through hooks, custom agents through the SDK, the browser extension | the device and its user |
+| **The Netzilo AI Gateway** (`27-ai-gateway.md`) | gateway (groups, model grants, limits, MCP grants, gateway addresses, guardrails) | what any agent sends to the organisation's LLM providers and MCP servers **through the gateway**: model access, spend and rate limits, guardrails on prompts, answers and tool calls, usage facts | the Netzilo user, from the token the agent presents or the calling peer |
+
+Ways traffic enters the device-side engine:
 
 | Surface | How it works | Best for |
 |---|---|---|
-| **Netzilo client (daemon)** | the daemon runs a TLS-inspecting SOCKS5/HTTP proxy on `127.0.0.1:41339`; per-app traffic is steered into it by the Windows `nwfilter` driver or the macOS system extension for processes listed in an Edge Filter's **Agents**. Parses OpenAI, Anthropic, Gemini, Perplexity, Cursor, Cohere, Bedrock, NVIDIA, Ollama, Telegram, and MCP over HTTP; classifies semantic events (skill acquisition, file upload/download, external messages, automation) | desktop AI apps, IDE assistants, any process on a managed machine |
-| **Coding-agent hooks** | `netzilo hook` registered in Claude Code / Codex CLI / Gemini CLI / OpenClaw; each tool call and prompt is POSTed to the daemon's `http://localhost:41336/evaluate` before it runs | CLI coding agents, where the hook can *block* a tool call synchronously |
-| **SDK** (`pip install netzilo`, `npm install netzilo`) | the whole client embedded in the agent process; `isAllowed()`/`wrapTool()`/framework adapters; optional **advanced governance** (Linux only) adds in-process TLS interception and syscall probes | agents you build (CrewAI, LangGraph, Strands/AgentCore, LangChain, AutoGen, …) |
+| **Netzilo client (daemon)** | a TLS-inspecting proxy on `127.0.0.1:41339`; per-app traffic is steered into it by the Windows `nwfilter` driver or the macOS system extension for processes listed in an endpoint filter's **Agents**. Parses OpenAI, Anthropic, Gemini, Perplexity, Cursor, Cohere, Bedrock, NVIDIA, Ollama, Telegram, OpenShell and MCP over HTTP; classifies semantic events (skill acquisition, file upload/download, external messages, automation) | desktop AI apps, IDE assistants, any process on a managed machine |
+| **Coding-agent hooks** | `netzilo hook` registered in Claude Code / Codex CLI / Gemini CLI / OpenClaw; each tool call, prompt and session event is POSTed to the daemon's `http://localhost:41336/evaluate` before it runs | CLI coding agents, where the hook can *block* a tool call or prompt synchronously |
+| **SDK** (`pip install netzilo`, `npm install netzilo`, 5.0) | the whole client embedded in the agent process; `is_allowed()`/`wrapTool()`/framework adapters; optional **advanced governance** (Linux only) adds in-process TLS interception and a syscall probe | agents you build (CrewAI, LangGraph, Strands/AgentCore, LangChain, AutoGen, …) |
 | **Browser extension** ("Netzilo Secure Browser") | evaluates prompts to ChatGPT/Claude/Gemini/Perplexity/… in the page, fetches its rules from the server (`/api/edge/filters?os=…`), sends events to `/api/edge/events`; when the desktop client is present it defers LLM governance to the client | browser AI use on managed or BYOD devices |
 
-Central policy objects (Dashboard → **Edge**):
+Central policy objects (Dashboard → **Edge**, in this order): **Providers** (`45`),
+**MCP** servers and bundles (`46`), **Guardrails** (`28`), **Limits** (`45`),
+**Filters** (`29`). Users meet the gateway side at Workplace → **Agentic Access** (`47`).
 
-- **Tools** (`/ai-edge/tools`): approved MCP servers/tools (catalog + your own) and
-  **Discovered Tools** awaiting approval.
-- **Scanners** (`/ai-edge/scanners`): YAML detection rules (Sigma-style); global
-  premium ones are read-only.
-- **Filters** (`/ai-edge/filters`): the binding — **Groups** + **Operating Systems** +
-  **Agents** (process paths) + **Tools** + **Scanners** + **Posture Checks**. Nothing is
-  enforced on a device until a filter matches its groups and OS.
+What no longer exists, so you never look for it: approved and discovered **Tools**, the
+global catalogue of premium rules, posture checks inside filters, the client's local MCP
+gateway on port 41338. MCP servers are admin-defined objects served by the AI Gateway.
 
 ---
 
 ## 2. Rollout runbook
 
+### 2.1 Devices
+
 1. **Prerequisites:** Netzilo client installed and connected on the devices
-   (`05-client-install-and-deploy.md`); devices in a group (e.g. `ai-users`); Enterprise
-   entitlement.
-2. **(Optional) AI provider integration** for AI rule generation, discovered-tool risk
-   analysis and AI Smart Search: Integrations → Artificial Intelligence → OpenAI or
-   Anthropic API key (usage *All*). Without it `POST /edge/scanners/generate` returns 428.
-3. **Create a Filter** (Edge → Filters → Add Filter):
-   - Targets: groups `ai-users`, OS (e.g. Windows, Darwin).
-   - Agents: process paths to intercept, wildcards and env vars allowed —
-     `%PROGRAMFILES%\Google\Chrome\Application\chrome.exe`, `~/.cursor/**`,
-     `/Applications/Claude.app/**`, `$HOME/.local/bin/claude`. Empty = no transparent
-     interception (hooks/SDK/extension still work).
-   - Tools: browse the catalog; add **Unsanctioned Tools** (wildcard `*`) if you want
-     shadow MCP servers to be blocked/recorded.
-   - Scanners: browse; start with the premium set (Path Traversal, PII in Tool Output,
-     Prompt Injection, API Key & Secret Redaction, SSH Key Exfiltration, System
-     Enumeration & CLI Exfiltration) plus report-mode custom rules.
-   - Posture Checks: optional (e.g. disk encryption) — evaluated live; failure revokes
-     tool access.
-   - Enable, name, save. Validation: name, ≥1 OS, ≥1 group, ≥1 tool, ≥1 scanner.
-4. **Verify on a device:** log shows `✓ Successfully updated MCP Gateway filters: N filters applied`
-   and `Gateway IPC: updating static rules (version: …, N rules, M filter profiles)`, with
-   no `Failed rules:` line after it (the count `Gateway static rules updated: N loaded, 0
-   failed` is logged at debug level). Use an AI app named in Agents;
-   Activity shows `tool.detected` / `semantic.event` / `aidr.graph` events and the peer
-   page gets **Available Snapshots**.
-5. **Coding agents:** on each dev machine `curl -fsSL https://pkg.netzilo.com/download/plugin/install.sh | sh`
-   (Linux installs the client if missing; macOS/Windows need the client first), or
-   `netzilo hook install --framework=claude-code|codex|gemini|openclaw`, then restart
-   the agent CLI. `netzilo hook verify --framework=<x>` → `Status: ready ✓`.
-6. **Custom agents:** developers add the SDK (§5).
-7. **Browsers:** an **Enterprise Browser Extension** profile (Endpoint → Profiles) makes
-   the client force-install the extension in Chrome/Edge; or deploy via browser policy
-   (§6).
-8. **Tune:** run report-mode for 1–2 weeks, review Activity → Events (category *AI Edge*,
-   *Policy Violation*) and Reports → **AI Activity**, then switch high-confidence rules
-   to `block`/`redact`.
+   (`05-client-install-and-deploy.md`); devices in a group (e.g. `ai-users`).
+2. **(Optional) AI provider for the dashboard's own AI features** — guardrail generation
+   (✦), prompt-injection AI judge, smart search, the assistant: Integrations →
+   Artificial Intelligence → add a provider and approve a model for **Threat Analysis**
+   (`30` §4a). Without it `POST /edge/guardrails/generate` answers 428. This is not the
+   gateway's provider list (`45`).
+3. **Guardrails:** Edge → Guardrails → Add Guardrail; start from the public library
+   (`github.com/netzilo/aidr-sigma`) in report mode (`28` §6).
+4. **Create an endpoint Filter** (Edge → Filters → Add Filter → Filter Type Endpoint):
+   groups `ai-users`, OS (Windows, Darwin…); **Agents**: process paths to intercept,
+   wildcards and env vars allowed (`%PROGRAMFILES%\Google\Chrome\Application\chrome.exe`,
+   `~/.cursor/**`, `/Applications/Claude.app/**`, `$HOME/.local/bin/claude`; empty = no
+   transparent interception, hooks/SDK/extension still work); **Guardrails** (required);
+   name; save.
+5. **Verify on a device:** the client log shows `Filters applied: N` (debug: `Rules
+   updated: N loaded, 0 failed, version=mgmt-sync-…`) with no `Failed rules:` line. Use an
+   AI app named in Agents; Activity shows **AI allowed / AI detected** events and the peer
+   has observations (`/api/aidr/sessions?scope=source:<peer>`).
+6. **Coding agents:** on each dev machine
+   `curl -fsSL https://pkg.netzilo.com/download/plugin/install.sh | sh` (Linux installs the
+   client if missing; macOS/Windows need the client first), or `netzilo hook install
+   --framework=claude-code|codex|gemini|openclaw`, then restart the agent CLI;
+   `netzilo hook verify --framework=<x>` → ready.
+7. **Custom agents:** developers add the SDK (§5).
+8. **Browsers:** an **Enterprise Browser Extension** profile (Endpoint → Profiles) makes
+   the client force-install the extension in Chrome/Edge; or deploy via browser policy (§6).
+9. **Tune:** run report mode 1–2 weeks, review Activity → Events (category *AI Edge*) and
+   Reports → **AI Agent Activity**, then switch high-confidence rules to `block`/`redact`.
+
+### 2.2 Gateway
+
+1. **Install and run the gateway** (`27` §3) with a setup key and a service token; put
+   it where callers can reach it: inside the network (tunnel door) and/or published at an
+   address (`27` §5).
+2. **Providers:** Edge → Providers → Add Provider (type, credential, Refresh models) (`45`).
+3. **(Optional) MCP servers and bundles:** Edge → MCP (`46`).
+4. **(Optional) Limits:** Edge → Limits (`45` §2).
+5. **Create a gateway Filter** (Filter Type Gateway): groups, **Models** (Browse Models),
+   Limits, **MCP**, **Gateways** (the address users paste — the tab is not on the
+   Continue path, open it), Guardrails (required), name.
+6. **Verify:** `GET /api/edge/filters/effective?type=gateway&user=<id>` lists it;
+   `curl <gateway>/v1/models -H "Authorization: Bearer <user token>"` lists the models;
+   the Workplace shows the card **Online**; a chat completion appears in Dashboard →
+   Agentic Activity after the hourly snapshot and in the AI Usage report at once.
+7. **Tell users** (`47` §6).
 
 ---
 
@@ -131,18 +150,23 @@ Central policy objects (Dashboard → **Edge**):
 
 | Item | Value |
 |---|---|
-| Local ports | 41336 control/hooks HTTP (`/evaluate`, `/ws`), 41337 WSS, 41338 MCP gateway (`http://127.0.0.1:41338/mcp`, `/sse`), 41339 TLS-inspecting proxy; macOS extension IPC 17998/17999 |
+| Local ports | 41336 control/hooks HTTP (`/evaluate`, `/ws`), 41337 the same over TLS, 41339 TLS-inspecting SOCKS5/HTTP proxy; macOS extension IPC 17999. Port 41338 (the former local MCP gateway) is no longer used |
 | CA | `Netzilo Edge CA` (ECDSA P-256, 10 years) in `/etc/netzilo/netzilo-ca.pem` (`%PROGRAMDATA%\Netzilo\netzilo-ca.pem`); trusted in the OS store at `service install` and every start; `NODE_EXTRA_CA_CERTS` set system-wide; leaf certs 24 h |
 | Interception steering | Windows: `nwfilter.exe` (WFP) redirects TCP of matched processes (and their children) to the proxy; macOS: `com.netzilo.NetziloFilter` system extension (needs user approval once); Linux: **no per-app steering** — point apps at `HTTPS_PROXY=http://127.0.0.1:41339` / `ALL_PROXY=socks5h://127.0.0.1:41339`, or use hooks/SDK |
 | Skip list | Windows clients fetch `pkg.netzilo.com/download/configs/container.json` (`skip_domains`, e.g. Zoom); pinned/mTLS apps must be excluded there or removed from Agents |
 | Parsers | WASM modules hot-loaded hourly from `pkg.netzilo.com/download/llm-parsers` and `…/semantic-classifier` (checksum-verified); an embedded copy ships in the binary; a failed download or checksum keeps the previous version (§9) |
-| Rule delivery | management pushes expanded filters (tools, scanners, posture) to the peer on sync; log `Gateway IPC: updating static rules` (debug: `Gateway static rules updated`) |
-| Hook evaluation | `toolCall` is synchronous (can block); `toolResult` fire-and-forget; hooks are **fail-open** by default (`NETZILO_HOOK_POLICY=allow`); set `block` for fail-closed |
-| Verdict logging | `tool.allowed` (123), `tool.blocked` (124), `tool.sanctioned` (125), `tool.explicitly_blocked` (126), `semantic.event` (127), `tool.detected` (128), `aidr.graph` (129) |
+| Rule delivery | management sends the device its **endpoint** filters with guardrails expanded on every sync; the client loads them into its intake host: `Filters applied: N`; a gateway filter never reaches a device |
+| Streams | SSE, NDJSON and AWS event streams are inspected before forwarding, event by event: a block ends the stream, a redaction rewrites exactly the events that carried the text, and a redaction that cannot be applied ends the stream (never a partial mix). Cursor's Connect/gRPC responses are block-only, and a redaction on a Cursor request is applied as a block |
+| Big and binary bodies | over 10 MB, or opaque binary content: streamed without body inspection; URL, status and header rules still run |
+| SigV4 (Bedrock native) | the daemon cannot rewrite a signed body: redactions are suppressed (`redaction SUPPRESSED on SigV4-signed request …`), blocks still work; the embedded SDK re-signs with the agent's own AWS credentials |
+| Hook evaluation | `toolCall`, `promptRequest`, `promptResponse` synchronous (can block; a redaction cannot be applied by a hook, so the hook acts only on allow/block); `toolResult`, `sessionStart`, `sessionEnd` fire-and-forget; hooks are **fail-open** by default (`NETZILO_HOOK_POLICY=allow`); set `block` for fail-closed |
+| Scan actions | the built-in prompt classifier and the AI judge run through management (15 s timeout on the device); a scan that cannot run is an **error for the rule's `on_error`** (default allow) — not a silent allow, not a block unless `on_error: block` |
+| Posture in filters | none; a failing posture check never blocks AI traffic through a filter. Posture gates policies, profiles and published applications (`21`) |
+| Verdict events | `ai.allowed` (148), `ai.blocked` (149), `ai.redacted` (150), `ai.redirected` (151), `ai.detected` (152); `semantic.event` (127); `aidr.graph` (129, a session snapshot) |
 
-To inspect what the engine recorded for a device, open the peer in the dashboard →
-**Available Snapshots** → **View session snapshot** (behaviour graph, event search,
-scanner replay).
+To inspect what the engine recorded for a device: `GET /api/aidr/sessions?scope=source:<peerId>`,
+`/api/aidr/graph`, `/api/aidr/observations`, `/api/aidr/detections`, `/api/aidr/search?q=`
+(admin; `since`/`until`); a guardrail's **Replay** reads the same observations (`28` §4).
 
 ---
 
@@ -150,31 +174,45 @@ scanner replay).
 
 | Framework | Config written | Events |
 |---|---|---|
-| `claude-code` | `~/.claude/settings.json` (Windows `%APPDATA%\Claude\settings.json`) | `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `UserPromptSubmit` (matcher `*`, 10 s) |
-| `codex` | `~/.codex/config.toml` | `PreToolUse`, `PermissionRequest`, `PostToolUse`, `UserPromptSubmit` |
-| `gemini` | `~/.gemini/settings.json` | `BeforeTool`, `AfterTool`, `BeforeModel`, `AfterModel` |
-| `openclaw` | plugin extracted to `~/.netzilo/openclaw-plugin/` and enabled with `openclaw config set plugins.entries.netzilo.*` (needs `openclaw` on PATH) | in-process |
+| `claude-code` (alias `claude`) | `~/.claude/settings.json` (Windows: `%APPDATA%\Claude\settings.json`) | `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `UserPromptSubmit`, `SessionStart`, `SessionEnd` (matcher `*`, 10 s) |
+| `codex` | `~/.codex/config.toml` (a block between `# <netzilo-hook:codex>` markers) | `PreToolUse`, `PermissionRequest`, `PostToolUse`, `UserPromptSubmit`, `SessionStart` |
+| `gemini` | `~/.gemini/settings.json` | `BeforeTool`, `AfterTool`, `BeforeModel`, `AfterModel`, `SessionStart`, `SessionEnd` |
+| `openclaw` | plugin extracted to `~/.netzilo/openclaw-plugin/`, installed with `openclaw plugins install` and configured with `openclaw config set plugins.entries.netzilo.config.*` (needs `openclaw` on PATH) | in-process: `before_tool_call`, `after_tool_call`, `before_agent_run`, `session_end`; `timeout_ms` 200, `timeout_policy` allow|block, a circuit breaker |
 
 Commands: `netzilo hook install|uninstall|verify --framework=<fw> [--url http://localhost:41336/evaluate]`.
-Install is idempotent and repairs the binary path after client upgrades. Output ends with
-`Restart <framework> for the hook to take effect.` and warns if the daemon is down.
+Install is idempotent (`registered`, `updated`, `already_current`) and repairs the binary
+path after client upgrades; files are written mode 0600. Verify reports `Daemon not
+reachable at … — start the Netzilo client.` or `Hook not registered — run 'netzilo hook
+install …'` when something is off; its probe is a `__health__` tool call to `/evaluate`.
 
 Runtime env for the hook: `NETZILO_HOOK_URL`, `NETZILO_HOOK_TIMEOUT_MS` (5000),
-`NETZILO_HOOK_POLICY` (`allow`|`block`), `NETZILO_HOOK_SKIP="Glob Grep LS"`,
-`NETZILO_HOOK_STATE_DIR`. A block appears to the agent as
-`[netzilo hook] blocked <tool>: <reason>` (default reason
-`Blocked by Netzilo security policy`).
+`NETZILO_HOOK_POLICY` (`allow`|`block`; fail-closed blocks read `Netzilo unavailable
+(fail-closed): <err>`), `NETZILO_HOOK_SKIP="Glob Grep LS"`, `NETZILO_HOOK_STATE_DIR`
+(`$TMPDIR/netzilo-hook`). Tool output sent for scanning is capped at 8 KB. A block
+appears to the agent as the rule's reason, default `Blocked by Netzilo security policy`
+(`Prompt blocked by …`, `Response blocked by …`). Claude Code receives a block as
+`{"decision":"block"}` with exit code 2; Codex as a permission decision; Gemini as
+`{"decision":"deny"}`.
 
 Requirements: the Netzilo client must be running and logged in on that machine (the hook
-only talks to `localhost:41336`); the device must be in a group matched by a filter whose
-scanners produce verdicts.
+only talks to `localhost:41336`); the device must be in a group matched by an **endpoint**
+filter whose guardrails produce verdicts. Cursor is not a hook framework: it is governed
+through the proxy (its executable in Agents).
+
+A coding agent that talks to the **AI Gateway** (Claude Code with
+`ANTHROPIC_BASE_URL=<gateway>/anthropic`, Codex with an OpenAI base URL) is identified,
+limited and counted there in addition; prompt guardrails apply at the gateway only on the
+OpenAI chat surface (`27` §1), so keep the hooks for synchronous tool-call blocking.
 
 ---
 
 ## 5. SDK for custom agents
 
-Install `pip install netzilo` (extras `netzilo[crewai]`, `[llamaindex]`, `[bedrock]`) or
-`npm install netzilo`.
+Install `pip install netzilo` (extras `netzilo[crewai]`, `[langgraph]`, `[langchain]`,
+`[llamaindex]`, `[bedrock]`, `[openai_sdk]`, `[anthropic_sdk]`, `[mcp_client]`, …) or
+`npm install netzilo`. Current version **5.0.0** (Python wheels per platform, independent
+of the Python version; npm with per-platform optional packages). Linux wheels and
+packages ship the probe used by advanced governance.
 
 ```python
 import netzilo
@@ -183,6 +221,8 @@ netzilo.start(server="https://<domain>", setup_key="…", agent_name="orders-age
 # LangGraph: netzilo.langgraph.govern(graph, config={...}) before compile(); govern_model(ChatAnthropic(...))
 # Strands / Bedrock AgentCore: from netzilo.strands import govern; govern()   # reads NETZILO_* env
 # any framework: from netzilo.tools import govern_tool  (decorator) ; blocked → NetziloBlockedError
+# raw clients: netzilo.openai_sdk.govern_client(client) / anthropic_sdk / bedrock / gemini / mistral
+# direct: netzilo.is_allowed("web_search", args), netzilo.check_prompt(text), netzilo.check_response(text)
 netzilo.stop()   # flushes events + graph snapshot
 ```
 
@@ -193,29 +233,43 @@ const safeSearch = wrapTool("web_search", searchFn);
 // or: await govern()  — reads NETZILO_SERVER / NETZILO_SETUP_KEY / NETZILO_AGENT_NAME
 ```
 
-Config keys / env: `server` (`NETZILO_SERVER`, default `https://srv.netzilo.com`),
-`setup_key` (`NETZILO_SETUP_KEY`) or `pat` (`NETZILO_PAT`), `agent_name`
-(`NETZILO_AGENT_NAME`), `enable_advanced_governance` (`NETZILO_ADVANCED`, `govern()`
-enables it by default), `log_level`, `log_file`, `config_path` (`~/.netzilo-sdk/config.json`),
-`mcp_gateway_port` (`0` disables). Use a **setup key** whose auto-group is your agents'
-group so the right filter applies.
+Config keys / env: `server` (`NETZILO_SERVER`, default `https://srv.netzilo.com`;
+`management_url` is a legacy alias), `setup_key` (`NETZILO_SETUP_KEY`) or `pat`
+(`NETZILO_PAT`), `agent_name` (`NETZILO_AGENT_NAME`), `enable_advanced_governance`
+(`NETZILO_ADVANCED`; `govern()` turns it on unless `NETZILO_ADVANCED=0`), `socks5_port`
+(auto-picked), `log_level`, `log_file`, `config_path` (`~/.netzilo-sdk/config.json`).
+Use a **setup key** whose auto-group is your agents' group so the right endpoint filter
+applies. `set_agent_pid(pid)` names the real workload when a supervisor starts the SDK.
 
-**Advanced governance** (Linux only): adds in-process TLS interception (proxy env +
-CA at `~/.netzilo-sdk/netzilo-ca.pem`) and an `LD_PRELOAD` probe for file/process
-events, including subprocesses. Limits: statically linked binaries ignore `LD_PRELOAD`;
-programs that ignore proxy env variables bypass interception; Node `fetch` needs
-`undici`; in containers root is needed to install the CA. Leave it off on macOS/Windows.
+**Breaking change in 5.0.0:** the `mcp_gateway_port` option and function (Python) and
+`mcpGatewayPort` (TypeScript) are gone; passing them fails (`TypeError` /
+compile error). Governance no longer depends on a local gateway port: the engine always
+starts with the SDK, and `Evaluate` is always backed by it. Code written for 4.x that
+passed `mcp_gateway_port=0` to "disable governance" must be changed; there is no
+disable switch — leave the agent out of any filter instead.
+
+**Advanced governance** (Linux only): adds in-process TLS interception (proxy env + CA
+at `~/.netzilo-sdk/netzilo-ca.pem`) and an `LD_PRELOAD` probe for file/process events,
+including subprocesses, with a session-end event when the process exits. Limits:
+statically linked binaries ignore `LD_PRELOAD`; programs that ignore proxy env variables
+bypass interception; Node `fetch` needs `undici`; in containers root is needed to install
+the CA. It is turned on by `govern()` by default; turn it off on macOS/Windows.
 
 Known limits: raw-client wrappers do not redact **streaming** responses (prompts are
 still gated); LiteLLM integration logs redact verdicts but does not apply them; MCP
 clients that cache `call_tool` before `govern_session()` bypass governance; smolagents
-sandboxed executors (E2B/Docker) are not governed. Bedrock native Converse (SigV4)
-can be redacted only in embedded SDK mode; the daemon inspects it read-only.
+sandboxed executors (E2B/Docker) are not governed. Bedrock native Converse (SigV4) is
+redacted only in embedded SDK mode; the daemon inspects it read-only. Interactive SSO
+login is not supported in the SDK.
 
 Containers: the SDK image pattern sets `NETZILO_SERVER`, `NETZILO_SETUP_KEY`,
 `NETZILO_AGENT_NAME`, `NETZILO_LOG_LEVEL`, `NETZILO_PROXY_PORT`, `NETZILO_CONFIG_DIR`,
-`NETZILO_EXTRA_NO_PROXY`, and waits for the log line `Rules updated` before starting
-the agent.
+`NETZILO_EXTRA_NO_PROXY`, `NETZILO_READY_TIMEOUT` (45), and waits for the client to be
+ready before starting the agent.
+
+An SDK agent may also call models **through the AI Gateway** (point its OpenAI or
+Anthropic client at the gateway with the service user's or the owner's token); the SDK
+governs what the agent does, the gateway what it may ask of models.
 
 ---
 
@@ -233,10 +287,11 @@ Firefox `netzilo-secure-browser`; Safari App Store `6740890085`.
   `/Library/Managed Preferences/`), and removes it on `service uninstall`.
 - Standalone mode (no client): the user signs in at the dashboard; the extension stores
   `nz_cloud_url` + `nz_auth_token` and refreshes rules every 5 minutes from
-  `GET /api/edge/filters?os=…` — only filters whose **Agents** list matches the browser
-  name ("Google Chrome", "Microsoft Edge", "Mozilla Firefox", "Apple Safari") apply.
+  `GET /api/edge/filters?os=…` — only **endpoint** filters whose **Agents** list matches the
+  browser name ("Google Chrome", "Microsoft Edge", "Mozilla Firefox", "Apple Safari")
+  apply.
 - Enforcement: a blocked prompt returns HTTP 403 "Blocked by policy" to the web app;
-  redactions rewrite the request body silently; responses are logged, not blocked. The
+  redactions rewrite the request body silently; responses are observed, not blocked. The
   `Prevent LLM Prompt Injections` domain setting in a profile enables prompt scanning via
   `POST /api/ai/scanprompt`.
 - Popup → Debug tab shows `LLM Guard: ENABLED (standalone mode)` / `DISABLED (client mode)`,
@@ -244,78 +299,71 @@ Firefox `netzilo-secure-browser`; Safari App Store `6740890085`.
 
 **Netzilo Enterprise Browser** (Chromium-based, Windows/macOS/Linux/mobile):
 `pkg.netzilo.com/download/windows/browser_setup.exe`, `…/macos/{amd64,arm64}/NetziloEnterpriseBrowser_*.dmg`,
-Play `com.netzilo.browser2`, App Store `6747919491`. Windows MSI silent install:
-`msiexec /i netzilo_enterprise_browser.msi /qn TENANT=https://<tenant-dashboard> SHORTCUTNAME="Acme Browser"`.
+Play `com.netzilo.browser2`, App Store `6747919491`. Windows MSI silent install
+(per-machine, system context):
+`msiexec /i netzilo_enterprise_browser.msi /qn /norestart TENANT=https://<your Workplace address> SHORTCUTNAME="Acme Browser"`.
+Pass both properties on **every** install and upgrade (they are not remembered), and note
+that the tenant is also the browser's update host — every switch, the EXE alternative that
+keeps update checks working, and uninstall: `48-installer-command-lines.md` §13–14.
 It bundles the Netzilo client and its own extension; policy comes from **Enterprise
 Browser** profiles (domain restrictions, watermark, clipboard, downloads/uploads,
-keylogging, screenshot, extension allow/block, encryption). No auto-update: users check
-`chrome://settings/help`; **Share Support Data** there zips the logs. Logs in
+keylogging, screenshot, extension allow/block, encryption). Updates: users check
+`chrome://settings/help` (the check reads `<tenant>/download/windows/browser_updates.json`
+unless an update URL was set at install, `48` §13.3); **Share Support Data** there zips the logs. Logs in
 `<User Data>/logfile.log` and `netzilo.log`.
 
 ---
 
-## 7. Edge Tools and MCP
+## 7. The AI Gateway and MCP
 
-- **Approved tools**: name, transport (`stdio` command/args/env, `sse`/`streamable_http` URL + headers), categories (≥1), icon URL, enabled. Bind to filters. Disabling a tool blocks it everywhere immediately.
-- **Discovered tools**: MCP servers seen on devices but not approved → **Pending Review**; **Approve** (creates a tool and sanctions it), **Dismiss**, **Analyze** (AI risk, needs an AI integration). Usage shows peers/users, allowed/blocked calls.
-- **Unsanctioned Tools** wildcard in a filter: any MCP tool not approved is matched → blocked and reported as `Unsanctioned tools are not allowed`.
-- **Using the gateway from IDEs**: Workplace → Tools → **Use Tools** gives deep links and config for Cursor (`~/.cursor/mcp.json`), VS Code (`.vscode/mcp.json`) and generic clients pointing at `http://localhost:41338/mcp` (HTTP) / `/sse`. Direct MCP-over-HTTPS from intercepted apps is also parsed by the proxy.
+Everything an agent sends to the organisation's LLM providers and MCP servers can go
+through the **Netzilo AI Gateway** instead of straight to the vendor. The gateway holds
+the provider keys, identifies the caller as a Netzilo user, applies the user's gateway
+filters (model grants, limits, MCP grants, guardrails) and records usage facts.
+
+- Install, run, expose, identity, refusals, logs: `27-ai-gateway.md`.
+- Providers (the model catalogue) and Limits: `45-ai-gateway-providers-and-limits.md`.
+- MCP servers and bundles, admin and per-user sign-ins, MCP clients that sign in through
+  OAuth: `46-ai-gateway-mcp-servers-and-bundles.md`.
+- What users see and paste at Workplace → Agentic Access: `47-agentic-access-workplace.md`.
+- Usage: Dashboard → Agentic Activity and the **AI Usage** report
+  (`30-activity-reports-and-integrations.md` §2–3).
+
+The two enforcement points complement each other: the device engine sees everything a
+governed process does (files, processes, every provider it talks to), the gateway sees
+every user's model and MCP traffic wherever the agent runs, holds the keys and the
+budgets, and is the only place MCP servers are served. Use both for developer
+workstations; the gateway alone for CI, servers and unmanaged devices.
 
 ---
 
-## 8. Writing and testing rules (Edge Scanners)
+## 8. Writing and testing rules (Guardrails)
 
-For authoring beyond the basics below (multi-event Starlark scripts over the behaviour
-graph, false-positive discipline, the complete field, modifier, action and builtin
-reference), load `32-detection-rule-authoring.md` — it is the dedicated rule-author skill. This section
-covers what an administrator needs to deploy, test and troubleshoot rules.
+For authoring beyond the basics (multi-event Starlark scripts over the behaviour graph,
+false-positive discipline, the complete field, modifier, action and builtin reference),
+load `32-detection-rule-authoring.md` — it is the dedicated rule-author skill.
+`28-edge-guardrails.md` covers what an administrator needs to deploy, test and
+troubleshoot rules: the dialog, the minimal template and its vocabulary, Replay, the
+lifecycle, the limits (no version history, no per-group exemption inside a rule, which
+surfaces the gateway scans).
 
 Format is Sigma with Netzilo extensions (the AI rule generator and the public corpus
 `github.com/netzilo/aidr-sigma` use it; the older `match/except` syntax in some docs is
-legacy). Minimal rule:
+legacy). Evaluation order: most severe `level` first, then rule `id`; the most severe
+matching rule decides and is named as the blocker; after a block only `redact` and
+`execute` rules still run; an `allow` rule is not an exemption; position has no effect.
 
-```yaml
-title: Block obvious prompt-injection phrases
-id: 7d3a2f1e-6b2c-4c1b-9d5e-0a1b2c3d4e5f
-status: experimental
-level: high
-description: Blocks tool inputs containing classic instruction-override phrases.
-logsource: {product: ai_agent, category: tool_input}
-detection:
-  sel:
-    content|contains:
-      - "ignore all previous instructions"
-      - "you are now DAN"
-  condition: sel
-action: block
-tags: [attack.initial-access]
-```
-
-- `logsource.category` (routing context): `tool_request|tool_response|tool_input|tool_output|llm_request|llm_response|http_request`; semantic `skill_acquired|llm_reasoning|external_message|file_upload|file_download|do_automation|llm_tool_call|llm_tool_result`; syscall `execute_process|connects|file_read|file_write|file_create|file_delete|file_rename|file_op`; `agent_events|all`; `periodic` (30 s background scripts).
-- Fields: `event_type, tool_name, server, provider, model, host, path, method, url.full, content, command, file_path, response, message.content, system_prompt, source, agent_name`. Modifiers: `|contains`, `|startswith`, `|endswith`, `|re` (RE2), `|all`, `|base64`, `|cidr`, `|windash`.
-- `level`: `low|medium|high|critical` (default action when `action` absent: high/critical → block, else report).
-- `action`: `block` (403 to the agent), `allow` (records the match only; never overrides a block), `report`, `redact` (`replace`, `keep_first`, `keep_last`), `scan` (ML/AI classifier; `prompt:` for an LLM judge; `on_timeout`, `on_error`), `blockmodel`/`allowmodel`/`replacemodel` (model governance), `redirect`, `inject`, `replace` (HTTP rewrites), `execute` (Starlark script over the behaviour graph: `graph()`, `node()`, `edges()`, `search()`, `re`, `http`, `webhook`, `meta`, `netzilo` identity, `store_*`; 30 s timeout; fail-open unless `on_error: block`; must assign `result`).
-- Semantic payloads are `key=value` lines (`content|contains: "host=evil.example"`).
-- Ordering: rules are evaluated most severe `level` first, then by rule `id`; the most
-  severe matching rule decides the verdict and is named as the blocker; after a block
-  only `redact` and `execute` rules still run. Position in a list or file has no effect,
-  and an `allow` rule is not an exemption. The authoritative model, and the supported ways
-  to exempt traffic (narrow the rule's conditions, scope it with filters, or disable it),
-  are in `32-detection-rule-authoring.md`, sections "Evaluation Order and Verdicts" and
-  "Exempting traffic from a rule". Prove any exception with Replay and a live pilot.
-
-Authoring in the dashboard: Edge → Scanners → **Add Scanner** → YAML editor (name and
-description sync from `title`/`description`); the sparkle button streams an AI-generated
-rule from a prose description when an AI integration exists. **Replay** tests the rule
-against a peer's recorded session snapshot (`Peer` → `Snapshot` → **Play**) and shows
-`new_block / new_redact / new_detection / unchanged`. Session snapshots also offer **Run
-Scanners** to replay several catalog rules.
+Authoring in the dashboard: Edge → Guardrails → **Add Guardrail** → YAML editor (name and
+description sync from `title`/`description`); ✦ streams an AI-generated rule from a prose
+description when a model is approved for Threat Analysis. **Replay** tests the rule
+against a peer's recorded observations.
 
 Lint locally: clone `https://github.com/netzilo/aidr-sigma`,
 `pip install pyyaml && python3 tools/rulelint.py <dir>`.
 
 Best practices: report before block; anchor regexes; add exclusions for legitimate use;
-keep `scan` rules narrow (latency); scope graph traversals to the current agent.
+keep `scan` rules narrow (latency); scope graph traversals to the current agent; decide
+per rule whether a scan failure should block (`on_error: block`).
 
 ---
 
@@ -323,53 +371,57 @@ keep `scan` rules narrow (latency); scope graph traversals to the current agent.
 
 | Symptom | Check | Fix |
 |---|---|---|
-| No AI events for a device | device in a group of an **enabled** filter with matching OS? filter has tools+scanners? | fix filter; `netzilo refresh`; log `Successfully updated MCP Gateway filters` |
-| Desktop app not intercepted (no `[aidr] IngestHTTPRequest` at debug level) | app path in filter **Agents**? Windows `nwfilter.exe` running (`NWFilter: started`)? macOS extension approved (`MacFilter` errors)? Linux (no steering) — app must use the proxy env or hooks | adjust Agents; approve extension; on Linux set `HTTPS_PROXY`/`ALL_PROXY` for the app |
-| App shows TLS/certificate errors | app not using OS trust store; pinning | Python/curl: `SSL_CERT_FILE`/`REQUESTS_CA_BUNDLE=/etc/netzilo/netzilo-ca.pem`; Java `keytool -importcert … cacerts`; Firefox `ImportEnterpriseRoots` policy or `certutil -A -d sql:<profile>`; pinned/mTLS apps → exclude domain (Netzilo skip list) or remove from Agents |
+| No AI events for a device | device in a group of an **enabled endpoint** filter with matching OS? guardrails bound? | fix the filter; `netzilo refresh`; log `Filters applied: N` |
+| Desktop app not intercepted (no `[aidr] IngestHTTPRequest` at debug level) | app path in filter **Agents**? Windows `nwfilter.exe` running (`NWFilter: started`)? macOS extension approved (`MacFilter` errors)? Linux (no steering) — app must use the proxy env or hooks | adjust Agents; approve the extension; on Linux set `HTTPS_PROXY`/`ALL_PROXY` for the app |
+| App shows TLS/certificate errors | app not using the OS trust store; pinning | Python/curl: `SSL_CERT_FILE`/`REQUESTS_CA_BUNDLE=/etc/netzilo/netzilo-ca.pem`; Java `keytool -importcert … cacerts`; Firefox `ImportEnterpriseRoots` policy or `certutil -A -d sql:<profile>`; pinned/mTLS apps → exclude the domain (Netzilo skip list) or remove from Agents |
 | `MITM: CA trust install failed` / cancelled dialog | | manual trust commands in `07-client-troubleshooting.md` §9 |
-| Hook installed but nothing happens | `netzilo hook verify`; daemon running? device filtered? | start client; check filter; `NETZILO_HOOK_POLICY=block` to fail closed while testing |
-| Hook blocks everything when client is down | `NETZILO_HOOK_POLICY=block` set | expected fail-closed; start the client |
-| Rule never fires | wrong `logsource.category`; content not where expected; a more severe rule already blocks the same events, so a lower-severity `report` rule is skipped | Replay against a snapshot and use its event search to see the real payload; review the other rules that match (evaluation model: §8) |
-| Too many false positives | | tighten regex, add exclusion selection + `condition: sel and not excl`, switch to `report` |
-| AI rule generation returns 428 | no OpenAI/Anthropic integration | Integrations → Artificial Intelligence |
-| Discovered tool has risk "Unknown" and no Analyze button | no AI integration | same |
-| `Enterprise subscription required` on premium scanners | plan | upgrade / MSP mode on self-hosted |
-| Browser extension `DISABLED (client mode)` in plain Chrome with the client installed | by design: client MITM handles LLM traffic | ensure Chrome path is in filter Agents (Windows/macOS) |
-| Bedrock traffic visible but not redacted | SigV4-signed requests cannot be rewritten by the daemon | use SDK embedded mode, or Bedrock's OpenAI-compatible bearer endpoint |
+| Hook installed but nothing happens | `netzilo hook verify`; daemon running? device filtered? | start the client; check the filter; `NETZILO_HOOK_POLICY=block` to fail closed while testing |
+| Hook blocks everything when the client is down | `NETZILO_HOOK_POLICY=block` set | expected fail-closed; start the client |
+| Rule never fires | wrong `logsource.category`; content not where expected; a more severe rule already blocks the same events; a gateway filter with an endpoint-only context | Replay to see the real payload; `28` §7 |
+| Too many false positives | | tighten the regex, add `excl` + `condition: sel and not excl`, switch to `report` |
+| ✦ generation returns 428 / 422 | no model approved for Threat Analysis / provider not approved | Integrations → Artificial Intelligence |
+| Browser extension `DISABLED (client mode)` in plain Chrome with the client installed | by design: the client proxy handles LLM traffic | ensure the Chrome path is in the filter's Agents (Windows/macOS) |
+| Bedrock traffic visible but not redacted | SigV4-signed requests cannot be rewritten by the daemon | use SDK embedded mode, or Bedrock's OpenAI-compatible bearer endpoint, or route through the AI Gateway |
 | Events show `peer="edge.netzilo.extension"` | events from the browser extension in standalone mode | normal |
+| An agent gets 401/403/405/429 from the **gateway** | `27` §6 and `47` §5 | |
+| A user has no **Agentic Access** tab | no gateway filter grants them an address or MCP server | `29` §5.2 |
 
-**Degradation lines in the client log.** Each of these means a part of AI governance is
-running in a reduced mode. None of them stops the client; each has a specific fix.
+**Degradation lines in the client log.** Each means a part of AI governance is running in
+a reduced mode. None stops the client; each has a specific fix.
 
 | Log line | What it means | What to do |
 |---|---|---|
-| `MITM: engine init failed (…) — falling back to HTTP/1.1-only interception` | The HTTP/2-capable inspection engine did not start. Traffic is still inspected, but only over HTTP/1.1; some streaming AI tools that rely on HTTP/2 can stall or misbehave | restart the client service; if the line returns, collect an anonymized debug bundle (`netzilo debug bundle -A`; the text in the parentheses is the cause) and follow `12-escalation-package.md` |
-| `WASM [<name>]: download HTTP <code> from <url>` | a parser or classifier update could not be downloaded; the parser stays on its previous version (or the copy built into the client) | check that the device can reach the host in `<url>` (normally `pkg.netzilo.com`) through its proxy and firewall; the update is retried at the next hourly check |
-| `WASM [<name>]: checksum mismatch (got …, want …) — skipping update` | the downloaded file did not match its published checksum and was discarded; the parser stays on its previous version | usually a proxy or content filter altering the download: exempt the download host from content rewriting, then wait for the next check |
-| `Failed rules: [<rule-id>, …]`, often preceded by `[partition] rule <rule-id>: parse error: …` | the named rules did not load on this device; all other rules did | open each named scanner, fix its YAML, save (`29-edge-filters.md` §5 step 3) |
-| `Gateway static rules update failed: <reason>` | the device did not accept the rule update at all | restart the client service, run `netzilo refresh`, re-check the log |
-| `[OAuth Refresh] Token for server <server> expired … Re-authorization required.` | the saved sign-in for that MCP server is too old to refresh silently | the user signs in to that server again; registering or connecting the server again starts a browser sign-in (`A browser window will open for you to authorize the application`) |
-| `MCP proxy: client <client> not authorized to access MCP server <server>` | the local MCP gateway refused the call because that MCP client is not on the server's access list; the call fails with the same message | not expected with the default client setup: note the client and server names, collect an anonymized debug bundle and follow `12-escalation-package.md` |
-| `MCP server <server> has no bearer token or custom headers - connection may fail if OAuth is required` | the tool definition carries no credentials and no sign-in has been completed | if the server needs authentication, add the header to the tool (API: stored under `env`) or complete its OAuth sign-in |
-| `Posture check BLOCKED for domain <domain>: <reason>` | a posture check of the filter failed for this device, so that filter's tools are denied | fix the device condition named in `<reason>`; results are cached for up to 5 minutes (`29-edge-filters.md` §5 step 5) |
-| `evaluatellm: gateway IPC error (fail-open)` | a hook or plugin asked the client to check an LLM call, but the local gateway was not reachable, so the check did not run and the request was allowed | make sure the client is running and connected (`netzilo status`), then re-test |
-| `agentsdk: MCPGatewayPort not set — Evaluate will fail open (no in-process scanner)` | the SDK started with its local gateway disabled, so checks do not run and calls are allowed | remove `mcp_gateway_port: 0` (or give it a free port), restart the agent, then re-test |
+| `MITM: engine init failed (…) — falling back to HTTP/1.1-only interception` | the HTTP/2-capable inspection engine did not start; traffic is inspected over HTTP/1.1 only; some streaming AI tools that rely on HTTP/2 can stall | restart the client service (with consent); if it returns, collect an anonymized debug bundle (`netzilo debug bundle -A`) and follow `12-escalation-package.md` |
+| `WASM [<name>]: download HTTP <code> from <url>` | a parser or classifier update could not be downloaded; the previous version stays | check that the device reaches `pkg.netzilo.com` through its proxy and firewall; retried hourly |
+| `WASM [<name>]: checksum mismatch (got …, want …) — skipping update` | the download did not match its published checksum and was discarded | a proxy or content filter altering the download: exempt the host from rewriting |
+| `Failed rules: [<rule-id>, …]` (often after `[partition] rule <rule-id>: parse error: …`) | the named guardrails did not load on this device; all others did | open each named guardrail, fix its YAML, save |
+| `Failed to load rules into the intake host: <reason>` / `Failed to apply filters, will retry on next sync` | the device did not accept the rule update | `netzilo refresh`, re-check the log; a service restart only with consent |
+| `[intake] scanner skipped: …` / `[intake] semantic classifier skipped: …` | a pipeline stage failed to start; that stage's governance is off (fail-open) on this device | restart the client (consent); escalate with the line if it repeats |
+| `redaction SUPPRESSED on SigV4-signed request …` | a redact verdict on a Bedrock-signed body could not be applied; the request went through unredacted (a block would have applied) | expected on the daemon; SDK embedded mode or the gateway |
+| `[evaluate] hook request missing caller_pid — AIDR graph edge will not be created …` | a hook call without the caller's pid; governed, but not linked in the graph | an old hook registration: `netzilo hook install --framework=<x>` again |
 
-Log prefixes to search for on a device: `MITM:`, `Gateway IPC: updating static rules`, `Failed rules`, `WASM [`,
-`[OAuth Refresh]`, `MCP proxy:`, `Posture check`, `NWFilter:`, `MacFilter:`, `[aidr]`, `[evaluate]`, `hook`.
+Log prefixes to search for on a device: `MITM:`, `Filters applied`, `Rules updated`,
+`Failed rules`, `[intake]`, `WASM [`, `NWFilter:`, `MacFilter:`, `[aidr]`, `[evaluate]`,
+`hook`. Gateway log lines: `27` §9.2.
 
 ---
 
 ## 10. Reporting and evidence
 
-- Dashboard → **AI Activity** panel (top agents, models, policy violations over 7 days).
-- Activity → Events filtered by category *AI Edge* / *Policy Violation*; each event carries
-  agent, tool/server, verdict, rule; kill-chain and session-snapshot viewers open from the
-  row.
-- Reports → **AI Activity** report (agents, models, servers, top calls, violations,
-  per-user graphs).
-- API: `GET /api/events/paginated?code=tool.blocked&…`, `GET /api/peers/{id}/aidr-snapshot`.
+- Dashboard → **Agentic Activity** (Last 24 Hours | Last Week | Last Month; Overview /
+  Agents / MCP tabs; Top Teams, Guardrails, Agents, Models, Servers, Tools), recomputed
+  hourly (`30` §3).
+- Activity → Events filtered by category *AI Edge*: each `ai.*` event carries the agent,
+  surface, model or tool, verdict, rule and filter, source (`mitm`, `hook`, `extension`,
+  `gateway`), and the kill chain where a script built one.
+- Reports → **AI Agent Activity** (agents, models, servers, top calls, violations per
+  user, and per setup-key peer under **Agents**) and **AI Usage** (gateway requests,
+  tokens, cost, latency, MCP calls; by model, user, provider, gateway, server, tool).
+- API: `GET /api/events/paginated?code=ai.blocked&…`, `GET /api/aidr/…`,
+  `GET /api/stats`, `POST /api/reports {report_type: ai_activity|ai_usage}`.
 - Stream everything to S3/Min.io for SIEM (Integrations → Event Streaming).
+
+---
 
 ## 11. Constraints to disclose early
 
@@ -377,16 +429,15 @@ Log prefixes to search for on a device: `MITM:`, `Gateway IPC: updating static r
 certificates or require mutual authentication break under inspection, and the list of
 domains passed through uninspected is maintained centrally by Netzilo, not per tenant.
 There is no dashboard or API field for it. The self-service options are to remove the
-application from the filter's agent list, which loses visibility for that application
-entirely, or to request the addition. Say this plainly rather than searching for a
+application from the endpoint filter's Agents, which loses visibility for that
+application, or to request the addition. Say this plainly rather than searching for a
 setting that does not exist.
 
 **Certificate trust varies by runtime, not by operating system.** Installing the
 inspection authority in the system store covers most applications. Runtimes that ship
 their own trust store do not read it: Python, Java and Firefox each need their own step,
 covered in `07-client-troubleshooting.md`. Applications written in Go normally follow the
-system store and need nothing extra, which is worth stating because it is the first thing
-people ask about after the other three.
+system store and need nothing extra.
 
 **Provider coverage is broader than the named list.** Traffic is matched first by
 recognised hostname and then, failing that, by the shape of the request body, so many
@@ -394,9 +445,20 @@ services with an OpenAI-compatible interface are parsed even when they are not n
 anywhere. The way to answer "is this provider supported" is to run the tool once and look
 for its activity in the dashboard, not to consult a list.
 
+**The gateway governs by API surface** (`27` §1): prompt and answer guardrails and
+Netzilo's own model-grant refusal cover the OpenAI chat surface; Responses, Anthropic,
+embeddings and completions are identified, limited by the virtual key and recorded.
+Streams are block-only. Say this before promising a prompt block for a Claude Code user
+on the gateway; the device hooks still block that user's tool calls.
+
+**Old clients.** A client from before this release still receives its endpoint filters
+with guardrails and enforces them; it reports its verdicts with activity codes the server
+no longer knows (`tool.allowed`, `tool.blocked`, `tool.detected`), which the Activity page
+shows as an unknown activity and the AI reports do not count. Upgrade clients to see their
+AI events again. Their local MCP gateway receives no tool catalogue any more.
+
 **Reading the behaviour graph.** Node colour encodes node type and is consistent across
 every graph view. Clustered nodes carry a count badge and appear when several nodes of
 the same type share the same parent. A node ringed in grey is the action that triggered
 the rule, which is separate from the kill-chain stage colours. Time-window controls and
-node and edge type filters sit in the graph toolbar. Tell an admin this before their
-first look at a graph; without it the picture is not interpretable.
+node and edge type filters sit in the graph toolbar.

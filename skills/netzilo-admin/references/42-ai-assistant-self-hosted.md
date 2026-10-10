@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 29480
+chars: 29821
 sections:
 - id: '1'
   title: What it is made of
-  chars: 1743
+  chars: 2020
 - id: '2'
   title: Before you start
   chars: 1364
@@ -22,7 +22,7 @@ sections:
   chars: 3470
 - id: '5'
   title: The runbooks the agent follows
-  chars: 2410
+  chars: 2474
 - id: '6'
   title: Compose installs (one-liner, AWS, Azure)
   chars: 7619
@@ -59,7 +59,7 @@ Three parts, and only one of them is new on a Netzilo Server:
 |---|---|---|
 | **Management** | the `management` container | Owns the chat: authenticates the person, checks they may use the Assistant, stores sessions, messages and the audit log, assembles each turn and calls the worker. Approvals of writes are decided here, never in the worker. |
 | **Support worker** | the `support-worker` container, image `ghcr.io/netzilo/net-support-worker` | The agent. Receives one turn over HTTP, runs the model and its tools, streams the answer back. **Stateless**: nothing survives a turn except what Management stores. |
-| **AI provider** | outside the server (or a gateway inside the customer network) | The model. Chosen and approved by the account owner in the dashboard, never configured on the worker. |
+| **AI provider** | outside the server (or a gateway inside the customer network) | The model. Chosen and approved by the account owner in the dashboard (Integrations → Artificial Intelligence), never configured on the worker. "Gateway" here means the assistant's own provider endpoint — any OpenAI- or Anthropic-compatible URL — not the Netzilo AI Gateway of `27-ai-gateway.md`, whose providers (Edge → Providers) are a separate list the assistant does not use. |
 
 How a turn flows:
 
@@ -205,8 +205,9 @@ fault.
 
 **Air-gapped servers.** Set `SUPPORT_SKILLS_REFRESH_MINUTES=0`. The runbooks are then the
 ones in the image, and a newer set arrives with a newer worker image. The AI provider must
-still be reachable, typically an OpenAI-compatible gateway inside the network, connected by
-the owner in the dashboard like any provider.
+still be reachable, typically an OpenAI-compatible endpoint inside the network, connected by
+the owner in the dashboard like any provider (this is the assistant's provider, not the
+Netzilo AI Gateway).
 
 ## 6. Compose installs (one-liner, AWS, Azure)
 

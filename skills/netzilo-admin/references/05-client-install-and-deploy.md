@@ -6,17 +6,17 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 24490
+chars: 25883
 sections:
 - id: '0'
   title: Facts you need before touching a device
-  chars: 3683
+  chars: 3817
 - id: '1'
   title: Enrollment methods (decide first)
   chars: 1717
 - id: '2'
   title: Windows
-  chars: 3573
+  chars: 4559
 - id: '3'
   title: macOS
   chars: 1983
@@ -31,7 +31,7 @@ sections:
   chars: 1554
 - id: '7'
   title: Upgrading clients
-  chars: 1413
+  chars: 1572
 - id: '8'
   title: Fleet deployment patterns
   chars: 2411
@@ -40,10 +40,10 @@ sections:
   chars: 646
 - id: '10'
   title: What enrollment changes on the device
-  chars: 1211
+  chars: 1238
 - id: '11'
   title: Platform details that cause first-install tickets
-  chars: 2729
+  chars: 2816
 - id: '12'
   title: What Cloud customers must allow outbound
   chars: 718
@@ -72,7 +72,7 @@ Companion documents: `06-client-cli-reference.md` (every command and flag),
 | Default admin URL | `https://go.netzilo.com:443` (derived automatically from the management URL: `srv.` → `go.`; for self-hosted it equals the management host) |
 | WireGuard interface / port | `wt0` (Linux, Windows), `utun100` (macOS); UDP `51820`; MTU fixed 1280 |
 | Peer IP range | `100.64.0.0/10`; peer FQDN `<name>.netzilo.network` (cloud) or `<name>.<dns-domain>` set on the server |
-| Local loopback ports the daemon opens | 41336 (local control HTTP), 41337 (WSS), 41338 (MCP gateway), 41339 (SOCKS5/HTTP proxy with TLS inspection), 40836 (Windows daemon gRPC); 17998/17999 on macOS (filter extension) |
+| Local loopback ports the daemon opens | 41336 (local control HTTP: hooks, browser extension, `/evaluate`), 41337 (the same over TLS, WSS), 41339 (SOCKS5/HTTP proxy with TLS inspection), 40836 (Windows daemon gRPC); 17998/17999 on macOS (filter extension). Clients from before this release also opened 41338 for a local MCP gateway; it no longer exists |
 | Outbound requirements | TCP 443 to the management/signal/relay hosts; UDP any (ideally) for direct peer connections; without UDP the client works via TURN over TCP/TLS |
 | Inbound requirements | none |
 
@@ -137,17 +137,21 @@ enrolled with it.
 
 ## 2. Windows
 
-Three installer forms deliver the same client (`40-windows-hosts.md` §2–3 has the full
-behaviour):
+Four installer files deliver the same client. **Every switch, property and exit code is in
+`48-installer-command-lines.md`** — read it before writing a deployment command; the
+files take different switches. Host behaviour: `40-windows-hosts.md` §2–3.
 
 | Form | File | Switches | Use |
 |---|---|---|---|
 | Online installer | `netzilo_setup.exe` | — | interactive install by a person with internet access; it downloads the package from `pkg.netzilo.com` at install time and fails offline with "failed to download installer." |
-| Offline installer | `nz_installer_64.exe` | `-s` silent, `-na` non-admin mode | scripted pushes, machines without direct internet |
-| MSI | `netzilo_x64.msi` | properties `NONADMIN=1`, `CONFIGFILE=<path>`; add `REBOOT=ReallySuppress` | Intune / SCCM / GPO software installation, in **device (system) context** |
+| Offline installer | `nz_installer_64.exe` | `/S` silent, `NONADMIN=1` (last argument), `CONFIGFILE="<path>"` (quoted, last; never both — `48` §5) | a person installing without internet at install time |
+| Pack | `nz_installer_64.pack`, renamed to `.exe` | `-q` / `-s`, `-na`, `--config-file=<path>` | scripts needing non-admin mode and a config file together (`48` §6) |
+| MSI | `netzilo_x64.msi` | properties `NONADMIN=1`, `CONFIGFILE=<path>`; add `/norestart` (or `REBOOT=ReallySuppress`) | **every managed deployment** — Intune (Win32 app), SCCM, GPO — in **device (system) context** |
 
-Installers named `netzilo_setup_<name>.exe` / `netzilo_x64_<name>.msi` apply that tenant's
-pre-seeded configuration at install time; the user only signs in.
+Installers named `netzilo_setup_<name>.exe`, `nz_installer_64_<name>.exe` or
+`netzilo_x64_<name>.msi` download that tenant's configuration and write it over the
+device's `config.json` **on every run, upgrades included** — upgrade with the plain-named
+file to keep a device's identity (`48` §8).
 
 **Interactive:** download, run, accept the UAC prompt. There is no need to "run as
 Administrator": the installer starts unelevated and elevates itself. Files go to
@@ -155,25 +159,28 @@ Administrator": the installer starts unelevated and elevates itself. Files go to
 `nwfilter.exe`, `nzcontainer.exe`, drivers, `wintun.dll`); configuration and logs go to
 `%ProgramData%\Netzilo\`. The `Netzilo` service and its drivers are installed and started,
 the tray autostart is registered for the user, and the firewall rules `Netzilo` and
-`Netzilo Client` are created. Nothing is added to `PATH`; use the full path to
-`netzilo.exe`. An install that is denied elevation continues as a non-admin install (below).
+`Netzilo Client` are created. `%ProgramData%\Netzilo Client` is appended to the machine
+`Path` (the user `Path` for a non-admin install); scripts should still use the full path to
+`netzilo.exe`. **An install whose UAC prompt is cancelled or refused fails (exit 1)** — it
+does not fall back to non-admin mode.
 
 **Silent (SCCM/Intune/GPO):**
 
 ```powershell
-nz_installer_64.exe -s
-msiexec /i netzilo_x64.msi /qn REBOOT=ReallySuppress
+msiexec /i netzilo_x64.msi /qn /norestart /l*v C:\Windows\Temp\netzilo_msi.log
 # then enroll servers/kiosks (elevated PowerShell); user devices sign in from the tray
 & "$env:ProgramData\Netzilo Client\netzilo.exe" up --management-url https://<domain> --setup-key <KEY>
 ```
 
-Deploy in device context: the MSI is per-user scoped and self-elevates, and a `SYSTEM`
-deployment context has no user proxy, so the online installer is the wrong form for a
-managed rollout. For user devices with SSO, let the user click **Connect** in the tray;
+Deploy in device context: the MSI is per-user scoped and its install engine elevates
+itself, so in user context a standard user gets a UAC prompt they cannot complete. Detect
+the install by file (`%ProgramData%\Netzilo Client\netzilo.exe`), not by ProductCode — it
+changes every build (`48` §3.4). The online installer always reports success and needs
+internet in the deployment context, so it is the wrong form for a managed rollout. For user devices with SSO, let the user click **Connect** in the tray;
 the installer starts the service, and the tray app starts at login.
 
-**Non-admin install:** an unelevated install (or `-na` / `NONADMIN=1`) becomes non-admin
-mode: a per-user client with userspace networking (no TUN adapter, no drivers, no
+**Non-admin install:** `NONADMIN=1` (MSI and NSIS EXEs) or `-na` (pack), and every install
+on Windows on ARM, is non-admin mode: a per-user client with userspace networking (no TUN adapter, no drivers, no
 workspace, no AI network filter), a per-user daemon port, and
 `%ProgramData%\netzilo\usservice<N>.json` / `.log` instead of `config.json` /
 `client.log`. Switching non-admin → admin mode is a full uninstall followed by a fresh
@@ -325,7 +332,7 @@ gives HA automatically.
 
 | Platform | Procedure | Notes |
 |---|---|---|
-| Windows | run the new installer in any form (`netzilo_setup.exe`, `nz_installer_64.exe -s`, or the MSI) | in-place upgrade, no "already installed" prompt: services and drivers are stopped, old files set aside, config and enrollment kept. If a running driver cannot be replaced, `HKLM\System\CurrentControlSet\Control\NetziloPendingReboot` is set and the next install says "Please reboot computer and try again." — reboot, then run it again (`40-windows-hosts.md` §2) |
+| Windows | run the new installer in any form (the MSI for managed devices, `nz_installer_64.exe /S`, or `netzilo_setup.exe`) | in-place upgrade, no "already installed" prompt: services and drivers are stopped, old files set aside, config and enrollment kept — **unless** the file is tenant-named or you pass a `CONFIGFILE` containing `apiurl`, which replace the device's identity (`48` §8, §10.3). If a running driver cannot be replaced, `HKLM\System\CurrentControlSet\Control\NetziloPendingReboot` is set and the next install says "Please reboot computer and try again." — reboot, then run it again (`40-windows-hosts.md` §2) |
 | macOS | install the new pkg | postinstall re-installs the service; enrollment kept |
 | Linux | re-run the one-liner, or replace `/usr/bin/netzilo` and `sudo netzilo service restart` | **the one-liner runs `netzilo down` which logs the peer out and regenerates keys** — SSO devices must log in again; setup-key devices must re-run `netzilo up --setup-key` (a new peer entry may appear; delete the old one). Replacing the binary manually + `service restart` preserves enrollment |
 
@@ -417,8 +424,9 @@ management URL — check `grep ManagementURL /etc/netzilo/config.json`.
   `10-ai-security-aidr.md`). On macOS non-root installs an authorization dialog
   "Netzilo AI Edge needs to install its CA certificate…" appears — cancelling leaves the
   CA untrusted and TLS inspection non-functional until `sudo netzilo service restart`.
-- Starts the local loopback services listed in §0. Port conflicts on 41336–41339 must be
-  resolved with `--web-server-port`, `--mcp-gateway-port`, `--socks5-port`.
+- Starts the local loopback services listed in §0. Port conflicts on 41336, 41337 or
+  41339 must be resolved with `--web-server-port` (41336; 41337 follows it) and
+  `--socks5-port` (41339).
 
 ## 11. Platform details that cause first-install tickets
 
@@ -433,14 +441,15 @@ privacy preferences profile.
 `netzilo_setup.exe` downloads the real package from `pkg.netzilo.com` while it runs; from
 a deployment tool's system context, which has no user proxy, or on a machine without
 internet, it stops with "failed to download installer." and the tool reports a failed or
-silent install. Use the offline `nz_installer_64.exe -s` for scripted pushes and the MSI
-(`REBOOT=ReallySuppress`, device context) wherever the tool requires a package, including
-group-policy software installation and application wrapping. A deployment run in user
-context on a non-administrator account yields a non-admin install (userspace networking,
-no drivers or workspace), which is reported later as "the AI features are missing".
-Install logs for silent failures: `%ProgramData%\Netzilo\netzilo_online_install.log` and
-`netzilo_offline_nsis_install.log`; `installer_internal.log` in the same folder is
-encrypted and is for Netzilo support only. Details: `40-windows-hosts.md` §2–3.
+silent install — and it exits 0 even when it failed. Use the **MSI** (`/qn /norestart`,
+device context) for every managed rollout, including group-policy software installation
+and Intune Win32 apps; the offline EXE's `NONADMIN=`/`CONFIGFILE=` parsing is fragile
+(`48` §5). A deployment run in user context on a standard account stops at a UAC prompt
+and fails; one run with `NONADMIN=1` yields a non-admin install (userspace networking, no
+drivers or workspace), which is reported later as "the AI features are missing". Always
+deploy with `/l*v` to a path outside `%ProgramData%\Netzilo`: a failed install's rollback
+deletes that folder, its install logs included. `installer_internal.log` there is
+encrypted and is for Netzilo support only. Every switch and exit code: `48`.
 
 **Linux has an optional tray application** distributed separately from the command-line
 client. On desktop environments that do not show legacy tray icons, notably stock GNOME,

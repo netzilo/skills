@@ -7,28 +7,28 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 9968
+chars: 10054
 sections:
 - id: '1'
   title: Model
-  chars: 2478
+  chars: 2494
 - id: '2'
   title: Field reference
-  chars: 1226
+  chars: 1244
 - id: '3'
   title: API
   chars: 871
 - id: '4'
   title: Procedures
-  chars: 2085
+  chars: 2105
 - id: '5'
   title: Diagnosis
-  chars: 2934
+  chars: 2949
 ---
 # Admin Skill — DNS Management
 
-**Dashboard:** Network → **DNS Servers** (`/dns/nameservers`) and **DNS Settings**
-(`/dns/settings`). **API:** `/api/dns/nameservers`, `/api/dns/settings`.
+**Dashboard:** Network → **DNS**, one page with two tabs: **Servers** (`/dns`) and
+**Settings** (`/dns?tab=settings`). **API:** `/api/dns/nameservers`, `/api/dns/settings`.
 
 Netzilo gives every peer a name and can push resolvers to peers. This skill covers the
 built-in peer DNS, nameserver groups, split DNS, search domains, exclusions, and
@@ -65,8 +65,8 @@ diagnosis.
   (internal names may then resolve publicly) until the upstreams answer again.
 - **Search domains**: with `example.corp` marked as search domain, `ping host-a` resolves
   `host-a.example.corp`.
-- **DNS Settings → Disable DNS management for these groups**: peers in those groups keep
-  their OS DNS untouched (no peer names, no pushed resolvers).
+- **Network → DNS → Settings tab → Disable DNS management for these groups**: peers in
+  those groups keep their OS DNS untouched (no peer names, no pushed resolvers).
 - Resolvers that live in a private network need a **route** to them and a **policy**
   allowing UDP/TCP 53 from the clients' group to the routing peer's group.
 
@@ -74,8 +74,9 @@ diagnosis.
 
 ## 2. Field reference
 
-**Add DNS Server** → template chooser: **Google DNS** (8.8.8.8, 8.8.4.4), **Cloudflare
-DNS** (1.1.1.1, 1.0.0.1), **Quad9 DNS** (9.9.9.9, 149.112.112.112), **Custom DNS**.
+**Servers** tab → **Add DNS Server** → template chooser: **Google DNS** (8.8.8.8,
+8.8.4.4), **Cloudflare DNS** (1.1.1.1, 1.0.0.1), **Quad9 DNS** (9.9.9.9,
+149.112.112.112), **Custom DNS**.
 
 Tabs:
 
@@ -91,8 +92,8 @@ Tabs:
 Table: Name, Active toggle, Match Domains, DNS Servers (IP badges), Distribution Groups,
 Delete. Filter Enabled/All.
 
-**DNS Settings**: "Disable DNS management for these groups" — "Peers in these groups will
-require manual domain name resolution" → Save Changes.
+**Settings** tab: "Disable DNS management for these groups" — "Peers in these groups
+will require manual domain name resolution" → Save Changes.
 
 ---
 
@@ -136,8 +137,8 @@ Add a primary group (no match domains) for the exit-node distribution group so a
 leaves via the exit node; otherwise local DNS may be unreachable or leak location.
 
 ### 4.4 Exclude servers from DNS management
-DNS Settings → add the `servers` group. Those peers keep their own resolv.conf/NRPT;
-they cannot resolve peer names.
+Network → DNS → **Settings** tab → add the `servers` group. Those peers keep their own
+resolv.conf/NRPT; they cannot resolve peer names.
 
 ### 4.5 Rename a peer / fix a collision
 Peers → peer → pencil → new name; the preview shows the resulting DNS label (lowercase,
@@ -167,7 +168,7 @@ Windows specifics: the primary resolver is set on the `wt0` adapter
 | Symptom | Cause | Fix |
 |---|---|---|
 | `Nameservers: 0/1 Available` on a peer | upstream unreachable through the tunnel (route/policy for port 53 missing), or resolver down | test `dig @<resolver-ip> example.com` from the peer; add route/policy |
-| Peer names never resolve | peer is in a disabled-management group; OS resolver integration failed (`07-client-troubleshooting.md` §6); on Linux `/etc/resolv.conf` overwritten by another tool; Linux in resolvconf or file mode with no primary group | check DNS Settings; check backend; `broken params in resolv.conf, repairing it...` in log; add a primary group |
+| Peer names never resolve | peer is in a disabled-management group; OS resolver integration failed (`07-client-troubleshooting.md` §6); on Linux `/etc/resolv.conf` overwritten by another tool; Linux in resolvconf or file mode with no primary group | check the DNS page's Settings tab; check backend; `broken params in resolv.conf, repairing it...` in log; add a primary group |
 | `unable to configure DNS for this peer using file manager without a nameserver group with all domains configured` (or `… using resolvconf manager …`) | Linux host in file or resolvconf mode and the peer receives only match-domain groups | add a primary group (no match domains) for the peer's groups, or move the host to systemd-resolved or NetworkManager |
 | Internal names resolve to public IPs | split-DNS group missing the domain; the OS ignores match domains (Linux resolvconf/file mode; on Windows a GPO-pushed NRPT policy that overrides local rules); or the group was deactivated after upstream timeouts | add domain; ship a primary group; `Get-DnsClientNrptPolicy`; next row |
 | Lookups take 15–45 s or fail intermittently | upstreams time out (15 s each); after 5 failures `all queries to the upstream nameservers failed with timeout` and `Temporarily deactivating nameservers group due to timeout`, until `upstreams … are responsive again. Adding them back to system` | make the upstream reachable through the tunnel (route + policy for UDP/TCP 53) or replace it |

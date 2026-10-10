@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 27738
+chars: 28273
 sections:
 - id: '1'
   title: CLI cannot talk to the daemon
@@ -34,7 +34,7 @@ sections:
   chars: 556
 - id: '9'
   title: TLS inspection / AI security side effects
-  chars: 3769
+  chars: 4304
 - id: '10'
   title: Upgrade / install problems
   chars: 1488
@@ -279,8 +279,9 @@ to use the proxy are affected.
 | `MacFilter: NetziloFilterManager not found alongside daemon binary; extension must be installed manually` | the binary is not running from `/Applications/Netzilo.app`; reinstall the pkg |
 | `MacFilter: manager exited with error` | approve the system extension: System Settings → General → Login Items & Extensions → Network Extensions |
 | `NWFilter: init failed` / `nwfilter.exe not found` (Windows) | reinstall; check AV quarantine of `nwfilter.exe` |
-| `unified proxy stopped with error` / `MCP gateway failed to start` | port 41339 / 41338 in use → `netzilo up --socks5-port <p>` / `--mcp-gateway-port <p>` |
+| `unified proxy stopped with error` | port 41339 in use → `netzilo up --socks5-port <p>`. (`MCP gateway failed to start` and `--mcp-gateway-port` belong to clients before this release, which ran a local MCP gateway on 41338; a current client has neither) |
 | Node-based tools fail TLS after uninstall | leftover `NODE_EXTRA_CA_CERTS` pointing to a deleted file → remove from `/etc/environment`, `/etc/zshenv`, `/etc/profile`, or on Windows `HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment` (then sign out and back in) |
+| An agent gets `401`, `403`, `405` or `429` from the **AI gateway** | not a client problem: the AI Gateway refused the call. `401` a Netzilo credential is required (token missing, expired, of another account, or sent as `x-api-key`), `403` no model granted / a guardrail's reason, `405` the Anthropic base URL lacks `/anthropic`, `429`/`402` a limit → `references/27-ai-gateway.md` §6, `references/47-agentic-access-workplace.md` §5 |
 
 More in `10-ai-security-aidr.md` §9.
 

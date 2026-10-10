@@ -7,20 +7,20 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 8946
+chars: 10872
 sections:
 - id: '1'
   title: Before you touch anything
   chars: 707
 - id: '2'
   title: What each action actually does
-  chars: 1266
+  chars: 1934
 - id: '3'
   title: Suspected compromised device
-  chars: 1150
+  chars: 1215
 - id: '4'
   title: Suspected compromised or leaked credential
-  chars: 1062
+  chars: 1292
 - id: '5'
   title: Departing employee
   chars: 949
@@ -29,7 +29,7 @@ sections:
   chars: 2060
 - id: '7'
   title: Suspicious AI activity
-  chars: 787
+  chars: 1750
 - id: '8'
   title: After the incident
   chars: 488
@@ -74,7 +74,8 @@ believing the problem is contained.
 | **Delete an access token** | That token stops working immediately | Does not affect the user's own login |
 | **Remove from all groups** | Policies stop matching, so access stops | Device stays connected and enrolled |
 | **Disable a route** | The published network stops being reachable through it | Does not remove the routing peer |
-| **Disable a tool or scanner** | Applies everywhere immediately | — |
+| **Disable a guardrail** | Devices drop it on their next sync, gateways within their policy refresh (60 s) | Does not remove it from the filters that bind it |
+| **Revoke a user's gateway access** | Remove the user from the gateway filter's group (grants vanish at the next refresh), lower or add a **limit**, delete their `mcp`-scoped tokens (Profile Settings → Access Tokens, or `DELETE /api/users/{id}/tokens/{tokenId}`), disconnect their MCP sign-ins (`DELETE /api/users/current/mcp-connections/{serverId}` by the user; `DELETE /api/edge/mcp-servers/{id}/credential` for the admin's shared one) | A revoked token can be honoured at the gateway door for up to a minute (its cache); blocking the user is faster and covers every token |
 
 ---
 
@@ -93,7 +94,8 @@ Contain in this order.
    as connected. Confirm from the server side rather than from the device.
 5. **Collect evidence** from the device if you still have access, then rebuild it.
 6. **Review what it reached** in Activity, filtered to that peer, for the period in
-   question. For AI activity use the AI Activity report.
+   question. For AI activity use the AI Agent Activity report; for what went through the
+   gateway, the AI Usage report.
 
 **If the device is lost or stolen and you cannot reach it:** block the user, delete the
 peer, and rotate any setup key it held. Its stored configuration contains a private key
@@ -106,7 +108,7 @@ that is now useless because the server no longer recognises the peer.
 | What leaked | Do this |
 |---|---|
 | A user's password or SSO session | Block the user, force a password reset and re-enrol MFA in the identity provider (`04-identity-and-sso.md`), then unblock |
-| An API access token | Delete that token. Tokens carry the full permissions of their owner's role, so also review Activity for what it did |
+| An API access token | Delete that token. Tokens carry the full permissions of their owner's role, so also review Activity for what it did. A user's **AI Gateway** token (scope `mcp`) can only identify them to gateways: delete it under their Access Tokens and check the AI Usage report for what was sent in their name; the gateway may honour it for up to a minute more |
 | A setup key | Delete or expire it, then audit every peer that enrolled with it and remove any you do not recognise |
 | The AI inspection certificate authority key on a device | Treat the device as compromised, rebuild it. The key is per-device |
 | A server secret, such as the database password or the identity provider master key | This is a server rebuild. Follow `02-server-operations.md` for backup and restore, and change the secret as part of the restore rather than in place |
@@ -184,13 +186,24 @@ Owner must do it. This is not a fault.
 
 ## 7. Suspicious AI activity
 
-1. **Identify the scope**: which user, which device, which agent, which tool. The AI
-   Activity report groups by user and by device, and the per-peer session snapshots show
-   what an agent actually did.
-2. **Contain** by disabling the tool, or by removing the device's group from the filter
-   that permits it. Disabling a tool applies everywhere immediately.
+1. **Identify the scope**: which user, which device, which agent, which model or tool,
+   and which side — a device (source `mitm`, `hook`, `extension`) or the AI gateway
+   (source `gateway`). The evidence is the `ai.*` events (Activity → Events, category AI
+   Edge: `ai.blocked`, `ai.detected`, `ai.redacted`, `ai.redirected`, each naming the
+   rule, filter, agent, model or tool and the matched excerpt), the **AI Agent Activity**
+   report (per user and per setup-key agent), gateway usage in the **AI Usage** report
+   (who called which model or MCP tool, when, how much), `gateway.credential_refused`
+   events for tokens the gateway turned away, and the device's behaviour graph
+   (`/api/aidr/…`) for what an agent actually did.
+2. **Contain** on the side the activity came from. Device: remove the device's group
+   from the endpoint filter, or block the user. Gateway: remove the user from the gateway
+   filter's group, add or lower a limit, delete their `mcp`-scoped tokens, disconnect
+   their MCP sign-ins (§2). Disabling a guardrail applies on the next sync; a token the
+   gateway has cached works for up to a minute after deletion. Blocking the user is the
+   fastest single action on either side.
 3. **Confirm enforcement changed** by checking that new events show the action you
-   expect rather than the previous one.
+   expect rather than the previous one — a refused gateway call shows as `ai.blocked`
+   with engine `policy` (grant) or `limit`, source `gateway`.
 4. **Preserve the evidence.** Events carry the content that triggered a detection, which
    is what an investigator needs. Export before pruning anything.
 5. **Tighten the rule** only after containment, so you are not changing detection logic

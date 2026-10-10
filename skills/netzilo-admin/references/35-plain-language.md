@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 5570
+chars: 7819
 sections:
 - id: '1'
   title: When an identifier belongs in the answer
   chars: 817
 - id: '2'
   title: Areas of the product
-  chars: 1609
+  chars: 3858
 - id: '3'
   title: 'Objects: names, not ids'
   chars: 599
@@ -63,24 +63,44 @@ dashboard; if a customer's build shows a different label, theirs wins.
 
 | Say this | Where they find it | Endpoint behind it |
 |---|---|---|
-| the dashboard overview | Overview | `/api/stats`, `/api/summary` |
+| the dashboard home (tiles Users, Devices, Agents, Tokens; Agentic Activity) | Dashboard | `/api/stats`, `/api/summary` |
 | a peer / a device | Endpoint → Peers | `/api/peers` |
 | a setup key | Endpoint → Setup Keys | `/api/setup-keys` |
 | a posture check | Endpoint → Posture Checks | `/api/posture-checks` |
 | a profile (Workspace, Enterprise Browser, Disposable Browser, Extension) | Endpoint → Profiles | `/api/profiles` |
-| an access control policy | Network → Access Control | `/api/policies` |
+| an access control policy | Network → Policies | `/api/policies` |
 | a group | used by policies, peers, users and keys throughout | `/api/groups` |
 | a network route / an exit node | Network → Routes | `/api/routes` |
-| a nameserver / DNS settings | Network → DNS | `/api/dns/nameservers`, `/api/dns/settings` |
+| a published application | Network → Applications | `/api/published-apps` |
+| a nameserver / DNS settings | Network → DNS (Servers \| Settings tabs) | `/api/dns/nameservers`, `/api/dns/settings` |
 | a user, a service account ("agent") | Team → Users | `/api/users` |
 | account settings, the tenant, the plan | Team → Settings | `/api/accounts`, `/api/tenant` |
-| an approved tool (MCP server) | Edge → Tools | `/api/edge/tools` |
-| a discovered tool waiting for a decision | Edge → Tools → Discovered | `/api/edge/discovered-tools` |
-| a scanner (detection rule) | Edge → Scanners | `/api/edge/scanners` |
-| a filter | Edge → Filters | `/api/edge/filters` |
+| a provider (the gateway's model catalogue) | Edge → Providers | `/api/edge/providers` |
+| an MCP server | Edge → MCP → MCP Servers tab | `/api/edge/mcp-servers` |
+| an MCP bundle | Edge → MCP → MCP Bundles tab | `/api/edge/virtual-mcps` |
+| a guardrail (detection rule) | Edge → Guardrails | `/api/edge/guardrails` |
+| a limit (spend, token or request quota) | Edge → Limits | `/api/edge/limits` |
+| a filter — an endpoint filter (devices) or a gateway filter (users) | Edge → Filters | `/api/edge/filters` |
+| the user's gateways and MCP servers, their AI Gateway token | Workplace → Agentic Access | `/api/users/current/ai-access` |
 | an event / the activity log | Activity → Events | `/api/events`, `/api/events/paginated` |
 | a report | Activity → Reports | `/api/reports` |
-| an integration | Integrations | `/api/integrations` |
+| an integration; the AI the dashboard itself uses | Integrations; Integrations → Artificial Intelligence | `/api/integrations`; `/api/ai/providers` |
+
+### 2.1 AI Edge terms
+
+Say these the way the dashboard does; the admin has never seen the old words (tools,
+scanners, catalogue) in this release.
+
+| Term | What it means |
+|---|---|
+| **guardrail** | a detection rule (YAML) bound by a filter; its verdict is allow, detect (report), redact, block or redirect. Formerly "scanner" — do not use that word for the object; "the AI scanner" inside a rule's `scan` action keeps its name |
+| **endpoint filter** | a filter of type Endpoint: groups × operating systems (and optionally Agents) on devices; binds guardrails the Netzilo client enforces |
+| **gateway filter** | a filter of type Gateway: groups of users; grants models, limits, MCP servers and bundles, lists the gateway addresses, binds guardrails the AI gateway enforces |
+| **model grant** | an entry in a gateway filter's Models tab, `provider/model` or a whole provider; without one the user is refused at the gateway with "no model is granted to this user" |
+| **limit** | a spend, token or request quota, applied per user per gateway; the lowest value wins when several filters apply |
+| **MCP server / MCP bundle** | an admin-defined server the gateway serves at `<gateway>/mcp/<slug>`; a bundle is one endpoint that combines tools of several servers |
+| **Agentic Access** | the Workplace section where a user sees their gateways and MCP servers, creates their AI Gateway token and signs in to per-user MCP servers |
+| **AI Gateway** | the Netzilo AI Gateway (`netzilo-aigw`), a peer of the account that identifies callers as users and applies their gateway filters; not the clientless-access gateway on 8443, although the same binary serves both |
 
 ## 3. Objects: names, not ids
 
@@ -101,7 +121,7 @@ detected"), `activity_code` (the stable identifier — `workspace.injection.dete
 `activity_category` ("Suspicious"). The display name is already in the response you are
 reading. Quote it.
 
-The full list is `references/34-event-catalogue.md`: 140 activities with their display
+The full list is `references/34-event-catalogue.md`: 159 activities with their display
 names, codes and categories. Use it when you are choosing a `code=` filter, and use it in
 reverse when a code turns up in a log or a rule and you need to say what it means.
 

@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 29725
+chars: 31299
 sections:
 - id: '1'
   title: What is on a Windows host
-  chars: 4981
+  chars: 5079
 - id: '2'
   title: Install, upgrade, uninstall (what each keeps or wipes)
-  chars: 4704
+  chars: 5690
 - id: '3'
   title: Deploying at scale (Intune/SCCM/GPO, device context, proxies, switches)
-  chars: 2756
+  chars: 3097
 - id: '4'
   title: Service and driver failures
   chars: 3075
@@ -29,7 +29,7 @@ sections:
   chars: 1881
 - id: '7'
   title: AI network filter and interception certificate
-  chars: 2830
+  chars: 2924
 - id: '8'
   title: Posture signals on Windows
   chars: 3584
@@ -38,7 +38,7 @@ sections:
   chars: 1133
 - id: '10'
   title: Collecting evidence safely
-  chars: 1339
+  chars: 1394
 ---
 # Netzilo — Windows Hosts (install, services, drivers, DNS, filter, posture)
 
@@ -81,7 +81,7 @@ is added to `PATH`; a shell needs the full path to `netzilo.exe`.
 | `netzilo_online_install.log`, `netzilo_offline_nsis_install.log` | plain-text installer logs | read freely |
 | `installer_internal.log`, `core.log`, `nzcontainer.log` | encrypted logs of the native components | **collect, do not read**: only Netzilo support can decrypt them |
 | `config.json`, `usservice<N>.json` | client configuration incl. the WireGuard private key | **secret**: never request contents; `diag.config` gives the safe view |
-| `mcp.db`, token and PAT files, `netzilo-ca-key.pem` | credentials and the interception CA private key | **secret**: never read or copy into a conversation |
+| token and PAT files, `netzilo-ca-key.pem`; `mcp.db` (present only on hosts that ran a client from before this release — no current client creates it) | credentials and the interception CA private key | **secret**: never read or copy into a conversation |
 | `usservice<N>.log` | log of a non-administrator (per-user) client, `<N>` = user id | read freely |
 
 **Services and drivers.** Query any of them with `sc.exe query <name>`:
@@ -125,32 +125,39 @@ cannot open this link".
 
 ## 2. Install, upgrade, uninstall (what each keeps or wipes)
 
-**Three installer forms, one product.**
+**Four installer files, one product.** Every switch, property and exit code: `48-installer-command-lines.md`.
 
 | Form | URL under `https://pkg.netzilo.com` | Silent / switches | Use when |
 |---|---|---|---|
 | Online installer | `/download/windows/netzilo_setup.exe` | none needed for interactive use | a person with internet access installs by hand. It downloads the actual package from `pkg.netzilo.com` at install time |
-| Offline installer | `/download/windows/x64/nz_installer_64.exe` | `-s` silent, `-na` non-administrator mode | scripted pushes, machines without direct internet, device-context deployment |
-| MSI | `/download/windows/x64/netzilo_x64.msi` | properties `NONADMIN=1`, `CONFIGFILE=<path>`; always add `REBOOT=ReallySuppress` | tools that require a package (Intune Win32/LOB, SCCM, GPO software installation) |
+| Offline installer | `/download/windows/x64/nz_installer_64.exe` | `/S` silent; `NONADMIN=1` / `CONFIGFILE="<path>"` only as the last argument and never both (`48` §5) | a person installing without internet at install time |
+| Pack | `/download/windows/x64/nz_installer_64.pack` (rename to `.exe`) | `-q` / `-s`, `-na`, `--config-file=<path>` (`48` §6) | scripts that need non-admin mode and a config file together |
+| MSI | `/download/windows/x64/netzilo_x64.msi` | properties `NONADMIN=1`, `CONFIGFILE=<path>`; always add `/norestart` (or `REBOOT=ReallySuppress`) | **every managed deployment**: Intune (Win32 app, System), SCCM, GPO software installation |
 
-Installers named `netzilo_setup_<name>.exe` or `netzilo_x64_<name>.msi` carry a tenant
-name and apply that tenant's pre-seeded configuration (management URL and settings) at
-install time; the person only signs in.
+Installers named `netzilo_setup_<name>.exe`, `nz_installer_64_<name>.exe` or
+`netzilo_x64_<name>.msi` carry a tenant name: they download that tenant's configuration and
+write it over `%ProgramData%\Netzilo\config.json` **on every run, upgrades included**
+(`48` §8).
 
 **Elevation.** Every form starts unelevated and requests elevation itself through UAC.
-"Run as administrator" is not needed; an installer that is *denied* elevation continues as
-a non-administrator install (§3), which is the usual origin of "the workspace and the AI
-features are missing on this laptop".
+"Run as administrator" is not needed. **An installer that is denied elevation fails
+(exit 1)**; it does not continue as a non-administrator install. A non-administrator
+install — the usual origin of "the workspace and the AI features are missing on this
+laptop" — comes only from `NONADMIN=1` / `-na`, a tenant configuration that asks for it, or
+an ARM64 machine.
 
 **What install does.** Copies the program files to `%ProgramData%\Netzilo Client\`,
 installs and starts the drivers and the `Netzilo` service, registers the tray autostart,
-writes the plain installer log to `%ProgramData%\Netzilo\`. On ARM64 it installs the
+appends `%ProgramData%\Netzilo Client` to the machine `Path` (user `Path` in
+non-administrator mode), writes the plain installer log to `%ProgramData%\Netzilo\`. On ARM64 it installs the
 network client only: no drivers, no workspace, no AI network filter.
 
 **Upgrade** is in place: run the new installer of any form. There is no "already
 installed, remove it first" prompt. Services and drivers are stopped, the old files are
 set aside and replaced, configuration and enrolment in `%ProgramData%\Netzilo` are kept,
-and the peer keeps its identity. If a running driver cannot be replaced, the installer
+and the peer keeps its identity — **except** with a tenant-named installer or a
+`CONFIGFILE` containing `apiurl`, both of which replace the device's identity (`48` §8,
+§10.3). If a running driver cannot be replaced, the installer
 sets `HKLM\System\CurrentControlSet\Control\NetziloPendingReboot`, and every further
 install attempt says "Please reboot computer and try again." until the machine reboots.
 
@@ -176,34 +183,35 @@ by a fresh install, with the same consequences.
 | `Cannot install netzilo driver.` / `Cannot install sandbox driver.` / `Cannot install imdisk driver.` / `Cannot install diskio driver.` | a driver could not be installed or started: blocked by a driver-control or code-integrity policy, or by security software | §4; check `Microsoft-Windows-CodeIntegrity/Operational` and the security product's log; allowlist the drivers |
 | `Cannot install netzilo service.` / `Cannot start netzilo service.` | the service registration or first start failed | `service.log` and the Service Control Manager event (§4) |
 
-Every dialog is also written to `netzilo_online_install.log` or
-`netzilo_offline_nsis_install.log`, so a silent deployment that "did nothing" is diagnosed
-from those two files, not from the deployment tool's exit code alone.
+These dialogs are written only to the **encrypted** `installer_internal.log` (for Netzilo
+support), not to `netzilo_online_install.log` / `netzilo_offline_nsis_install.log`, and a
+failed install's rollback deletes `%ProgramData%\Netzilo` with all three. Deploy with the
+MSI and `/l*v <path outside %ProgramData%\Netzilo>` so the failure survives; to see the
+dialog text, run the pack with `-s` interactively on the affected machine (`48` §18).
 
 ## 3. Deploying at scale (Intune/SCCM/GPO, device context, proxies, switches)
 
 | Decision | Recommendation | Why |
 |---|---|---|
-| Which form | MSI for Intune LOB/Win32, SCCM and GPO software installation; offline `.exe -s` for scripted pushes | the online installer needs internet from the deployment identity and fails silently with `failed to download installer.` when it does not have it |
-| Context | **device (system) context**, never user context | the MSI is per-user scoped and self-elevates; in user context on a non-administrator account it produces a non-administrator install (per-user client, userspace networking, no drivers, no workspace, no AI network filter) |
-| Reboot handling | `REBOOT=ReallySuppress`; schedule the reboot yourself when the exit code or `NetziloPendingReboot` says one is pending | the installer may request a reboot to replace a running driver |
+| Which form | the MSI for Intune (**Win32 app**, install behaviour System), SCCM and GPO software installation and scripted pushes | the online installer needs internet from the deployment identity and always exits 0; the offline EXE's options are fragile (`48` §5); an Intune LOB app installs the per-user MSI in user context |
+| Context | **device (system) context**, never user context | the MSI is per-user scoped and its install engine elevates itself; in user context a standard user gets a UAC prompt and the install fails when it is not approved |
+| Reboot handling | `/norestart` or `REBOOT=ReallySuppress`; schedule the reboot yourself when the MSI returns `3010` or `NetziloPendingReboot` exists | the package schedules a reboot when a running driver must be replaced; without suppression a silent install can restart the machine |
 | Proxies | give the machine identity a proxy (WinHTTP or a system proxy policy) if the network requires one; or use offline/MSI | a `SYSTEM` context has no user proxy settings |
-| Pre-seeding | tenant-named installer, or `CONFIGFILE=<path>` on the MSI | the person only signs in; no `--management-url` on the device |
+| Pre-seeding | `CONFIGFILE=<path>` on the MSI (a `deploy-user` file: a service token creates the user and a token, and the device signs in with it — no SSO), or a setup key after install | `48` §10 — read its cautions (the token is left in the installer account's temp folder; `apiurl` replaces the identity) |
 | Enrolment | user devices: sign-in in the tray after install. Servers and kiosks: `netzilo.exe up --setup-key <KEY>` from an elevated shell | `references/05-client-install-and-deploy.md` §1 |
-| Detection rule | file `%ProgramData%\Netzilo Client\netzilo.exe` and service `Netzilo` | `HKLM\Software\Netzilo` `Version` also exists; `C:\Program Files\Netzilo` does **not** |
+| Detection rule | file `%ProgramData%\Netzilo Client\netzilo.exe` and service `Netzilo` — never the MSI ProductCode, which changes every build | `HKLM\Software\Netzilo` `Version` also exists; `C:\Program Files\Netzilo` does **not** |
 | Security software | allowlist `%ProgramData%\Netzilo Client\`, the drivers `nwfilter64.sys` and `ntzldrv.sys`, and the two named pipes | see §7 |
 
 Commands:
 
 ```powershell
-# offline installer, silent
-& ".\nz_installer_64.exe" -s
-# MSI, silent, device context
-msiexec /i netzilo_x64.msi /qn REBOOT=ReallySuppress
-msiexec /i netzilo_x64.msi /qn REBOOT=ReallySuppress CONFIGFILE="C:\deploy\config.json"
+# MSI, silent, device context (the form for every managed deployment)
+msiexec /i netzilo_x64.msi /qn /norestart /l*v C:\Windows\Temp\netzilo_msi.log
+msiexec /i netzilo_x64.msi /qn /norestart CONFIGFILE="C:\deploy\deploy-user.json"
+# offline installer, silent (by hand)
+& ".\nz_installer_64.exe" /S
 # non-administrator mode on purpose (userspace networking, no drivers/workspace/filter)
-& ".\nz_installer_64.exe" -s -na
-msiexec /i netzilo_x64.msi /qn REBOOT=ReallySuppress NONADMIN=1
+msiexec /i netzilo_x64.msi /qn /norestart NONADMIN=1
 # silent uninstall
 & "$env:ProgramData\Netzilo Client\installer.exe" -u -q
 # enrol a server
@@ -315,14 +323,15 @@ diag.grep {pattern: "NWFilter:", max_matches: 20}
 |---|---|---|---|
 | AI tools are not governed; no `filter driver connected` line | `sc.exe query nwfilter` STOPPED; CodeIntegrity events | driver blocked by Memory Integrity, a code-integrity policy or EDR | `Get-WinEvent -LogName Microsoft-Windows-CodeIntegrity/Operational -MaxEvents 30`; allowlist `nwfilter64.sys` and the install folder |
 | `exited unexpectedly — restarting` repeats | `nwfilter.log` | another Windows Filtering Platform redirector on the host (Zscaler Client Connector, GlobalProtect, other filter-based network products), or security software killing the process | allowlist `nwfilter.exe` and the two pipes; with another redirector, decide which product owns redirection on that device |
-| ordinary applications lose network at logon, before any AI tool runs | `nwfilter_policy.json` lists `restricted_adapters` | the profile's "restricted adapters" are enforced from service start, before sign-in, and apply to every process on those adapters | remove the adapter from the profile (`references/29-edge-filters.md`, `references/26-profiles-secure-workplace.md`) |
+| ordinary applications lose network at logon, before any AI tool runs | `nwfilter_policy.json` lists `restricted_adapters` | the profile's "restricted adapters" are enforced from service start, before sign-in, and apply to every process on those adapters | remove the adapter from the profile (`references/26-profiles-secure-workplace.md`) |
 | a per-user agent path is not matched after a reboot | the rule uses `%LOCALAPPDATA%` or `%USERPROFILE%` | those variables are expanded for the active user when filters change; after a reboot with nobody signed in they expand to the system profile | have the person sign in, then Disconnect/Connect (`mod.refresh` does not re-expand paths) |
 | Node-based tools fail TLS to intercepted hosts | `client.log` `MITM: certutil -addstore failed` | the interception CA did not reach the Local Machine Root store (security software blocked `certutil`) | from an elevated or `SYSTEM` shell: `certutil -addstore -f Root "%ProgramData%\Netzilo\netzilo-ca.pem"` |
 | the same, but only in a terminal opened before install | `NODE_EXTRA_CA_CERTS` missing in that process | the variable is set machine-wide at install and read at process start | sign out and in, or open a new terminal |
 
 Never copy `netzilo-ca-key.pem` anywhere; the public `netzilo-ca.pem` is the only file
-these fixes need. Filter design and rules: `references/29-edge-filters.md`,
-`references/10-ai-security-aidr.md`.
+these fixes need. Endpoint filter design (which processes are steered into the filter):
+`references/29-edge-filters.md` §2.1; the rules they carry: `references/28-edge-guardrails.md`;
+the whole picture: `references/10-ai-security-aidr.md`.
 
 ## 8. Posture signals on Windows
 
@@ -380,8 +389,9 @@ Collect in this order and stop when the cause is established
    `netsh advfirewall … show rule` and `Find-NetRoute` commands above.
 4. Files to **collect**, never read: `installer_internal.log`, `core.log`,
    `nzcontainer.log` (encrypted; Netzilo support decrypts them).
-5. Files never to collect or quote: `config.json`, `usservice*.json`, `mcp.db`, token and
-   PAT files, `netzilo-ca-key.pem`, `<workspace>.json`.
+5. Files never to collect or quote: `config.json`, `usservice*.json`, token and PAT
+   files, `netzilo-ca-key.pem`, `<workspace>.json`, and `mcp.db` where a client from
+   before this release left it.
 
 Native component logging: set `HKLM\System\CurrentControlSet\Control\NetziloDebug`
 (REG_MULTI_SZ) to `*`, reproduce, collect the encrypted logs, then delete the value; it

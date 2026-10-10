@@ -8,7 +8,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 28145
+chars: 28151
 sections:
 - id: '0'
   title: Classify the target (2 minutes)
@@ -30,7 +30,7 @@ sections:
   chars: 3078
 - id: '6'
   title: Name resolution
-  chars: 2890
+  chars: 2896
 - id: '7'
   title: Server-side checks (self-hosted only)
   chars: 928
@@ -333,7 +333,7 @@ getent hosts <internal-name>               # names behind a private DNS server
 | Symptom | Cause | Fix |
 |---|---|---|
 | peer names do not resolve | Netzilo resolver not installed on A (backend problem); on Linux in resolvconf or file mode with no primary nameserver group, the log has `unable to configure DNS for this peer using file manager without a nameserver group with all domains configured` | `07` §6; add a primary group (no match domains) for A's groups |
-| private names do not resolve | no nameserver group distributed to A's groups, or the DNS server is itself behind a route (needs route + policy allowing UDP/TCP 53 A → R) | Network → DNS Servers: distribution groups; add route/policy for the resolver |
+| private names do not resolve | no nameserver group distributed to A's groups, or the DNS server is itself behind a route (needs route + policy allowing UDP/TCP 53 A → R) | Network → DNS → Servers tab: distribution groups; add route/policy for the resolver |
 | match-domain resolver ignored | A's DNS manager cannot do match domains: on Linux, resolvconf or direct-file mode (`System DNS manager discovered: <x>` in the log); on Windows, a GPO-pushed NRPT policy overriding local rules (`Get-DnsClientNrptPolicy`) | add a primary (no match domains) nameserver group for `All`; on Linux move the host to systemd-resolved or NetworkManager |
 | name resolves to a public IP while a private one is expected | split-horizon: match domain missing or wrong; or the group was deactivated after upstream timeouts (next row) | add the domain to the nameserver group's Match Domains |
 | lookups take ~15–45 s, or work intermittently | each upstream gets 15 s; after 5 failures the group is deactivated (`all queries to the upstream nameservers failed with timeout`), its domains leave the host configuration, and a primary group stops being the catch-all, until `upstreams … are responsive again` | make the upstream reachable through the tunnel (route + policy for port 53) |

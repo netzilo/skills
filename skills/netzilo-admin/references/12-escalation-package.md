@@ -7,11 +7,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 40017
+chars: 43110
 sections:
 - id: '1'
   title: Escalate only when the answer needs the source code
-  chars: 2388
+  chars: 2549
   requires: []
   executable_on:
   - dashboard-assistant
@@ -27,22 +27,22 @@ sections:
   - human-operator
 - id: '3'
   title: What the client debug bundle actually contains
-  chars: 1945
+  chars: 2071
 - id: '4'
   title: Collect
-  chars: 8062
+  chars: 9792
 - id: '5'
   title: Correlation keys — include these explicitly
-  chars: 1030
+  chars: 1239
 - id: '6'
   title: Remove credentials before anything leaves the machine
-  chars: 2814
+  chars: 3134
 - id: '7'
   title: Do not anonymize by default — decide deliberately
   chars: 1129
 - id: '8'
   title: If you cannot run the commands yourself
-  chars: 2678
+  chars: 2693
 - id: '9'
   title: Write the summary
   chars: 454
@@ -74,7 +74,7 @@ sections:
   chars: 290
 - id: '10'
   title: Escalating from the dashboard assistant
-  chars: 8928
+  chars: 9447
   requires:
   - api
   executable_on:
@@ -83,7 +83,7 @@ sections:
   - human-operator
 - id: '11'
   title: Package and send
-  chars: 4680
+  chars: 4693
 - id: '12'
   title: While it is open
   chars: 936
@@ -150,7 +150,8 @@ Do **not** escalate — these are solvable, and the runbook says how:
 | Device unreachable, route/routing peer/firewall untested | `11` §4–§5 |
 | Certificate, DNS, or port problem on the server | `03` §1–§4 |
 | Login, SSO, MFA, or "no e-mail" (SMTP is not configured by the installer) | `04` §5–§6 |
-| AI rule not firing, filter not bound, agent path not intercepted | `29` §5, `28` §7 |
+| AI rule not firing, filter not bound, agent path not intercepted | `29` §5.1 (device), `29` §5.2 (gateway user), `28` §7 |
+| An agent refused at the AI gateway (401, 403, 429/402), a model not granted, a limit reached | `27` §6 and §10, `47` §5 |
 | Plan limit, licence state, or an Enterprise-only feature | `25` §4 |
 | Behaviour that a newer version of this skill already documents | check first — see below |
 
@@ -192,7 +193,7 @@ What "every file in the log directory" means per platform:
 |---|---|---|
 | **Linux** | `/var/log/netzilo/` | also contains the service's stdout/stderr logs, because the installer points them here — good, include them |
 | **macOS** | `/var/log/netzilo/` | the launchd logs `/var/log/Netzilo.out.log` and `/var/log/Netzilo.err.log` are **outside** this directory and are **not** in the bundle. Panics can land there — collect them separately (`err.log` is normally thousands of benign `TLS handshake error` lines; grep it for `panic` or `goroutine`). The two system-extension logs `netzilofilter.log` and `netzilosecurity.log` **are** in the directory and ride along in the bundle |
-| **Windows** | `%PROGRAMDATA%\Netzilo\` | this is also the **configuration** directory, so the bundle sweeps in `config.json` (contains the WireGuard **private key**), `token.dat`, `pat.dat`, `netzilo-ca-key.pem` (the TLS-inspection **CA private key**), `usservice*.json` (the non-admin mode configuration, with its own private key), `mcp.db` (MCP OAuth tokens) and the per-workspace peer configurations `%PROGRAMDATA%\Netzilo\<workspace>.json`. All of these must be removed — see §6 |
+| **Windows** | `%PROGRAMDATA%\Netzilo\` | this is also the **configuration** directory, so the bundle sweeps in `config.json` (contains the WireGuard **private key**), `token.dat`, `pat.dat`, `netzilo-ca-key.pem` (the TLS-inspection **CA private key**), `usservice*.json` (the non-admin mode configuration, with its own private key), `mcp.db` **if present** (MCP OAuth tokens written by clients from before this release; no current client creates the file, but nothing removes it either) and the per-workspace peer configurations `%PROGRAMDATA%\Netzilo\<workspace>.json`. All of these must be removed — see §6 |
 
 Also: the tray menu's **Support → Collect Data** produces a bundle with **no
 `status.txt` and no anonymization** — it sends an empty request. Always use the CLI so
@@ -362,18 +363,51 @@ API token (`09` §1). Collect only what the case touches.
 nz /policies > config/policies.json ; nz /groups > config/groups.json
 nz /peers    > config/peers.json    ; nz /routes > config/routes.json
 nz /posture-checks > config/posture-checks.json
-nz /edge/filters > config/edge-filters.json   # AI cases
+nz /edge/filters    > config/edge-filters.json      # AI cases: the bindings
+nz /edge/guardrails > config/edge-guardrails.json   # AI cases: the rules
 FROM=$(date -u -d '-2 days' +%FT%TZ 2>/dev/null || date -u -v-2d +%FT%TZ)
 nz "/events/paginated?limit=1000&date_from=$FROM" > events/events.json
 ```
 
-For an AI-security case also capture the session snapshot, which is the engine's own
-record of what it observed:
+For an AI-security case on a device also capture the engine's own record of what it
+observed — the behaviour graph's sessions for that peer:
 
 ```bash
-nz "/peers/<peerId>/aidr-snapshot"                 > events/aidr-runs.json
-nz "/peers/<peerId>/aidr-snapshot?run_id=<runId>"  > events/aidr-snapshot.json
+nz "/aidr/sessions?scope=source:<peerId>&since=$FROM" > events/aidr-sessions.json
 ```
+
+(`/api/aidr/graph`, `/observations` and `/detections` take the same `scope`, `since` and
+`until`; the former `/api/peers/{id}/aidr-snapshot` answers 404 on this release.)
+
+### 4.5 AI Gateway cases
+
+When the case is about an agent calling the AI Gateway (`27-ai-gateway.md`), add the
+gateway's side of the configuration and the gateway's own evidence; the device bundle
+says nothing about it.
+
+```bash
+nz /edge/providers     > config/edge-providers.json
+nz /edge/limits        > config/edge-limits.json
+nz /edge/mcp-servers   > config/edge-mcp-servers.json
+nz /edge/virtual-mcps  > config/edge-virtual-mcps.json
+nz "/edge/filters/effective?type=gateway&user=<userId>" > config/effective-gateway-filters-<userId>.json
+```
+
+Then, from the gateway host (self-hosted or the customer's own gateway; on Netzilo Cloud
+there is no gateway of ours to collect from — the customer runs it):
+
+```bash
+netzilo-aigw --version                                  > server/aigw-version.txt
+journalctl -u netzilo-aigw --since -1h --no-pager       > server/aigw.log
+grep -E 'AIG_ARGS' /etc/netzilo-aigw/aigw.env | sed -E 's/(--service-pat|--pat|--setup-key)[= ][^ ]+/\1 REDACTED/g' > server/aigw-args.txt
+```
+
+Record the `run` flags **without the secrets** (`--service-pat`, `--pat`, `--setup-key`
+and the `NZ_GATEWAY_*` variables never leave the host), and the failing request: its
+status code and response body **without the token** (the body's `type` field,
+`netzilo_gateway` or `netzilo_policy`, says which door refused it, `27` §6). An **AI
+Usage** report over the window (`POST /api/reports`, `report_type: ai_usage`, schema in
+`33`) shows whether the gateway's usage reaches management at all.
 
 ---
 
@@ -388,7 +422,7 @@ An analyst joining client logs to server logs needs the keys below. State them i
 | Netzilo IP / FQDN | `status.txt`, log lines | peer record via `GET /api/peers` |
 | Peer id / account id | client logs only at `debug` level | API and management logs |
 | **AIDR `correlation_id`** | dashboard event metadata | joins AI events across client and server |
-| Rule name / filter name | client verdict log lines | `tool.blocked` / `tool.detected` event metadata |
+| Rule name / filter name, request id, call id, session id | client verdict log lines; for a gateway verdict the gateway's `gateway ai:` lines (`13` §5.8) | `ai.*` event metadata (`rule_name`, `filter_name`, `request_id`, `call_id`, `session_id`; `source` says `mitm`, `hook`, `extension`, `gateway` or `probe`) |
 | Timestamp | local time **with UTC offset** | same format; AIDR payloads are UTC |
 
 One practical trick: at `debug` level the client logs every event it sends to the
@@ -405,7 +439,8 @@ exact client log line that produced it.
 | `netzilo-ca-key.pem` — TLS-inspection **CA private key** | inside the Windows debug bundle |
 | `token.dat`, `pat.dat` — session and API credentials | inside the Windows debug bundle |
 | `usservice*.json` — non-admin mode configuration, contains a private key | inside the Windows debug bundle |
-| `mcp.db` (and `mcpjungle.db` where present) — MCP OAuth tokens | inside the Windows debug bundle |
+| `mcp.db` (and `mcpjungle.db`), **if present** — MCP OAuth tokens left by a client from before this release; no current client creates them | inside the Windows debug bundle of a host that ran an older client |
+| `/etc/netzilo-aigw/aigw.env` and the `NZ_GATEWAY_*` variables — the AI Gateway's service token and peer credential | the gateway host — never collect the file; §4.5 says what to copy out of it |
 | `<workspace>.json` — per-workspace peer configurations, each with its own private key | `%PROGRAMDATA%\Netzilo\`, inside the Windows debug bundle |
 | `management.json`, `zitadel.env`, `dashboard.env`, `.env`, `turnserver.conf` | server configuration directory — never collect them at all |
 | `CREDENTIALS`, `netzilo-state.env` | server state directory — never collect |
@@ -415,7 +450,7 @@ exact client log line that produced it.
 
 Open the Windows bundle and delete every item in the first rows of that table —
 `config.json`, `netzilo-ca-key.pem`, `token.dat`, `pat.dat`, `usservice*.json`, `mcp.db`
-and each per-workspace `<workspace>.json` — before including it, then note the removal in
+if present, and each per-workspace `<workspace>.json` — before including it, then note the removal in
 `MANIFEST.txt`. Leave the logs in: they are the evidence.
 
 **Logs at `debug` or `trace` level can contain secrets.** Client logs and management logs
@@ -506,7 +541,7 @@ netzilo status -d | Out-File "$env:USERPROFILE\netzilo-status.txt"
 Then tell them, in plain words: *"the zip it printed contains your configuration files,
 which include private keys and tokens — before sending, open the zip and delete
 `config.json`, `token.dat`, `pat.dat`, `netzilo-ca-key.pem`, every `usservice*.json`,
-`mcp.db`, and any workspace `.json` file next to them."* If they cannot or would rather not
+`mcp.db` if it is there, and any workspace `.json` file next to them."* If they cannot or would rather not
 edit the archive, **it is not sent** through any channel: send the summary, the pasted
 status output and the relevant log excerpts instead, and say in the summary that the
 bundle was withheld.
@@ -610,7 +645,8 @@ wider sweep costs you rather than helps.
 | Routes and DNS | `GET /api/routes`, `GET /api/dns/nameservers`, `GET /api/dns/settings` |
 | Account settings — login expiration, JWT groups, peer approval | `GET /api/accounts` |
 | Audit trail, narrowed to the incident | `GET /api/events/paginated?date_from=…&date_to=…&code=…&limit=…` |
-| AI cases — the bindings and the engine's own record | `GET /api/edge/filters`, `GET /api/edge/scanners`, `GET /api/edge/tools`, `GET /api/peers/{id}/aidr-snapshot` |
+| AI cases on a device — the bindings, the rules and the engine's own record | `GET /api/edge/filters`, `GET /api/edge/guardrails`, `GET /api/aidr/sessions?scope=source:<peerId>&since=…` (and `/api/aidr/graph`, `/observations`, `/detections` with the same scope) |
+| AI Gateway cases — what the gateway was given | `GET /api/edge/providers`, `GET /api/edge/limits`, `GET /api/edge/mcp-servers`, `GET /api/edge/virtual-mcps`, `GET /api/edge/filters/effective?type=gateway&user=<userId>`; an **AI Usage** report (`POST /api/reports`, `report_type: ai_usage`) for the window. The gateway's own log and version are on its host (§4.5): ask the admin for them |
 | Device-side evidence, when the device is online | the device tools, not the API: `diag.status {full: true}`, `diag.config`, `diag.routes`, `diag.system`, `diag.logs`, `diag.grep` (§8, first paragraph) |
 | An activity summary over a window | `POST /api/reports` — a write, so read the schema in `references/33-api-request-schemas.md` first: `from` and `to` (both `YYYY-MM-DD`) are required, and a body assembled from memory without them is rejected |
 
@@ -648,8 +684,8 @@ to open one, so for a debug bundle the admin keeps the zip and, only if the anal
 for it, sends it redacted, while you work from `diag.status`, `diag.grep` and the pasted
 output. Repeat §8's warning verbatim when you hand over the Windows block: that zip
 contains `config.json`, `token.dat`, `pat.dat`, `netzilo-ca-key.pem`, `usservice*.json`,
-`mcp.db` and the workspace `.json` files, and all of them come out before it goes
-anywhere.
+`mcp.db` where an older client left it, and the workspace `.json` files, and all of them
+come out before it goes anywhere.
 
 ### 10.4 Assemble the summary
 
@@ -721,7 +757,7 @@ case rather than starting a second one (§12).
 cd ..
 find "$PKG" -type f | sort > "$PKG/MANIFEST.txt"
 { echo; echo "## Excluded"
-  echo "- config.json, token.dat, pat.dat, netzilo-ca-key.pem, usservice*.json, mcp.db, <workspace>.json removed from the Windows bundle"
+  echo "- config.json, token.dat, pat.dat, netzilo-ca-key.pem, usservice*.json, mcp.db (if present), <workspace>.json removed from the Windows bundle"
   echo "- server configuration files not collected (contain secrets)"
   echo "- bundle is NOT anonymized (preserves correlation)"
 } >> "$PKG/MANIFEST.txt"

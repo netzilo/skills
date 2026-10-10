@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 78553
+chars: 99987
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -18,6 +18,18 @@ sections:
 - id: delete-api-accounts-accountid
   title: '`DELETE /api/accounts/{accountId}`'
   chars: 331
+- id: get-api-ai-gateway-mcp
+  title: '`GET /api/ai-gateway/mcp`'
+  chars: 204
+- id: get-api-ai-gateway-mcp-credentials
+  title: '`GET /api/ai-gateway/mcp-credentials`'
+  chars: 202
+- id: get-api-ai-gateway-providers
+  title: '`GET /api/ai-gateway/providers`'
+  chars: 194
+- id: post-api-ai-gateway-usage
+  title: '`POST /api/ai-gateway/usage`'
+  chars: 2300
 - id: get-api-ai-capabilities
   title: '`GET /api/ai/capabilities`'
   chars: 186
@@ -32,13 +44,13 @@ sections:
   chars: 171
 - id: post-api-ai-providers
   title: '`POST /api/ai/providers`'
-  chars: 1242
+  chars: 1352
 - id: post-api-ai-providers-verify
   title: '`POST /api/ai/providers/verify`'
-  chars: 1270
+  chars: 1380
 - id: put-api-ai-providers-providerid
   title: '`PUT /api/ai/providers/{providerId}`'
-  chars: 1345
+  chars: 1455
 - id: delete-api-ai-providers-providerid
   title: '`DELETE /api/ai/providers/{providerId}`'
   chars: 261
@@ -48,6 +60,33 @@ sections:
 - id: post-api-ai-scanprompt
   title: '`POST /api/ai/scanprompt`'
   chars: 412
+- id: get-api-aidr-detections
+  title: '`GET /api/aidr/detections`'
+  chars: 661
+- id: get-api-aidr-graph
+  title: '`GET /api/aidr/graph`'
+  chars: 638
+- id: get-api-aidr-observations
+  title: '`GET /api/aidr/observations`'
+  chars: 785
+- id: post-api-aidr-replay
+  title: '`POST /api/aidr/replay`'
+  chars: 664
+- id: get-api-aidr-search
+  title: '`GET /api/aidr/search`'
+  chars: 696
+- id: get-api-aidr-session
+  title: '`GET /api/aidr/session`'
+  chars: 305
+- id: get-api-aidr-sessions
+  title: '`GET /api/aidr/sessions`'
+  chars: 940
+- id: get-api-aidr-sources
+  title: '`GET /api/aidr/sources`'
+  chars: 150
+- id: post-api-aidr-sources-source-observations
+  title: '`POST /api/aidr/sources/{source}/observations`'
+  chars: 1077
 - id: post-api-auth-tokens
   title: '`POST /api/auth/tokens`'
   chars: 515
@@ -75,21 +114,6 @@ sections:
 - id: put-api-dns-settings
   title: '`PUT /api/dns/settings`'
   chars: 369
-- id: get-api-edge-discovered-tools
-  title: '`GET /api/edge/discovered-tools`'
-  chars: 239
-- id: delete-api-edge-discovered-tools
-  title: '`DELETE /api/edge/discovered-tools/{discoveredToolId}`'
-  chars: 293
-- id: post-api-edge-discovered-tools-discoveredtoolid
-  title: '`POST /api/edge/discovered-tools/{discoveredToolId}/analyze`'
-  chars: 312
-- id: post-api-edge-discovered-tools-discoveredtoolid-2
-  title: '`POST /api/edge/discovered-tools/{discoveredToolId}/block`'
-  chars: 293
-- id: post-api-edge-discovered-tools-discoveredtoolid-3
-  title: '`POST /api/edge/discovered-tools/{discoveredToolId}/sanction`'
-  chars: 434
 - id: post-api-edge-events
   title: '`POST /api/edge/events`'
   chars: 501
@@ -98,58 +122,109 @@ sections:
   chars: 348
 - id: post-api-edge-filters
   title: '`POST /api/edge/filters`'
-  chars: 891
+  chars: 1861
+- id: get-api-edge-filters-effective
+  title: '`GET /api/edge/filters/effective`'
+  chars: 572
 - id: get-api-edge-filters-filterid
   title: '`GET /api/edge/filters/{filterId}`'
   chars: 263
 - id: put-api-edge-filters-filterid
   title: '`PUT /api/edge/filters/{filterId}`'
-  chars: 944
+  chars: 1914
 - id: delete-api-edge-filters-filterid
   title: '`DELETE /api/edge/filters/{filterId}`'
   chars: 267
-- id: get-api-edge-scanners
-  title: '`GET /api/edge/scanners`'
-  chars: 219
-- id: post-api-edge-scanners
-  title: '`POST /api/edge/scanners`'
-  chars: 615
-- id: get-api-edge-scanners-catalog
-  title: '`GET /api/edge/scanners/catalog`'
-  chars: 241
-- id: get-api-edge-scanners-generate
-  title: '`GET /api/edge/scanners/generate`'
-  chars: 282
-- id: post-api-edge-scanners-generate
-  title: '`POST /api/edge/scanners/generate`'
-  chars: 397
-- id: get-api-edge-scanners-scannerid
-  title: '`GET /api/edge/scanners/{scannerId}`'
-  chars: 268
-- id: put-api-edge-scanners-scannerid
-  title: '`PUT /api/edge/scanners/{scannerId}`'
-  chars: 670
-- id: delete-api-edge-scanners-scannerid
-  title: '`DELETE /api/edge/scanners/{scannerId}`'
-  chars: 271
-- id: get-api-edge-tools
-  title: '`GET /api/edge/tools`'
-  chars: 210
-- id: post-api-edge-tools
-  title: '`POST /api/edge/tools`'
-  chars: 686
-- id: get-api-edge-tools-catalog
-  title: '`GET /api/edge/tools/catalog`'
-  chars: 235
-- id: get-api-edge-tools-toolid
-  title: '`GET /api/edge/tools/{toolId}`'
-  chars: 253
-- id: put-api-edge-tools-toolid
-  title: '`PUT /api/edge/tools/{toolId}`'
-  chars: 735
-- id: delete-api-edge-tools-toolid
-  title: '`DELETE /api/edge/tools/{toolId}`'
-  chars: 259
+- id: get-api-edge-filters-filterid-expanded
+  title: '`GET /api/edge/filters/{filterId}/expanded`'
+  chars: 281
+- id: get-api-edge-guardrails
+  title: '`GET /api/edge/guardrails`'
+  chars: 225
+- id: post-api-edge-guardrails
+  title: '`POST /api/edge/guardrails`'
+  chars: 621
+- id: get-api-edge-guardrails-generate
+  title: '`GET /api/edge/guardrails/generate`'
+  chars: 284
+- id: post-api-edge-guardrails-generate
+  title: '`POST /api/edge/guardrails/generate`'
+  chars: 401
+- id: get-api-edge-guardrails-guardrailid
+  title: '`GET /api/edge/guardrails/{guardrailId}`'
+  chars: 278
+- id: put-api-edge-guardrails-guardrailid
+  title: '`PUT /api/edge/guardrails/{guardrailId}`'
+  chars: 680
+- id: delete-api-edge-guardrails-guardrailid
+  title: '`DELETE /api/edge/guardrails/{guardrailId}`'
+  chars: 279
+- id: get-api-edge-limits
+  title: '`GET /api/edge/limits`'
+  chars: 162
+- id: post-api-edge-limits
+  title: '`POST /api/edge/limits`'
+  chars: 805
+- id: get-api-edge-limits-limitid
+  title: '`GET /api/edge/limits/{limitId}`'
+  chars: 247
+- id: put-api-edge-limits-limitid
+  title: '`PUT /api/edge/limits/{limitId}`'
+  chars: 882
+- id: delete-api-edge-limits-limitid
+  title: '`DELETE /api/edge/limits/{limitId}`'
+  chars: 272
+- id: get-api-edge-mcp-catalog
+  title: '`GET /api/edge/mcp-catalog`'
+  chars: 132
+- id: get-api-edge-mcp-servers
+  title: '`GET /api/edge/mcp-servers`'
+  chars: 177
+- id: post-api-edge-mcp-servers
+  title: '`POST /api/edge/mcp-servers`'
+  chars: 1766
+- id: get-api-edge-mcp-servers-serverid
+  title: '`GET /api/edge/mcp-servers/{serverId}`'
+  chars: 262
+- id: put-api-edge-mcp-servers-serverid
+  title: '`PUT /api/edge/mcp-servers/{serverId}`'
+  chars: 1845
+- id: delete-api-edge-mcp-servers-serverid
+  title: '`DELETE /api/edge/mcp-servers/{serverId}`'
+  chars: 283
+- id: get-api-edge-providers
+  title: '`GET /api/edge/providers`'
+  chars: 171
+- id: post-api-edge-providers
+  title: '`POST /api/edge/providers`'
+  chars: 1292
+- id: post-api-edge-providers-discover
+  title: '`POST /api/edge/providers/discover`'
+  chars: 1126
+- id: get-api-edge-providers-providerid
+  title: '`GET /api/edge/providers/{providerId}`'
+  chars: 262
+- id: put-api-edge-providers-providerid
+  title: '`PUT /api/edge/providers/{providerId}`'
+  chars: 1375
+- id: delete-api-edge-providers-providerid
+  title: '`DELETE /api/edge/providers/{providerId}`'
+  chars: 284
+- id: get-api-edge-virtual-mcps
+  title: '`GET /api/edge/virtual-mcps`'
+  chars: 180
+- id: post-api-edge-virtual-mcps
+  title: '`POST /api/edge/virtual-mcps`'
+  chars: 560
+- id: get-api-edge-virtual-mcps-vmcpid
+  title: '`GET /api/edge/virtual-mcps/{vmcpId}`'
+  chars: 261
+- id: put-api-edge-virtual-mcps-vmcpid
+  title: '`PUT /api/edge/virtual-mcps/{vmcpId}`'
+  chars: 635
+- id: delete-api-edge-virtual-mcps-vmcpid
+  title: '`DELETE /api/edge/virtual-mcps/{vmcpId}`'
+  chars: 281
 - id: get-api-event-streaming
   title: '`GET /api/event-streaming`'
   chars: 247
@@ -252,18 +327,6 @@ sections:
 - id: delete-api-peers-peerid
   title: '`DELETE /api/peers/{peerId}`'
   chars: 306
-- id: get-api-peers-peerid-aidr-snapshot
-  title: '`GET /api/peers/{peerId}/aidr-snapshot`'
-  chars: 377
-- id: get-api-peers-peerid-aidr-snapshot-events
-  title: '`GET /api/peers/{peerId}/aidr-snapshot/events`'
-  chars: 547
-- id: post-api-peers-peerid-aidr-snapshot-replay
-  title: '`POST /api/peers/{peerId}/aidr-snapshot/replay`'
-  chars: 506
-- id: get-api-peers-peerid-aidr-snapshot-search
-  title: '`GET /api/peers/{peerId}/aidr-snapshot/search`'
-  chars: 392
 - id: get-api-policies
   title: '`GET /api/policies`'
   chars: 233
@@ -314,7 +377,7 @@ sections:
   chars: 193
 - id: post-api-published-apps
   title: '`POST /api/published-apps`'
-  chars: 1205
+  chars: 1400
 - id: get-api-published-apps-check
   title: '`GET /api/published-apps/check`'
   chars: 250
@@ -326,7 +389,7 @@ sections:
   chars: 141
 - id: put-api-published-apps-appid
   title: '`PUT /api/published-apps/{appId}`'
-  chars: 1286
+  chars: 1481
 - id: delete-api-published-apps-appid
   title: '`DELETE /api/published-apps/{appId}`'
   chars: 240
@@ -338,7 +401,7 @@ sections:
   chars: 211
 - id: post-api-reports
   title: '`POST /api/reports`'
-  chars: 706
+  chars: 726
 - id: get-api-reports-reportid
   title: '`GET /api/reports/{reportId}`'
   chars: 258
@@ -459,6 +522,24 @@ sections:
 - id: post-api-users
   title: '`POST /api/users`'
   chars: 899
+- id: get-api-users-current-ai-access
+  title: '`GET /api/users/current/ai-access`'
+  chars: 192
+- id: get-api-users-current-mcp-connections
+  title: '`GET /api/users/current/mcp-connections`'
+  chars: 161
+- id: post-api-users-current-mcp-connections-complete
+  title: '`POST /api/users/current/mcp-connections/complete`'
+  chars: 400
+- id: delete-api-users-current-mcp-connections
+  title: '`DELETE /api/users/current/mcp-connections/{serverId}`'
+  chars: 234
+- id: put-api-users-current-mcp-connections-serverid
+  title: '`PUT /api/users/current/mcp-connections/{serverId}/headers`'
+  chars: 336
+- id: post-api-users-current-mcp-connections-serverid
+  title: '`POST /api/users/current/mcp-connections/{serverId}/oauth`'
+  chars: 322
 - id: get-api-users-current-pac
   title: '`GET /api/users/current/pac`'
   chars: 418
@@ -503,7 +584,7 @@ sections:
   chars: 330
 - id: post-api-users-userid-tokens
   title: '`POST /api/users/{userId}/tokens`'
-  chars: 485
+  chars: 631
 - id: get-api-users-userid-tokens-tokenid
   title: '`GET /api/users/{userId}/tokens/{tokenId}`'
   chars: 397
@@ -516,7 +597,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-10-01 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-10-10 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -569,6 +650,85 @@ Parameters:
 
 Responses: `200` Delete account status code, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
+## `GET /api/ai-gateway/mcp`
+
+What an AI gateway pulls for MCP (credentials in clear, ETag)
+
+Responses: `200` Servers and virtual MCPs, `304` Not modified, `401` Requires authentication, `403` Forbidden
+
+## `GET /api/ai-gateway/mcp-credentials`
+
+What an AI gateway pulls for per-user MCP credentials (ETag)
+
+Responses: `200` Credentials, `304` Not modified, `401` Requires authentication, `403` Forbidden
+
+## `GET /api/ai-gateway/providers`
+
+Providers for an AI gateway
+
+Responses: `200` The providers, `304` Not modified, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `POST /api/ai-gateway/usage`
+
+Ingest AI usage from a gateway
+
+Request body (JSON):
+- `gateway` (string, optional)
+- `llm` (array of object, optional)
+  - `request_id` (string, optional)
+  - `session_id` (string, optional)
+  - `at` (string (date-time), optional)
+  - `gateway` (string, optional)
+  - `user_id` (string, optional)
+  - `user_email` (string, optional)
+  - `user_name` (string, optional)
+  - `peer_id` (string, optional)
+  - `path` (string, optional): bearer
+  - `client_app` (string, optional): The caller's User-Agent
+  - `request_type` (string, optional)
+  - `provider` (string, optional)
+  - `model_requested` (string, optional)
+  - `model` (string, optional)
+  - `stream` (boolean, optional)
+  - `status` (string (ok | error | blocked | limited), optional)
+  - `status_code` (integer, optional)
+  - `error_kind` (string, optional)
+  - `prompt_tokens` (integer, optional)
+  - `completion_tokens` (integer, optional)
+  - `total_tokens` (integer, optional)
+  - `cached_tokens` (integer, optional)
+  - `reasoning_tokens` (integer, optional)
+  - `cost_input` (number, optional)
+  - `cost_output` (number, optional)
+  - `cost_additional` (number, optional)
+  - `cost_total` (number, optional): USD
+  - `latency_ms` (integer, optional)
+  - `upstream_latency_ms` (integer, optional)
+  - `tool_calls` (integer, optional): Tool calls the answer asked for
+  - `tool_names` (array of string, optional)
+- `mcp` (array of object, optional)
+  - `request_id` (string, optional)
+  - `call_id` (string, optional)
+  - `llm_request_id` (string, optional)
+  - `session_id` (string, optional)
+  - `at` (string (date-time), optional)
+  - `gateway` (string, optional)
+  - `user_id` (string, optional)
+  - `user_email` (string, optional)
+  - `user_name` (string, optional)
+  - `peer_id` (string, optional)
+  - `client_app` (string, optional)
+  - `server_id` (string, optional)
+  - `server_name` (string, optional)
+  - `slug` (string, optional)
+  - `tool` (string, optional)
+  - `status` (string (ok | error | blocked | limited | redacted), optional)
+  - `latency_ms` (integer, optional)
+  - `arg_bytes` (integer, optional)
+  - `result_bytes` (integer, optional)
+
+Responses: `200` How many rows were new, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
+
 ## `GET /api/ai/capabilities`
 
 Report which AI uses this account can serve
@@ -602,7 +762,7 @@ Create an AI provider
 
 Request body (JSON):
 - `name` (string, **required**)
-- `protocol` (string (anthropic-messages | openai-completions), **required**): The wire protocol a provider's endpoint speaks.
+- `protocol` (string (anthropic-messages | openai-completions | typesafe-systemone), **required**): The wire protocol a provider's endpoint speaks. A "typesafe-systemone" provider is called only by AIDR rules and is approved for no use.
 - `base_url` (string, optional)
 - `api_key` (string, optional)
 - `headers` (object, optional)
@@ -626,7 +786,7 @@ Verify a draft AI provider without storing it
 Request body (JSON):
 - `id` (string, optional)
 - `name` (string, **required**)
-- `protocol` (string (anthropic-messages | openai-completions), **required**): The wire protocol a provider's endpoint speaks.
+- `protocol` (string (anthropic-messages | openai-completions | typesafe-systemone), **required**): The wire protocol a provider's endpoint speaks. A "typesafe-systemone" provider is called only by AIDR rules and is approved for no use.
 - `base_url` (string, optional)
 - `api_key` (string, optional)
 - `headers` (object, optional)
@@ -650,7 +810,7 @@ Parameters:
 
 Request body (JSON):
 - `name` (string, **required**)
-- `protocol` (string (anthropic-messages | openai-completions), **required**): The wire protocol a provider's endpoint speaks.
+- `protocol` (string (anthropic-messages | openai-completions | typesafe-systemone), **required**): The wire protocol a provider's endpoint speaks. A "typesafe-systemone" provider is called only by AIDR rules and is approved for no use.
 - `base_url` (string, optional)
 - `api_key` (string, optional)
 - `headers` (object, optional)
@@ -694,6 +854,128 @@ Request body (JSON):
 - `instruction` (string, optional): Optional AI rule instruction; empty means built-in jailbreak detection
 
 Responses: `200` Scan result, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/aidr/detections`
+
+List AIDR detections
+
+Parameters:
+- `scope` (query, optional): What the read covers: `account`, `source:<peer or gateway id>`, `actor:<actor node id, e.g. user://<id>>` or `session:<session id>` (the session, its lineage and everything it spawned). Regular users must pass `source:<one of their own peers>`.
+- `since` (query, optional): Start of the time window, RFC 3339 or unix nanoseconds.
+- `until` (query, optional): End of the time window, RFC 3339 or unix nanoseconds.
+- `limit` (query, optional)
+
+Responses: `200` Detections, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/aidr/graph`
+
+Export the AIDR graph of a scope
+
+Parameters:
+- `scope` (query, optional): What the read covers: `account`, `source:<peer or gateway id>`, `actor:<actor node id, e.g. user://<id>>` or `session:<session id>` (the session, its lineage and everything it spawned). Regular users must pass `source:<one of their own peers>`.
+- `since` (query, optional): Start of the time window, RFC 3339 or unix nanoseconds.
+- `until` (query, optional): End of the time window, RFC 3339 or unix nanoseconds.
+
+Responses: `200` Subgraph, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/aidr/observations`
+
+List stored AIDR observations
+
+Parameters:
+- `scope` (query, optional): What the read covers: `account`, `source:<peer or gateway id>`, `actor:<actor node id, e.g. user://<id>>` or `session:<session id>` (the session, its lineage and everything it spawned). Regular users must pass `source:<one of their own peers>`.
+- `since` (query, optional): Start of the time window, RFC 3339 or unix nanoseconds.
+- `until` (query, optional): End of the time window, RFC 3339 or unix nanoseconds.
+- `kind` (query, optional): Observation kind, e.g. `spawn`, `connect`, `llm_request`, `tool_call`, `file_read`
+- `limit` (query, optional)
+
+Responses: `200` Observations, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `POST /api/aidr/replay`
+
+Replay rules over stored observations
+
+Request body (JSON):
+- `scope` (string, optional): `account`, `source:<id>`, `actor:<id>` or `session:<id>`; empty means the account
+- `since` (string, optional): Start of the window, RFC 3339 or unix nanoseconds
+- `until` (string, optional): End of the window, RFC 3339 or unix nanoseconds
+- `rules_yaml` (string, **required**): The rules to evaluate, YAML documents separated by `---`
+- `limit` (integer, optional): Observations replayed, newest first; 0 means 2000
+
+Responses: `200` Replay result, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/aidr/search`
+
+Search AIDR observations
+
+Parameters:
+- `q` (query, required)
+- `scope` (query, optional): What the read covers: `account`, `source:<peer or gateway id>`, `actor:<actor node id, e.g. user://<id>>` or `session:<session id>` (the session, its lineage and everything it spawned). Regular users must pass `source:<one of their own peers>`.
+- `since` (query, optional): Start of the time window, RFC 3339 or unix nanoseconds.
+- `until` (query, optional): End of the time window, RFC 3339 or unix nanoseconds.
+- `limit` (query, optional)
+
+Responses: `200` Matching observations, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/aidr/session`
+
+Retrieve an AIDR session
+
+Parameters:
+- `id` (query, required): Session id, e.g. `session://pid/811:1780936000000000000`
+
+Responses: `200` Session detail, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
+
+## `GET /api/aidr/sessions`
+
+List AIDR sessions
+
+Parameters:
+- `scope` (query, optional): What the read covers: `account`, `source:<peer or gateway id>`, `actor:<actor node id, e.g. user://<id>>` or `session:<session id>` (the session, its lineage and everything it spawned). Regular users must pass `source:<one of their own peers>`.
+- `since` (query, optional): Start of the time window, RFC 3339 or unix nanoseconds.
+- `until` (query, optional): End of the time window, RFC 3339 or unix nanoseconds.
+- `agent` (query, optional): Only agent sessions (true) or only non-agent sessions (false)
+- `active` (query, optional): Only sessions not ended (true) or only ended ones (false)
+- `roots` (query, optional): Only sessions that head a run (an agent session or a session nobody spawned)
+- `limit` (query, optional)
+
+Responses: `200` Sessions, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/aidr/sources`
+
+List AIDR sources
+
+Responses: `200` Sources, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `POST /api/aidr/sources/{source}/observations`
+
+Upload an observation batch
+
+Parameters:
+- `source` (path, required): The uploading host's id
+
+Request body (JSON):
+- `source` (object, **required**)
+  - `id` (string, **required**)
+  - `kind` (string, optional): `endpoint` or `gateway`; empty means gateway
+  - `device` (string, optional)
+  - `capabilities` (array of string, optional)
+- `seq` (integer (uint64), **required**): The last observation's seq
+- `observations` (array of object, **required**)
+  - `seq` (integer (uint64), **required**)
+  - `ts` (integer (int64), **required**): Unix nanoseconds
+  - `kind` (string, **required**)
+  - `subject` (?, **required**)
+  - `target` (object, optional)
+    - `type` (string, **required**)
+    - `id` (string, **required**)
+    - `props` (object, optional)
+  - `props` (object, optional)
+  - `content_ref` (string, optional)
+  - `call_id` (string, optional)
+  - `report_callid` (string, optional)
+
+Responses: `200` Batch stored, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
 
 ## `POST /api/auth/tokens`
 
@@ -799,51 +1081,6 @@ Request body (JSON):
 
 Responses: `200` A JSON Object of DNS Setting, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
-## `GET /api/edge/discovered-tools`
-
-List discovered Tools
-
-Responses: `200` A JSON array of discovered tools, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `DELETE /api/edge/discovered-tools/{discoveredToolId}`
-
-Dismiss a discovered Tool
-
-Parameters:
-- `discoveredToolId` (path, required)
-
-Responses: `200` Dismissed, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `POST /api/edge/discovered-tools/{discoveredToolId}/analyze`
-
-Re-run AI analysis of a discovered Tool
-
-Parameters:
-- `discoveredToolId` (path, required)
-
-Responses: `200` Analyzed, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `POST /api/edge/discovered-tools/{discoveredToolId}/block`
-
-Block a discovered Tool
-
-Parameters:
-- `discoveredToolId` (path, required)
-
-Responses: `200` Blocked, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `POST /api/edge/discovered-tools/{discoveredToolId}/sanction`
-
-Sanction a discovered Tool
-
-Parameters:
-- `discoveredToolId` (path, required)
-
-Request body (JSON):
-- `tool_id` (string, **required**): ID of an existing tool to link to the discovered entry
-
-Responses: `200` Sanctioned, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
 ## `POST /api/edge/events`
 
 Push client events
@@ -873,15 +1110,34 @@ Request body (JSON):
 - `name` (string, **required**)
 - `description` (string, optional)
 - `enabled` (boolean, optional)
-- `os` (array of string, **required**): Must contain at least one OS
+- `os` (array of string, optional): Must contain at least one OS
 - `groups` (array of string, **required**): Must contain at least one group ID
-- `posture_checks` (array of string, optional)
-- `tools` (array of string, **required**): Must contain at least one tool ID
-- `scanners` (array of string, **required**): Must contain at least one scanner ID
+- `type` (string (endpoint | gateway), optional): What the filter governs — an endpoint's traffic (default; the OS condition applies) or an AI gateway's (group-targeted only; endpoints skip it)
+- `guardrails` (array of string, **required**): Must contain at least one guardrail ID
+- `models` (array of string, optional): Gateway filters only. Model ids as provider/model, or provider/* for every model of a provider. Empty means the filter grants no model and its users are refused.
+- `limits` (array of string, optional): Gateway filters only. Limit ids; each user gets their own counters, the lowest value wins across filters.
+- `mcp` (array of object, optional): Gateway filters only. MCP servers granted, each whole or by tool names
+  - `server_id` (string, **required**)
+  - `tools` (array of string, optional): ["*"] or empty for every tool, else tool names
+- `virtual_mcps` (array of string, optional): Gateway filters only. MCP bundle ids granted
+- `gateways` (array of object, optional): Gateway filters only. Where the filter's users reach gateways
+  - `name` (string, optional)
+  - `url` (string, **required**)
+- `scanners` (array of string, optional): Older name of guardrails; read and written for compatibility
 - `agents` (array of string, optional): Process path patterns (wildcards and env vars) proxied through the network when the filter is active
-- `any_check_must_pass` (boolean, optional)
 
 Responses: `200` The created Filter, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/edge/filters/effective`
+
+Effective filters for a user
+
+Parameters:
+- `user` (query, optional): The user's ID. The user's groups and the peer's groups combine; at least one of user and peer is required.
+- `peer` (query, optional): The calling peer's ID (the tunnel path)
+- `type` (query, optional): Which filters to resolve
+
+Responses: `200` The filters that apply to the user, as references with a content version each, `304` Unchanged since the ETag given in If-None-Match, `401` Requires authentication, `403` Forbidden, `422` Missing user or unknown type
 
 ## `GET /api/edge/filters/{filterId}`
 
@@ -903,13 +1159,21 @@ Request body (JSON):
 - `name` (string, **required**)
 - `description` (string, optional)
 - `enabled` (boolean, optional)
-- `os` (array of string, **required**): Must contain at least one OS
+- `os` (array of string, optional): Must contain at least one OS
 - `groups` (array of string, **required**): Must contain at least one group ID
-- `posture_checks` (array of string, optional)
-- `tools` (array of string, **required**): Must contain at least one tool ID
-- `scanners` (array of string, **required**): Must contain at least one scanner ID
+- `type` (string (endpoint | gateway), optional): What the filter governs — an endpoint's traffic (default; the OS condition applies) or an AI gateway's (group-targeted only; endpoints skip it)
+- `guardrails` (array of string, **required**): Must contain at least one guardrail ID
+- `models` (array of string, optional): Gateway filters only. Model ids as provider/model, or provider/* for every model of a provider. Empty means the filter grants no model and its users are refused.
+- `limits` (array of string, optional): Gateway filters only. Limit ids; each user gets their own counters, the lowest value wins across filters.
+- `mcp` (array of object, optional): Gateway filters only. MCP servers granted, each whole or by tool names
+  - `server_id` (string, **required**)
+  - `tools` (array of string, optional): ["*"] or empty for every tool, else tool names
+- `virtual_mcps` (array of string, optional): Gateway filters only. MCP bundle ids granted
+- `gateways` (array of object, optional): Gateway filters only. Where the filter's users reach gateways
+  - `name` (string, optional)
+  - `url` (string, **required**)
+- `scanners` (array of string, optional): Older name of guardrails; read and written for compatibility
 - `agents` (array of string, optional): Process path patterns (wildcards and env vars) proxied through the network when the filter is active
-- `any_check_must_pass` (boolean, optional)
 
 Responses: `200` The updated Filter, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
@@ -922,15 +1186,24 @@ Parameters:
 
 Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
-## `GET /api/edge/scanners`
+## `GET /api/edge/filters/{filterId}/expanded`
 
-List all Scanners
+Get a Filter with its guardrails expanded
 
-Responses: `200` A JSON array of Scanners, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+Parameters:
+- `filterId` (path, required): The Filter ID
 
-## `POST /api/edge/scanners`
+Responses: `200` An ExpandedFilter object with a version, `401` Requires authentication, `403` Forbidden, `404` Resource not found
 
-Create a Scanner
+## `GET /api/edge/guardrails`
+
+List all Guardrails
+
+Responses: `200` A JSON array of Guardrails, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `POST /api/edge/guardrails`
+
+Create a Guardrail
 
 Request body (JSON):
 - `name` (string, **required**)
@@ -940,23 +1213,17 @@ Request body (JSON):
 - `rule_yaml` (string, **required**)
 - `enabled` (boolean, optional)
 
-Responses: `200` The created Scanner, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+Responses: `200` The created Guardrail, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
-## `GET /api/edge/scanners/catalog`
-
-List the Scanner catalog
-
-Responses: `200` A JSON array of catalog entries, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `GET /api/edge/scanners/generate`
+## `GET /api/edge/guardrails/generate`
 
 Check AI rule generation availability
 
 Responses: `200` Generation is available, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `428` Generation is not available, `500` Internal Server Error
 
-## `POST /api/edge/scanners/generate`
+## `POST /api/edge/guardrails/generate`
 
-Generate a scanner rule with AI
+Generate a guardrail rule with AI
 
 Request body (JSON):
 - `prompt` (string, **required**)
@@ -964,21 +1231,21 @@ Request body (JSON):
 
 Responses: `200` text/event-stream of generation frames, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `428` Precondition required, `500` Internal Server Error
 
-## `GET /api/edge/scanners/{scannerId}`
+## `GET /api/edge/guardrails/{guardrailId}`
 
-Retrieve a Scanner
-
-Parameters:
-- `scannerId` (path, required)
-
-Responses: `200` A Scanner object, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `PUT /api/edge/scanners/{scannerId}`
-
-Update a Scanner
+Retrieve a Guardrail
 
 Parameters:
-- `scannerId` (path, required)
+- `guardrailId` (path, required)
+
+Responses: `200` A Guardrail object, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `PUT /api/edge/guardrails/{guardrailId}`
+
+Update a Guardrail
+
+Parameters:
+- `guardrailId` (path, required)
 
 Request body (JSON):
 - `name` (string, **required**)
@@ -988,87 +1255,326 @@ Request body (JSON):
 - `rule_yaml` (string, **required**)
 - `enabled` (boolean, optional)
 
-Responses: `200` The updated Scanner, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+Responses: `200` The updated Guardrail, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
-## `DELETE /api/edge/scanners/{scannerId}`
+## `DELETE /api/edge/guardrails/{guardrailId}`
 
-Delete a Scanner
+Delete a Guardrail
 
 Parameters:
-- `scannerId` (path, required)
+- `guardrailId` (path, required)
 
 Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
-## `GET /api/edge/tools`
+## `GET /api/edge/limits`
 
-List all Tools
+List all Limits
 
-Responses: `200` A JSON array of Tools, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+Responses: `200` A JSON array of Limits, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
 
-## `POST /api/edge/tools`
+## `POST /api/edge/limits`
 
-Create a Tool
-
-Request body (JSON):
-- `name` (string, **required**)
-- `transport` (string (stdio | sse | streamable_http), **required**)
-- `description` (string, optional)
-- `url` (string, optional)
-- `command` (string, optional)
-- `args` (array of string, optional)
-- `env` (object, optional)
-- `auth_if_needed` (boolean, optional)
-- `categories` (array of string, **required**): Must contain at least one category
-- `icon` (string, optional)
-- `enabled` (boolean, optional)
-
-Responses: `200` The created Tool, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `GET /api/edge/tools/catalog`
-
-List the Tool catalog
-
-Responses: `200` A JSON array of catalog entries, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `GET /api/edge/tools/{toolId}`
-
-Retrieve a Tool
-
-Parameters:
-- `toolId` (path, required)
-
-Responses: `200` A Tool object, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `PUT /api/edge/tools/{toolId}`
-
-Update a Tool
-
-Parameters:
-- `toolId` (path, required)
+Create a GatewayLimit
 
 Request body (JSON):
 - `name` (string, **required**)
-- `transport` (string (stdio | sse | streamable_http), **required**)
 - `description` (string, optional)
-- `url` (string, optional)
-- `command` (string, optional)
-- `args` (array of string, optional)
-- `env` (object, optional)
-- `auth_if_needed` (boolean, optional)
-- `categories` (array of string, **required**): Must contain at least one category
-- `icon` (string, optional)
 - `enabled` (boolean, optional)
+- `budget` (object, optional)
+  - `max_usd` (number, **required**)
+  - `reset` (string (hourly | daily | weekly | monthly | yearly), **required**)
+- `tokens` (object, optional)
+  - `max` (integer (int64), **required**)
+  - `reset` (string (hourly | daily | weekly | monthly | yearly), **required**)
+- `requests` (object, optional)
+  - `max` (integer (int64), **required**)
+  - `reset` (string (hourly | daily | weekly | monthly | yearly), **required**)
 
-Responses: `200` The updated Tool, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+Responses: `200` The created GatewayLimit, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `409` Conflict, `422` Validation failed, `500` Internal Server Error
 
-## `DELETE /api/edge/tools/{toolId}`
+## `GET /api/edge/limits/{limitId}`
 
-Delete a Tool
+Retrieve a GatewayLimit
 
 Parameters:
-- `toolId` (path, required)
+- `limitId` (path, required)
 
-Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+Responses: `200` A GatewayLimit object, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
+
+## `PUT /api/edge/limits/{limitId}`
+
+Update a GatewayLimit
+
+Parameters:
+- `limitId` (path, required)
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional)
+- `budget` (object, optional)
+  - `max_usd` (number, **required**)
+  - `reset` (string (hourly | daily | weekly | monthly | yearly), **required**)
+- `tokens` (object, optional)
+  - `max` (integer (int64), **required**)
+  - `reset` (string (hourly | daily | weekly | monthly | yearly), **required**)
+- `requests` (object, optional)
+  - `max` (integer (int64), **required**)
+  - `reset` (string (hourly | daily | weekly | monthly | yearly), **required**)
+
+Responses: `200` The updated GatewayLimit, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `DELETE /api/edge/limits/{limitId}`
+
+Delete a GatewayLimit
+
+Parameters:
+- `limitId` (path, required)
+
+Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `500` Internal Server Error
+
+## `GET /api/edge/mcp-catalog`
+
+List the MCP catalog
+
+Responses: `200` The catalog, `401` Requires authentication, `403` Forbidden
+
+## `GET /api/edge/mcp-servers`
+
+List all MCP Servers
+
+Responses: `200` A JSON array of MCP Servers, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `POST /api/edge/mcp-servers`
+
+Create a GatewayMCPServer
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional)
+- `slug` (string, optional): Path the server is served at (/mcp/<slug>); derived from the name when empty, immutable after creation
+- `connection` (string (http | sse | stdio), **required**)
+- `url` (string, optional): Required for http and sse
+- `command` (string, optional): Required for stdio
+- `args` (array of string, optional)
+- `env` (object, optional)
+- `extra_headers` (object, optional)
+- `insecure_skip_verify` (boolean, optional)
+- `code_mode` (boolean, optional)
+- `auth_type` (string (none | headers | per_user_headers | oauth | per_user_oauth), optional)
+- `headers` (object, optional): Admin-held credential headers; write-only, masked on read
+- `per_user_header_keys` (array of string, optional): Header names each user supplies (per_user_headers)
+- `oauth` (object, optional): An MCP server's OAuth client; empty fields are discovered and registered by management
+  - `client_id` (string, optional)
+  - `client_secret` (string, optional): Write-only; masked on read, empty or masked on update keeps the stored value
+  - `authorize_url` (string, optional)
+  - `token_url` (string, optional)
+  - `registration_url` (string, optional)
+  - `scopes` (array of string, optional)
+  - `resource` (string, optional)
+  - `redirect_uri` (string, optional): The callback registered with the authorization server; set by management
+- `icon_url` (string, optional)
+- `docs_url` (string, optional)
+
+Responses: `200` The created GatewayMCPServer, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/edge/mcp-servers/{serverId}`
+
+Retrieve a GatewayMCPServer
+
+Parameters:
+- `serverId` (path, required)
+
+Responses: `200` A GatewayMCPServer object, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
+
+## `PUT /api/edge/mcp-servers/{serverId}`
+
+Update a GatewayMCPServer
+
+Parameters:
+- `serverId` (path, required)
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional)
+- `slug` (string, optional): Path the server is served at (/mcp/<slug>); derived from the name when empty, immutable after creation
+- `connection` (string (http | sse | stdio), **required**)
+- `url` (string, optional): Required for http and sse
+- `command` (string, optional): Required for stdio
+- `args` (array of string, optional)
+- `env` (object, optional)
+- `extra_headers` (object, optional)
+- `insecure_skip_verify` (boolean, optional)
+- `code_mode` (boolean, optional)
+- `auth_type` (string (none | headers | per_user_headers | oauth | per_user_oauth), optional)
+- `headers` (object, optional): Admin-held credential headers; write-only, masked on read
+- `per_user_header_keys` (array of string, optional): Header names each user supplies (per_user_headers)
+- `oauth` (object, optional): An MCP server's OAuth client; empty fields are discovered and registered by management
+  - `client_id` (string, optional)
+  - `client_secret` (string, optional): Write-only; masked on read, empty or masked on update keeps the stored value
+  - `authorize_url` (string, optional)
+  - `token_url` (string, optional)
+  - `registration_url` (string, optional)
+  - `scopes` (array of string, optional)
+  - `resource` (string, optional)
+  - `redirect_uri` (string, optional): The callback registered with the authorization server; set by management
+- `icon_url` (string, optional)
+- `docs_url` (string, optional)
+
+Responses: `200` The updated GatewayMCPServer, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `DELETE /api/edge/mcp-servers/{serverId}`
+
+Delete a GatewayMCPServer
+
+Parameters:
+- `serverId` (path, required)
+
+Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `500` Internal Server Error
+
+## `GET /api/edge/providers`
+
+List all Providers
+
+Responses: `200` A JSON array of Providers, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `POST /api/edge/providers`
+
+Create a GatewayProvider
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional)
+- `type` (string, **required**): One of the AI gateway's provider types (openai, anthropic, azure, bedrock, vertex, gemini, mistral, ollama, vllm, …)
+- `base_url` (string, optional): Overrides the type's default endpoint; required for ollama, vllm and sgl
+- `credential` (object, optional): The credential fields of the type (api_key for most; endpoint+api_key for azure; access_key, secret_key, region for bedrock; project_id, region, auth_credentials for vertex). Write-only; on update an empty or masked field keeps the stored value
+- `extra_headers` (object, optional)
+- `insecure_skip_verify` (boolean, optional): Skip TLS certificate verification towards the provider, for a local or internal endpoint with its own CA. Default false
+- `models` (array of object, optional)
+  - `name` (string, **required**): The model identifier the provider expects
+  - `display_name` (string, optional)
+  - `enabled` (boolean, **required**)
+
+Responses: `200` The created GatewayProvider, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `POST /api/edge/providers/discover`
+
+List the models a provider offers
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional)
+- `type` (string, **required**): One of the AI gateway's provider types (openai, anthropic, azure, bedrock, vertex, gemini, mistral, ollama, vllm, …)
+- `base_url` (string, optional): Overrides the type's default endpoint; required for ollama, vllm and sgl
+- `credential` (object, optional): The credential fields of the type (api_key for most; endpoint+api_key for azure; access_key, secret_key, region for bedrock; project_id, region, auth_credentials for vertex). Write-only; on update an empty or masked field keeps the stored value
+- `extra_headers` (object, optional)
+- `insecure_skip_verify` (boolean, optional): Skip TLS certificate verification towards the provider, for a local or internal endpoint with its own CA. Default false
+- `models` (array of ?, optional)
+- `id` (string, optional)
+
+Responses: `200` The models, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/edge/providers/{providerId}`
+
+Retrieve a GatewayProvider
+
+Parameters:
+- `providerId` (path, required)
+
+Responses: `200` A GatewayProvider object, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
+
+## `PUT /api/edge/providers/{providerId}`
+
+Update a GatewayProvider
+
+Parameters:
+- `providerId` (path, required)
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional)
+- `type` (string, **required**): One of the AI gateway's provider types (openai, anthropic, azure, bedrock, vertex, gemini, mistral, ollama, vllm, …)
+- `base_url` (string, optional): Overrides the type's default endpoint; required for ollama, vllm and sgl
+- `credential` (object, optional): The credential fields of the type (api_key for most; endpoint+api_key for azure; access_key, secret_key, region for bedrock; project_id, region, auth_credentials for vertex). Write-only; on update an empty or masked field keeps the stored value
+- `extra_headers` (object, optional)
+- `insecure_skip_verify` (boolean, optional): Skip TLS certificate verification towards the provider, for a local or internal endpoint with its own CA. Default false
+- `models` (array of object, optional)
+  - `name` (string, **required**): The model identifier the provider expects
+  - `display_name` (string, optional)
+  - `enabled` (boolean, **required**)
+
+Responses: `200` The updated GatewayProvider, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `DELETE /api/edge/providers/{providerId}`
+
+Delete a GatewayProvider
+
+Parameters:
+- `providerId` (path, required)
+
+Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `500` Internal Server Error
+
+## `GET /api/edge/virtual-mcps`
+
+List all Virtual MCPs
+
+Responses: `200` A JSON array of Virtual MCPs, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `POST /api/edge/virtual-mcps`
+
+Create a GatewayVirtualMCP
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional)
+- `slug` (string, optional)
+- `tools` (array of object, **required**)
+  - `server_id` (string, **required**)
+  - `tools` (array of string, **required**): ["*"] for every tool, else tool names
+
+Responses: `200` The created GatewayVirtualMCP, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/edge/virtual-mcps/{vmcpId}`
+
+Retrieve a GatewayVirtualMCP
+
+Parameters:
+- `vmcpId` (path, required)
+
+Responses: `200` A GatewayVirtualMCP object, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
+
+## `PUT /api/edge/virtual-mcps/{vmcpId}`
+
+Update a GatewayVirtualMCP
+
+Parameters:
+- `vmcpId` (path, required)
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional)
+- `slug` (string, optional)
+- `tools` (array of object, **required**)
+  - `server_id` (string, **required**)
+  - `tools` (array of string, **required**): ["*"] for every tool, else tool names
+
+Responses: `200` The updated GatewayVirtualMCP, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `DELETE /api/edge/virtual-mcps/{vmcpId}`
+
+Delete a GatewayVirtualMCP
+
+Parameters:
+- `vmcpId` (path, required)
+
+Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `500` Internal Server Error
 
 ## `GET /api/event-streaming`
 
@@ -1388,57 +1894,6 @@ Parameters:
 
 Responses: `200` Delete status code, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
-## `GET /api/peers/{peerId}/aidr-snapshot`
-
-Retrieve a peer's AIDR snapshot
-
-Parameters:
-- `peerId` (path, required)
-- `run_id` (query, optional): Graph run ID; defaults to the latest run
-
-Responses: `200` Snapshot metadata, runs, graph and events, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `GET /api/peers/{peerId}/aidr-snapshot/events`
-
-List a peer's AIDR events
-
-Parameters:
-- `peerId` (path, required)
-- `run_id` (query, optional): Graph run ID; defaults to the latest run
-- `edge_kind` (query, optional)
-- `activity_code` (query, optional)
-- `severity` (query, optional)
-- `limit` (query, optional)
-- `cursor` (query, optional): ID of the last event of the previous page
-
-Responses: `200` Events page, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `POST /api/peers/{peerId}/aidr-snapshot/replay`
-
-Replay rules against a peer's AIDR snapshot
-
-Parameters:
-- `peerId` (path, required)
-
-Request body (JSON):
-- `run_id` (string, optional): Graph run to replay against; empty means the latest run
-- `rules_yaml` (string, **required**): YAML rules to evaluate (max 512 KB body)
-
-Responses: `200` Replay result, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `GET /api/peers/{peerId}/aidr-snapshot/search`
-
-Search a peer's AIDR events
-
-Parameters:
-- `peerId` (path, required)
-- `q` (query, required)
-- `run_id` (query, optional)
-- `limit` (query, optional)
-- `offset` (query, optional)
-
-Responses: `200` Search results, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
 ## `GET /api/policies`
 
 List all Policies
@@ -1649,6 +2104,7 @@ Request body (JSON):
 - `groups` (array of string, **required**): Group IDs whose members may open the application. Empty means nobody.
 - `enabled` (boolean, **required**)
 - `preserve_host` (boolean, optional): Send the application's address as the Host header instead of the target's
+- `forward_credential` (boolean, optional): Send the user's own credential to the target as an Authorization bearer, for an application that verifies users with management itself (an AI gateway)
 - `posture_checks` (array of string, optional): Posture check IDs the accessing device must satisfy at the application's door
 - `any_check_must_pass` (boolean, optional): Posture check evaluation logic. If false (default), all posture checks must pass. If true, at least one posture check set must pass.
 
@@ -1697,6 +2153,7 @@ Request body (JSON):
 - `groups` (array of string, **required**): Group IDs whose members may open the application. Empty means nobody.
 - `enabled` (boolean, **required**)
 - `preserve_host` (boolean, optional): Send the application's address as the Host header instead of the target's
+- `forward_credential` (boolean, optional): Send the user's own credential to the target as an Authorization bearer, for an application that verifies users with management itself (an AI gateway)
 - `posture_checks` (array of string, optional): Posture check IDs the accessing device must satisfy at the application's door
 - `any_check_must_pass` (boolean, optional): Posture check evaluation logic. If false (default), all posture checks must pass. If true, at least one posture check set must pass.
 
@@ -1741,7 +2198,7 @@ Request body (JSON):
 - `from` (string, **required**): Start of the reporting window, YYYY-MM-DD — e.g. `2026-09-01`
 - `to` (string, **required**): End of the reporting window (inclusive), YYYY-MM-DD, not before from — e.g. `2026-09-21`
 - `groups` (array of string, optional): Restrict the report to these group IDs (empty = whole account)
-- `report_type` (string (user_activity | authentication | ai_activity), optional): user_activity (default), authentication, or ai_activity
+- `report_type` (string (user_activity | authentication | ai_activity | ai_usage), optional): user_activity (default), authentication, ai_activity or ai_usage
 
 Responses: `200` The generated Report, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
@@ -2130,6 +2587,61 @@ Request body (JSON):
 
 Responses: `200` A User object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `422` Validation failed, `500` Internal Server Error
 
+## `GET /api/users/current/ai-access`
+
+What the caller may use through the AI gateways
+
+Responses: `200` Gateways, models, MCP servers and virtual MCPs granted, `401` Requires authentication
+
+## `GET /api/users/current/mcp-connections`
+
+The caller's state at the MCP servers granted to them
+
+Responses: `200` Connections, `401` Requires authentication
+
+## `POST /api/users/current/mcp-connections/complete`
+
+Finish the caller's OAuth sign-in at an MCP server with what the provider returned
+
+Request body (JSON):
+- `state` (string, **required**): The state the provider returned with
+- `code` (string, **required**): The code the provider returned
+
+Responses: `200` Signed in, `400` Bad Request, `401` Requires authentication, `404` Resource not found
+
+## `DELETE /api/users/current/mcp-connections/{serverId}`
+
+Remove the caller's credential at an MCP server
+
+Parameters:
+- `serverId` (path, required)
+
+Responses: `200` Removed, `401` Requires authentication, `404` Resource not found
+
+## `PUT /api/users/current/mcp-connections/{serverId}/headers`
+
+Store the caller's header values for an MCP server, after trying them
+
+Parameters:
+- `serverId` (path, required)
+
+Request body (JSON):
+- `headers` (object, **required**)
+
+Responses: `200` Stored, `400` Bad Request, `401` Requires authentication, `404` Resource not found
+
+## `POST /api/users/current/mcp-connections/{serverId}/oauth`
+
+Start the caller's OAuth sign-in at an MCP server
+
+Parameters:
+- `serverId` (path, required)
+
+Request body (JSON):
+- (object, see live spec)
+
+Responses: `200` Where the browser goes, `400` Bad Request, `401` Requires authentication, `404` Resource not found
+
 ## `GET /api/users/current/pac`
 
 Get the caller's PAC
@@ -2310,6 +2822,7 @@ Parameters:
 Request body (JSON):
 - `name` (string, **required**): Name of the token — e.g. `My first token`
 - `expires_in` (integer, **required**): Expiration in days — e.g. `30`
+- `scope` (string ( | mcp), optional): What the token may do. Empty is everything the user may do; "mcp" only identifies the user to AI gateways.
 
 Responses: `200` The token in plain text, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 

@@ -1,16 +1,16 @@
 ---
 name: netzilo-admin
-description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR), the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server or the Netzilo client, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance or API automation."
+description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR) on devices and through the Netzilo AI Gateway (providers, model grants, limits, MCP servers and bundles, guardrails, gateway filters, Agentic Access, AI usage), detection-rule authoring, clientless access and published applications, the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server, the Netzilo client or the Netzilo AI Gateway, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance, guardrails, MCP, LLM gateways or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 3.0.0
-  released: "2026-10-05"
+  version: 4.0.0
+  released: "2026-10-10"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 3.0.0, released 2026-10-05.** Confirm it is current before
+**This copy is version 4.0.0, released 2026-10-10.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -163,7 +163,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **3.0.0** above.
+Compare its `version:` with **4.0.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -361,9 +361,17 @@ customer's problem.
   identity provider (bundled Zitadel on self-hosted), and the dashboard. Cloud uses
   `https://go.netzilo.com` / `https://srv.netzilo.com`; self-hosted serves everything on
   one domain over 443.
-- **AI security (AIDR):** the client runs a TLS-inspecting proxy, an MCP gateway, hooks
-  for coding agents, and an SDK; **Edge Tools/Scanners/Filters** define what AI agents
-  may do.
+- **AI security (AIDR):** on devices, the client governs AI traffic with a TLS-inspecting
+  proxy, hooks for coding agents and an embedded SDK. Under **Edge**, administrators
+  define **Providers** (models and their keys), **MCP servers and bundles**,
+  **Guardrails** (detection rules), **Limits** (token, request and spend budgets) and
+  **Filters** — *endpoint* filters bind guardrails to devices, *gateway* filters grant
+  users models, limits, MCP servers and gateways.
+- **AI Gateway:** `netzilo-aigw` is a gateway users point their AI tools at
+  (`<gateway>/v1`, `<gateway>/anthropic`, `<gateway>/mcp/<slug>`) with a personal token;
+  it identifies every caller as a Netzilo user, enforces model grants, limits and
+  guardrails, serves MCP servers with per-user sign-in, and reports usage. Users find
+  their gateways and MCP servers at Workplace → **Agentic Access**.
 - **Secure workplace:** **Profiles** deliver Enterprise Workspace, Enterprise Browser,
   Disposable Browser, and browser-extension DLP.
 - **Clientless access:** a Chromium-based browser or Firefox with only the Netzilo
@@ -383,7 +391,7 @@ Server delivery paths: on-prem one-liner, AWS/Azure Marketplace image, or Netzil
 
 Load what the task needs and no more. Each reference's front matter carries its size and
 a numbered section index, so a long runbook is read one section at a time
-(`references/13-log-interpretation.md` §4, not all 31 KB of it) — an agent whose skill
+(`references/13-log-interpretation.md` §4, not all 69 KB of it) — an agent whose skill
 tool supports section loading should use it, and the largest files answer a whole-file
 request with their index. The `Needs` column below is the capability the procedures
 require; where it exceeds what you have, the file is still worth reading, but your output
@@ -395,19 +403,18 @@ is instructions for the admin rather than work you performed.
 | Install the server: on-prem, AWS, Azure, external DB, air-gapped, provided TLS | `references/01-server-install.md`, `references/18-server-install-gated.md` (scripted gates), `references/19-server-install-handout.md` (hand to the customer) | server shell |
 | Upgrade (including the one-liner's in-place upgrade mode and its `update`/`install <component>` commands, §4.10, which must be checked for before any re-run) / backup / restore / rotate cert / domain / disk / logs / metering / decommission | `references/02-server-operations.md` | server shell |
 | Clientless access: browsers with only the extension reaching internal resources; the gateway bundled with the server, added to a server installed without it, or run on any other host or on Kubernetes; its options, logs, health and every error; "Private access unavailable"; introducing it to existing installations; the Netzilo Gateway posture item and policies for browser users only | `references/43-clientless-access-gateway.md` — §3 to turn it on (API), §3.4 for posture, §6 to add it in place, §11 to troubleshoot | server shell; API for §3 and §12 |
-| Published applications: a private web app at its own address opened in any browser without the client; turning it on (Settings → Permissions, application domains, DNS), publishing (Edge → Applications) with posture checks judged at the application's door (the device's own posture through its Netzilo client, the extension, the Enterprise Browser), what users see, the access events, API access with a token, the reverse proxy on self-hosted servers (install, add to an existing server, certificates, Kubernetes), its logs, peers and every symptom, and supporting a user who cannot open one | `references/44-published-applications.md` — §3–4 to turn it on and publish (API), §4.1 for posture at the door and the access events, §5 and §12 for users, §8 to install, §11 to troubleshoot | server shell; API for §3, §4 and §12 |
+| Published applications: a private web app at its own address opened in any browser without the client; turning it on (Settings → Permissions, application domains, DNS), publishing (Network → Applications) with posture checks judged at the application's door (the device's own posture through its Netzilo client, the extension, the Enterprise Browser), what users see, the access events, API access with a token, the reverse proxy on self-hosted servers (install, add to an existing server, certificates, Kubernetes), its logs, peers and every symptom, and supporting a user who cannot open one | `references/44-published-applications.md` — §3–4 to turn it on and publish (API), §4.1 for posture at the door and the access events, §5 and §12 for users, §8 to install, §11 to troubleshoot | server shell; API for §3, §4 and §12 |
 | The AI Assistant on a self-hosted server: how Management and the support worker fit, their configuration, deploying the worker on compose or Kubernetes, runbook source and air-gapped use, proxies, token rotation, and why it does not answer | `references/42-ai-assistant-self-hosted.md` | server shell |
 | Server down, cert warning, container restarting, can't log in, slow | `references/03-server-troubleshooting.md` | server shell |
 | Users, invites, SSO (Entra/Okta/Google/SAML), MFA, lockout, SMTP, roles | `references/04-identity-and-sso.md` | IdP console, server shell |
 | Install/enrol/deploy the client on any OS, containers, Kubernetes, fleets | `references/05-client-install-and-deploy.md` | device |
+| Installer command lines: every switch, MSI property and exit code of the Windows client (MSI, offline EXE, pack, online EXE) and the Enterprise Browser (MSI, EXE), tenant-named installers, `CONFIGFILE` pre-enrolment, Intune/SCCM/GPO/Jamf detection and return codes, upgrade and uninstall, macOS `.pkg` and Linux; why a switch was ignored | `references/48-installer-command-lines.md` — §1 to pick the file, §4 quick reference, §18 diagnosis | device
 | Any CLI flag, env var, config path, log field | `references/06-client-cli-reference.md` | device |
 | Device won't connect, relayed, DNS, routes, SSH, daemon unreachable | `references/07-client-troubleshooting.md` | device |
 | "Device A can't reach host X" (peer, routed LAN/VPC, or exit node) | `references/11-connectivity-diagnosis.md` — the full procedure | API, device |
 | Diagnose or repair a specific peer **from the agent**: find the device, whose it is and what that permits, check it, read a result, change it well, and when a change needs the admin's approval | `references/36-device-tools.md` — the procedure | API, device tools |
 | What exactly each device tool does: every argument, every output field, how it behaves on macOS, Linux and Windows, how it fails | `references/37-device-tool-reference.md` — one card per tool, coding-agent style; read the card before the first call | API, device tools |
 | Find the root cause of a device problem methodically: facts not to rediscover, the diagnostic loop, the OS matrix, and a decision tree per symptom (not connected, cannot reach X, DNS, slow, access denied, worked yesterday, after upgrade) | `references/38-device-diagnosis-method.md` — load the tree for the symptom in front of you | API, device tools |
-| What exactly one device tool does: arguments, bounds, output fields, platform differences, failure modes, an example — read a card before the first use | `references/37-device-tool-reference.md` — one card per tool, plus how to read any result | API, device tools |
-| Work a device problem to its cause: the operating-system matrix (paths, interface, DNS mechanism, posture signals that cannot be true on a platform), the hypothesis-and-evidence method, playbooks by symptom with stop conditions | `references/38-device-diagnosis-method.md` | API, device tools |
 | A Windows host: install, upgrade or uninstall behaviour, the service and drivers, DNS rules, the AI network filter, posture signals that read differently on Windows, multi-user hosts, and which files are secret | `references/40-windows-hosts.md` — read before touching a Windows device; the OS matrix in 38 §3 points here | API, device tools |
 | You are about to **change** something: a re-sync, a policy or route, a sign-in problem, evidence for escalation, a Windows reinstall, a workspace, a server restart | `references/41-remediation-workflows.md` — the eight elements every change carries (applicability, preconditions, authorization, action, recovery, verification, limits, record) and the ten most common workflows | API, device tools |
 | "Here is a log — what went wrong?" (client, management, signal) | `references/13-log-interpretation.md` — line anatomy, healthy sequences, message families, noise vs signal, correlation, worked readings | device, server shell |
@@ -422,21 +429,24 @@ is instructions for the admin rather than work you performed.
 | Network → Policies (access control) | `references/20-policies-access-control.md` | API |
 | Endpoint → Posture Checks | `references/21-posture-checks.md` | API |
 | Network → Routes, exit nodes, routing peers | `references/22-network-routes-and-exit-nodes.md` | API |
-| Network → DNS Servers / DNS Settings | `references/23-dns-management.md` | API |
+| Network → DNS (Servers and Settings tabs) | `references/23-dns-management.md` | API |
 | Endpoint → Peers, Setup Keys | `references/24-peers-and-setup-keys.md` | API |
 | Team → Users/Agents, Settings, Tenant | `references/25-users-groups-and-account-settings.md` | API |
 | Endpoint → Profiles (Workspace, Enterprise Browser, Disposable Browser, Extension); a Workspace that will not launch or has no network | `references/26-profiles-secure-workplace.md` (§9 troubleshooting) | API |
-| Edge → Tools (approved/discovered MCP servers) | `references/27-edge-tools-and-mcp.md` | API |
-| Edge → Scanners (detection rules) | `references/28-edge-scanners.md` | API |
-| Edge → Filters (binding groups/OS/tools/scanners/posture) | `references/29-edge-filters.md` | API |
-| Activity → Events/Reports, Dashboard, Integrations | `references/30-activity-reports-and-integrations.md` | API |
+| Install, run, expose, upgrade or troubleshoot the **AI Gateway** (`netzilo-aigw`): requirements, Linux/macOS/Windows/container install, every flag, plain HTTP vs TLS, tunnel vs public vs published-application exposure, authentication and every refusal (401/402/403/405/429), what it pulls from management, usage telemetry, logs, token rotation | `references/27-ai-gateway.md` — §3 install, §5 expose, §6 refusals, §9.2 logs, §10 troubleshoot | server shell; API for §6–§8 |
+| Edge → Providers and Edge → Limits: add a provider and its keys, the model catalogue, model grants by provider, token/request/spend limits per user, how the gateway applies them | `references/45-ai-gateway-providers-and-limits.md` | API |
+| Edge → MCP (MCP Servers and MCP Bundles tabs): add a server (HTTP, SSE, stdio), its authentication (none, headers, per-user headers, shared OAuth, per-user OAuth), bundles, users' sign-ins and statuses, Claude Desktop and other MCP clients over OAuth | `references/46-ai-gateway-mcp-servers-and-bundles.md` | API |
+| Workplace → **Agentic Access**: what a user sees, the Connect dialogs and snippets (Claude Code, Cursor, Codex, VS Code, Claude Desktop, SDKs, curl), the gateway access token, and "my agent cannot use the gateway" | `references/47-agentic-access-workplace.md` — §5 diagnosis | API |
+| Edge → Guardrails (detection rules): create, enable, contexts, generate with AI, replay against real sessions | `references/28-edge-guardrails.md` | API |
+| Edge → Filters: endpoint filters (groups, OS, agents, guardrails) and gateway filters (models, limits, MCP, gateways, guardrails); effective filters per device or user | `references/29-edge-filters.md` | API |
+| Activity → Events/Reports (incl. AI Agent Activity and AI Usage), the Dashboard home (Agentic Activity), Integrations | `references/30-activity-reports-and-integrations.md` | API |
 | Integrations → Artificial Intelligence: connect an AI provider, approve models per feature, pick the assistant's model | `references/30-activity-reports-and-integrations.md` §4a | API |
 | What to call a page, an object or an event when you answer an admin | `references/35-plain-language.md` | reading only |
-| What an activity code means, or which code to filter on | `references/34-event-catalogue.md` — all 140 activities with display names and categories | reading only |
+| What an activity code means, or which code to filter on | `references/34-event-catalogue.md` — all 159 activities with display names and categories | reading only |
 | Automate with the public REST API, export/import, bulk changes | `references/09-api-and-automation.md` | API |
 | Build a request body for any API write (required fields, enums, parameters) | `references/33-api-request-schemas.md` — generated from the server's OpenAPI; live copy at `GET /api/support/openapi.yml` | API |
-| Govern AI agents/MCP/coding-agent hooks/SDK/browser extension | `references/10-ai-security-aidr.md` | API |
-| Write or test a detection rule (Sigma/Starlark) | `references/32-detection-rule-authoring.md`, then `references/10-ai-security-aidr.md` §8 | API |
+| Govern AI agents: choose devices (client, hooks, SDK, browser extension) or the AI Gateway, roll out, what each enforcement point sees, troubleshoot | `references/10-ai-security-aidr.md` | API |
+| Write or test a detection rule (Sigma/Starlark): sessions and lineage, `requires:` capabilities, kill chains, evaluation order, replay | `references/32-detection-rule-authoring.md`, then `references/28-edge-guardrails.md` to deliver it | API |
 
 Cloud customers skip the server-install and identity-provider-console files; everything
 else applies with `https://go.netzilo.com` / `https://srv.netzilo.com`.

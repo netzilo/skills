@@ -145,12 +145,23 @@
       "api"
     ]
   },
-  "27-edge-tools-and-mcp.md": {
+  "27-ai-gateway.md": {
     "requires": [
-      "api"
-    ]
+      "server-shell"
+    ],
+    "sections": {
+      "6": [
+        "api"
+      ],
+      "7": [
+        "api"
+      ],
+      "8": [
+        "api"
+      ]
+    }
   },
-  "28-edge-scanners.md": {
+  "28-edge-guardrails.md": {
     "requires": [
       "api"
     ]
@@ -254,5 +265,25 @@
         "api"
       ]
     }
+  },
+  "45-ai-gateway-providers-and-limits.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "46-ai-gateway-mcp-servers-and-bundles.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "47-agentic-access-workplace.md": {
+    "requires": [
+      "api"
+    ]
+  },
+  "48-installer-command-lines.md": {
+    "requires": [
+      "client-device"
+    ]
   }
 }

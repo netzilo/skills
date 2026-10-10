@@ -7,35 +7,37 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 17979
+chars: 19776
 sections:
 - id: '1'
   title: Check types (cards in the Create/Update Posture Check modal)
-  chars: 8028
+  chars: 8636
 - id: '2'
   title: Creating and attaching
-  chars: 985
+  chars: 1179
 - id: '3'
   title: API
-  chars: 1931
+  chars: 2285
 - id: '4'
   title: Design guidance
   chars: 1979
 - id: '5'
   title: Diagnosis
-  chars: 4346
+  chars: 4858
 ---
 # Admin Skill — Posture Checks
 
 **Dashboard:** Endpoint → **Posture Checks** (`/posture-checks`). **API:** `/api/posture-checks`.
-**Used by:** Policies (source peers), Profiles (workspace/browser domain settings), Edge
-Filters (AI tool access). Free-plan tenants see **Upgrade Plan** instead of Save.
+**Used by:** Policies (source peers), Profiles (workspace/browser domain settings),
+Published applications (the door of a published application). Free-plan tenants see
+**Upgrade Plan** instead of Save.
 
 A posture check is a named bundle of conditions evaluated against a peer (device). It
 does nothing on its own; it acts where it is attached, and it blocks the peer from the
-rules of that policy/profile/filter when it fails. Failures are logged as
+rules of that policy/profile/application when it fails. Failures are logged as
 `peer.access.blocked` (policies), `workspace.posture.check` / `browser.posture.check`
-(profiles) and `tool.blocked` with scanner type `posture` (AI Edge).
+(profiles) and `published_app.access_denied` (published applications). Edge filters do
+not carry posture checks: an AI guardrail or filter is never gated by one.
 
 ---
 
@@ -103,17 +105,25 @@ device fails, instead of telling the customer the device is misconfigured:
 - *Netzilo Extension*: the Netzilo browser extension on the device. Not probed: a desktop
   client (Windows, macOS, Linux) and the Enterprise Browser always report it, iOS and
   Android never do; a gateway browser session reports it (the extension is what it
-  serves), a reverse-proxy session does not. Clients older than the item report nothing,
-  which reads as false. API field `netzilo_extension_check`; peer signal
-  `meta.netzilo_meta.is_netzilo_extension`, shown on the peer page beside the Gateway one.
+  serves), a reverse-proxy session does not. API field `netzilo_extension_check`; peer
+  signal `meta.netzilo_meta.is_netzilo_extension`, shown on the peer page beside the
+  Gateway one. Old clients: see the version note under the Gateway item.
 - *Netzilo Gateway*: true only for a gateway's browser session (a `vp-<n>-PROXY` peer); it
   is not probed on any device, so an endpoint can never satisfy it. It is also the one
   Advanced item a browser session can pass: the others fail for browser sessions
   (`43-clientless-access-gateway.md` §3.4). The peer page shows the signal beside the
   Workspace and Browser ones. API field `netzilo_gateway_check`; peer signal
   `meta.netzilo_meta.is_netzilo_gateway`. Put it alone in its check and attach that check to
-  network policies only: on a profile's domain settings, a workspace or an MCP filter the
-  device's client evaluates it and, never being a gateway session, blocks itself.
+  network policies only: on a profile's domain settings or a workspace the device's
+  client evaluates it and, never being a gateway session, blocks itself.
+- *Old clients and the Gateway / Extension items.* A check containing either item is
+  handed to a client **before 5.0.455** as a client-version requirement, which that
+  client fails with the version reason (management logs that the check was "sent as a
+  version requirement"). A client **5.0.464 or newer** that meets a condition it cannot
+  evaluate treats it as FAILED and logs `Posture check '<name>' (ID=<id>) NOT EVALUATED:
+  the check uses a condition this client version cannot evaluate; treated as FAILED`.
+  Clients **5.0.455 to 5.0.463** do neither and are not protected by such a check — a
+  known gap; upgrade them.
 - *Operating System* for a browser session: the version comes from the User-Agent (macOS
   frozen at `10.15.7`, Windows 11 reported as `10.0`), so minimum-version rules misjudge
   browser sessions (`43-clientless-access-gateway.md` §3.4).
@@ -136,13 +146,17 @@ Windows detail and the device-side checks for each signal: `40-windows-hosts.md`
      select → choose **All** / **Any** evaluation → Save Changes.
    - Profile: Endpoint → Profiles → profile → Enterprise Workspace card or a domain
      setting → **Posture Checks** tab.
-   - Edge Filter: Edge → Filters → filter → **Posture Checks** tab.
+   - Published application: Network → Applications → application → **Posture Checks**
+     tab (`44-published-applications.md` §4.1).
 3. Verify: pick a device that should fail, try the access, confirm the
-   `peer.access.blocked` (or workspace/browser/tool) event names your check.
+   `peer.access.blocked` (or workspace/browser/published-application) event names your
+   check.
 
 Table columns: Name, Checks (icon stack with tooltips), Used by (Policies / Profiles /
-Filters badges with "Go to …" buttons), Delete (disabled while used: "This posture check
-is assigned to a policy, a profile, or a filter and cannot be deleted…").
+Applications badges with "Go to …" buttons), Delete (disabled while used; the tooltip
+still reads "This posture check is assigned to a policy, a profile, or a filter and
+cannot be deleted…" — "filter" there is a leftover wording, filters no longer carry
+posture checks).
 
 ---
 
@@ -170,13 +184,17 @@ Body skeleton (include only the checks you configure):
   "netzilo_check":{
     "peer_domain_check":{"action":"allow","domains":["corp.example.com"]},
     "security_settings_check":{"disk_encryption_check":true,"screen_lock_check":true,"firewall_check":true},
-    "advanced_settings_check":{"virtual_device_check":true,"device_integrity_check":true,"netzilo_gateway_check":false,
+    "advanced_settings_check":{"virtual_device_check":true,"device_integrity_check":true,"netzilo_gateway_check":false,"netzilo_extension_check":true,
       "registry_check":{"action":"all","registry":[{"dir":"HKLM","key":"SOFTWARE\\Corp\\Agent","value":"Installed"}]},
       "file_folder_check":{"action":"any","check":{"windows":[{"path":"C:\\Program Files\\EDR\\*","content":""}]}},
       "processes_check":{"action":"all","check":{"windows":["C:\\Program Files\\EDR\\edr.exe"],"darwin":["/Applications/EDR.app/Contents/MacOS/edr"]}}}}}}
 ```
 Omitted OS keys in `os_version_check` mean that OS is blocked; use `"min_version":"0"`
-to allow all versions of an OS.
+to allow all versions of an OS. `netzilo_gateway_check` and `netzilo_extension_check`
+are booleans beside each other in `advanced_settings_check`; a check meant for browser
+users of a gateway sets the first alone, one that requires the Netzilo extension on
+desktop clients and gateway sessions sets the second (see §1 for which peers can ever
+pass each).
 
 ---
 
@@ -224,10 +242,11 @@ to allow all versions of an OS.
 | Cannot delete a check | still referenced | table "Used by" tells where; remove there first |
 | Save shows "Upgrade Plan" | Free plan | upgrade (cloud) |
 | Date & Time check off by hours | timezone in the rule vs device | rules evaluate against the rule's timezone; set it explicitly |
-| Check passes on the dashboard but access still blocked | another policy/check, or the filter's own posture check (AI Edge) | resolve rules (`20-policies-access-control.md` §6) |
+| Check passes on the dashboard but access still blocked | another policy or check | resolve rules (`20-policies-access-control.md` §6) |
+| Old clients fail a check that has the Netzilo Gateway or Netzilo Extension item | clients before 5.0.455 receive it as a version requirement; 5.0.464+ treat it as FAILED with a `NOT EVALUATED` log line; 5.0.455–5.0.463 ignore it (§1) | expected for a device; upgrade the client, or keep such checks on policies for browser sessions only |
 
 Events to search: `posture.check.created/updated/deleted`, `peer.access.blocked`,
-`workspace.posture.check`, `browser.posture.check`, `tool.blocked`, and for a published
+`workspace.posture.check`, `browser.posture.check`, and for a published
 application's door `published_app.access_denied` (`44-published-applications.md` §4.1).
 
 **Failure reasons.** The `reason` in `peer.access.blocked` meta, and in
@@ -245,6 +264,7 @@ the failing item with one of these strings:
 | `Peer is not using Netzilo Enterprise Browser` | Enterprise Browser (before: `a Netzilo browser`) |
 | `Peer is not a Netzilo gateway session` | Netzilo Gateway |
 | `Peer is not using the Netzilo extension` | Netzilo Extension: an iOS or Android device, a reverse-proxy session, or a client older than the item |
+| the Client Version reason, on a check that has no version item | a client before 5.0.455 received the Netzilo Gateway or Netzilo Extension item as a version requirement (§1); management logs "… sent as a version requirement" |
 | `Endpoint checks cannot be satisfied by a browser session` | any endpoint item (Security Settings, Workspace, Browser, Virtual Device, Device Integrity, Registry, File & Folder, Processes, Domain) on a browser session; by design (`43-clientless-access-gateway.md` §3.4) |
 | `Peer is using a virtual device` | Virtual Device |
 | `Peer's device integrity is breached` | Device Integrity |

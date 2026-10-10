@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 59342
+chars: 67930
 sections:
 - id: '1'
   title: Method
@@ -17,16 +17,16 @@ sections:
   chars: 1957
 - id: '3'
   title: Profile a log in one minute
-  chars: 1697
+  chars: 1677
 - id: '4'
   title: The client log
-  chars: 37692
+  chars: 39536
 - id: '5'
   title: The management log
-  chars: 11664
+  chars: 18222
 - id: '6'
   title: Correlating client and server
-  chars: 1342
+  chars: 1548
 - id: '7'
   title: Worked readings (from real logs, identifiers replaced)
   chars: 2614
@@ -110,7 +110,7 @@ cut -c1-400 "$F" | sed -E "$SAN" | sort | uniq -c | sort -rn | head -40
 # only the problems
 grep -E '^[0-9T:.+Z-]+ (WARN|ERRO|FATL|PANC)' "$F" | cut -c1-400 | sed -E "$SAN" | sort | uniq -c | sort -rn | head -30
 # a window around an anchor (first occurrence), noise filtered
-NOISE='ingest queue full|enrichment slots|MITM BYPASS pipe closed|MCP event: type=llm'
+NOISE='ingest queue full|enrichment slots|MITM BYPASS pipe closed'
 A=$(grep -n 'Network monitor detected network change' "$F" | head -1 | cut -d: -f1)
 sed -n "${A},$((A+300))p" "$F" | grep -vE "$NOISE" | head -60
 ```
@@ -134,22 +134,13 @@ list against §4.6 / §5.4 and discard the benign ones. What remains is the stor
 The directory is readable only by root on macOS (`drwxr--r--`); the debug bundle or
 `sudo` is required.
 
-### 4.2 Healthy daemon start (observed order)
+### 4.2 Healthy daemon start (observed order may vary)
 
 ```
 Starting netzilo service
 Starting netzilo service unix:///var/run/netzilo.sock
 NWFilter: pipe server started (service-level)                 ← Windows helper channel, logged on every OS
-Starting MCP gateway in daemon mode...
-Starting MCP Gateway on port 41338...
-Database path: … mcp.db  /  Mode: <mode>
-MCP Gateway IPC service started / Gateway IPC service started
-Posture scanner filter initialized … cache duration: 5m0s
-Static scanner filter initialized (awaiting rules via IPC)
-[analysis] dataflow handler added / posture scanner added / static scanner added / semantic classifier added
 MITM: WASM LLM parser hot-loaded (N bytes) / MITM: embedded WASM parser loaded
-MCP gateway started successfully on port 41338
-OAuth token refresh service started
 MITM: loaded CA from <configdir>/netzilo-ca.pem
 starting Netzilo client version <version> on <os>/<arch>       ← the version line
 started daemon server: <socket>
@@ -157,12 +148,27 @@ started daemon server: <socket>
 Starting WSS server on <addr>                                      ← the browser-extension channel, normally localhost:41337
 MITM: TLS interception enabled (configDir="…")
 MITM engine ready on 127.0.0.1:<port> (HTTP/2-capable) / MITM: proxy initialized successfully
-MITM: wired to MCPGateway agent chain (Register)
 unified proxy starting on 127.0.0.1:41339
 WASM [semantic-classifier]: updated to <version> / WASM [parser]: updated to <version>   ← hot-loaded bundles from the download server
 ```
 
-Anything missing from this list at boot (for example no `MCP gateway started`, or
+The AI-security rule set arrives from management once the device is connected and has
+synced (§4.3), not at boot: `Filters applied: N` (INFO) and, at debug level,
+`Rules updated: N loaded, F failed, version=mgmt-sync-<unix>` report the endpoint
+filters and their guardrails being loaded into the **intake host**, the in-process
+pipeline that evaluates AI traffic; `[intake] …` lines report its stages (§4.5). The
+relative order of these lines and of the boot lines above is as observed on the
+releases at hand; treat a different order as unremarkable.
+
+A client from **before this release** also printed a local MCP gateway at boot
+(`Starting MCP gateway in daemon mode...`, `Starting MCP Gateway on port 41338...`,
+`Database path: … mcp.db`, `MCP Gateway IPC service started`, `Posture scanner filter
+initialized`, `Static scanner filter initialized`, `[analysis] … scanner added`,
+`MCP gateway started successfully on port 41338`, `OAuth token refresh service started`,
+`MITM: wired to MCPGateway agent chain`). Those lines no longer exist: seeing them
+identifies an old client, and their absence on a current one is not a fault.
+
+Anything missing from this list at boot (for example no `unified proxy starting`, or
 `WSS ListenAndServeTLS() failed … bind: address already in use`) points at a port
 conflict or a second daemon instance.
 
@@ -174,7 +180,7 @@ new Admin Panel URL provided, updated to "https://<admin>:443"
 generated new Wireguard key / generated new SSH key                ← only on first login or after logout
 using default Wireguard port 51820 / Sock5Port 41339 / WebServPort 41336 / interface utun100|wt0
 filling in interface blacklist with defaults: […]
-using default DNS route interval 1m0s / MCP Gateway port 41338
+using default DNS route interval 1m0s
 loginToManagement DNS <hostname>.<dns-domain>
 peer has been successfully registered on Management Service      ← registration (first time)
 Routing setup complete
@@ -293,7 +299,8 @@ Peer lines are keyed by the **WireGuard public key** of the other peer (full, or
 | `failed to establish connection to peer <key>: disconnected from peer <key>` | ICE gave up or the far side went away; recurring for one peer → that peer is offline or both sides lack a usable path (`11` §2) |
 | `Connection has been already closed or attempted closing not started connection <key>` | cleanup of a connection that never completed; benign on its own |
 | `Building network map: N policies, N groups, N peers` / `Policy evaluation complete: N connectable peers found` | how many peers this device is *allowed* to talk to after policies and posture. `0 connectable peers` with peers present = policy or posture blocks everything |
-| `Posture check '<name>' FAILED at <check>` where `<check>` is `NBVersionCheck`, `OSVersionCheck`, `GeoLocationCheck`, `NetworkRangeCheck`, `NetziloChecks` or `DateTimeCheck`; and `❌ Posture check '<name>' (ID=…) FAILED` | this device fails that check; the policies/filters using it are excluded for this device. The suffix names the failing condition: client version, OS version, country, source network range, endpoint-security items, or time window (`08` §7). Logged at `ERRO` although it is a policy outcome, not a fault |
+| `Posture check '<name>' FAILED at <check>` where `<check>` is `NBVersionCheck`, `OSVersionCheck`, `GeoLocationCheck`, `NetworkRangeCheck`, `NetziloChecks` or `DateTimeCheck`; and `❌ Posture check '<name>' (ID=…) FAILED` | this device fails that check; the policies using it (and the profiles and published applications that name it) are excluded for this device. The suffix names the failing condition: client version, OS version, country, source network range, endpoint-security items, or time window (`08` §7). Logged at `ERRO` although it is a policy outcome, not a fault |
+| `Posture check '<name>' (ID=<id>) NOT EVALUATED: the check uses a condition this client version cannot evaluate; treated as FAILED` | clients **5.0.464 and later**: the check holds a condition this client cannot judge (typically the **Netzilo Gateway** or **Netzilo Extension** item, which only a browser session can pass, `43` §3.4) and the device fails it by design. Clients before 5.0.455 receive such a check as a client-version requirement instead and fail it with the version reason (management logs `… sent as a version requirement`); clients 5.0.455–5.0.463 are protected neither way — state that as a known gap. Expected on every device the check targets; the fix is the check's placement, never the client |
 
 **Relays (STUN/TURN configuration)**
 
@@ -328,7 +335,7 @@ Peer lines are keyed by the **WireGuard public key** of the other peer (full, or
 | `not applying the dns configuration update as there is nothing new` | benign |
 | `Unable to get system DNS configuration` / `unable to update record of System's DNS config: couldn't get current DNS config: couldn't find the primary service key` | macOS resolver state not readable during transition; persistent → `07` §6 |
 
-**AI security (MITM, gateway, scanners)**
+**AI security (MITM, intake host, guardrails)**
 
 | Line | Meaning |
 |---|---|
@@ -338,13 +345,14 @@ Peer lines are keyed by the **WireGuard public key** of the other peer (full, or
 | `WASM [parser]: updated to <version>` / `WASM [semantic-classifier]: updated to <version>` | parser bundles refreshed from the download server |
 | `WASM [<name>]: download HTTP <code> from <url>` (WARN) | the bundle download server answered with an error status; the client keeps the embedded or previously downloaded bundle. `403`/`404` = wrong download URL or bundle not published; repeated `5xx` = the download server. Connectivity from the device to that URL is the check |
 | `WASM [<name>]: checksum mismatch (got …, want …) — skipping update` (WARN) | the downloaded bundle does not match its published checksum (truncated download, a proxy rewriting the file, or a half-published release); the client keeps the bundle it has. Recurring → look at what sits between the device and the download server |
-| `Gateway IPC: updating static rules (version: mgmt-sync-N, N rules, N filter profiles)` → `[scanner] Rules updated: N loaded, N failed …` → `✓ Successfully updated MCP Gateway filters: N filters applied` | rules and filters delivered from management. `0 filters applied` = no filter matches this device (`29` §5). `N failed` > 0 = a rule did not parse |
-| `Failed rules: [<rule ids>]` (WARN) | the rules named did not load on this device (bad YAML or an unsupported field); every other rule is active. Fix those rules in the scanner catalogue (`28` §7) — the device cannot repair them |
-| `Gateway static rules update failed: <error>` (ERRO) | the whole rule push to the local gateway failed; the device keeps the previous rule set. Usually the local gateway process is not running (no `MCP gateway started` at boot, §4.2) — restart the service |
-| `[OAuth Refresh] Token for server <server> expired <duration> ago and cannot be refreshed (max window: 24h). Re-authorization required.` (WARN) | a stored OAuth token for a remote MCP server has been expired for more than a day and the client will not refresh it; calls to that server fail with authentication errors until the user authorises it again from the client (`27` §5). Not a network fault |
-| `MCP event: type=llm.request server=<host> tool=llm_request status=success action= duration_ms=N` (and `llm.response`) | an intercepted LLM call; `action=` empty = allowed |
-| `MCP event: type=security.staticscanner.detect … action=redact` / `action=detect` / `action=block` | a rule fired; `detect` = report-only |
-| `[scanner] Scan [tool_output] blocked=false triggered=N loaded=N version=mgmt-sync-N time=N.Nms` | one evaluation; `blocked=true` would be a block |
+| `Filters applied: N` (INFO); at debug `Rules updated: N loaded, F failed, version=mgmt-sync-<unix>` | the **endpoint** filters and their guardrails delivered from management were loaded into the intake host. `Filters applied: 0` = no endpoint filter matches this device (`29` §5.1). `F failed` > 0 = a guardrail did not parse (next row). Gateway-type filters never reach a device: their absence here is not a fault (`29` §5.2) |
+| `Failed rules: [<rule ids>]` (WARN), often preceded by `[partition] rule <id>: parse error: …` | the guardrails named did not load on this device (bad YAML or an unsupported field); every other rule is active. Fix each one in the guardrail itself (`28` §7) — the device cannot repair them |
+| `Failed to load rules into the intake host: <reason>` / `Failed to apply filters, will retry on next sync` (ERRO) | the device did not accept the rule or filter update and keeps the previous set; the next sync retries. `netzilo refresh` (device tool `mod.refresh`), then read the log again (`29` §5.1); a service restart only with consent, it logs the device out |
+| `[intake] scanner skipped: …` / `[intake] semantic classifier skipped: …` | one stage of the evaluation pipeline failed for that request and was skipped; the pipeline is **fail-open**, so that stage blocked nothing. Occasional = cosmetic; constant → collect per `12` |
+| `[intake] framework-hook governance mode: WASM manager not needed` | the pipeline runs in hook/SDK mode for that caller; normal, not a fault |
+| `redaction SUPPRESSED on SigV4-signed request …` | a redact action was not applied to a request carrying an AWS SigV4 signature (a rewritten body would no longer match it); the request went on unmodified |
+| `[evaluate] hook request missing caller_pid — AIDR graph edge will not be created …` | a coding-agent hook call arrived without the calling process id; it is evaluated as usual, but the behaviour graph gets no process edge for it |
+| `[scanner] Scan [tool_output] blocked=false triggered=N loaded=N version=mgmt-sync-N time=N.Nms` | one evaluation; `blocked=true` would be a block. **Verify the exact wording on the client at hand before relying on it**; it has changed between releases |
 | `MITM BYPASS pipe closed: client=… upstream=<ip:port> client→upstream=N bytes upstream→client=N bytes duration=…` | a flow that was passed through without inspection (excluded domain, non-HTTP, or not an intercepted app) — informational |
 | `[aidr] ingest queue full, dropping event` | back-pressure in the behaviour-graph ingester; events are being lost. Bursts of thousands during heavy AI traffic. Cosmetic for connectivity; matters if session snapshots look incomplete |
 | `enrichment slots saturated (N), skipping URL enrichment for <url>` | metadata enrichment skipped under load; cosmetic |
@@ -495,7 +503,7 @@ Rows marked **debug** appear only with `--log-level debug` (§5.5).
 | Line | Meaning |
 |---|---|
 | `NOOP: peer <key-prefix> (update meta only)` / `NOOP: peer <key-prefix>, serial N (unchanged)` — **debug** | a peer synced and nothing in its network map changed; the most common line on a quiet server at debug |
-| `FILTER_DIAG: peer=<peer-id> account.Filters count=N` → `FILTER_DIAG:   [i] id=<filter-id> enabled=… groups=[…] OS=[…]` → `FILTER_DIAG:     group <group-id> name=<name> peers=[…] containsPeer=<true or false>` → `FILTER_DIAG: collectPeerFiltersFromAccount returned N filters for peer=…` — **debug** | the server explaining, per peer, which AI-security filters apply and why (group membership, OS). The direct answer to "why is the filter not applying" (`29` §5): find the peer's block and look for `containsPeer=true` |
+| `FILTER_DIAG: peer=<peer-id> account.Filters count=N` → `FILTER_DIAG:   [i] id=<filter-id> enabled=… groups=[…] OS=[…]` → `FILTER_DIAG:     group <group-id> name=<name> peers=[…] containsPeer=<true or false>` → `FILTER_DIAG: collectPeerFiltersFromAccount returned N filters for peer=…` — **debug** | the server explaining, per peer, which AI-security filters apply and why (group membership, OS). The direct answer to "why is the filter not applying" on a device (`29` §5.1): find the peer's block and look for `containsPeer=true`. Only **endpoint** filters are listed: gateway-type filters are never sent to endpoints, so a gateway filter missing from a peer's block is by design; for a gateway user the answer is `GET /api/edge/filters/effective?type=gateway&user=…` (`29` §5.2) |
 | `found matching tenant with subdomain='…', orgID='…'` / `GetPKCEAuthorizationFlow: new client - hostname='<host>', extracted subdomain=''` / `using root domain organization ID: <id>` — **debug** | login-flow tenant resolution; on single-domain servers the subdomain is always empty |
 | `hostname '<host>' doesn't match primary domain '<domain>', treating as no subdomain` — **debug** | a client used a different hostname than the dashboard domain; benign when the management and dashboard hostnames differ by design |
 | `Token revoked by user <id>, expires at: …` (INFO) / `token has been revoked` and `Error when validating JWT claims: token has been revoked` — **debug** | a dashboard logout followed by a stale request from the same browser; benign |
@@ -518,6 +526,7 @@ Rows marked **debug** appear only with `--log-level debug` (§5.5).
 | `failed to update sync cache for peer …: context canceled` / `failed to cache account in redis: context canceled` | request cancelled mid-flight (client went away); benign unless constant |
 | `error when getting account <id> from the store: record not found` (ERRO), followed by an `account not found` answer | something referenced an account id that does not exist on this server (a token from another server, a stale integration, a deleted tenant) |
 | `auto migrate: …` / `failed creating Store` / `failed retrieving a new idp manager` / `unsupported store type` at start | fatal start-up problems — `03` §2 |
+| `dropped table tools` / `dropped table discovered_tools` / `dropped table discovered_tool_calls`, `deleted N global guardrail row(s)`, `filter <id>: dropped N guardrail reference(s) that no longer exist`, `idx_events_account_timestamp created` — in the start sequence | the migration of the release that removed Edge Tools, discovered tools and the global guardrail catalogue, and that added an index on events. **Expected once**, at the first start after the upgrade; a filter line names a filter whose guardrail list was trimmed of ids that no longer exist. Not an error, whatever the level |
 
 Because API refusals are not logged at `info` and server failures are, a healthy server
 under load can look "all errors" at a glance while a misbehaving dashboard produces no
@@ -565,6 +574,72 @@ a session by the session's peer address or FQDN in its `ready` line. Healthy sta
 every line's meaning and the troubleshooting table: `43-clientless-access-gateway.md`
 §10.1 and §11.
 
+### 5.8 The AI Gateway (`netzilo-aigw`)
+
+The AI Gateway is a separate binary on a host of the customer's, never part of
+management: it is the same binary as the clientless-access gateway (§5.7) with the
+LLM/MCP upstream built in, so its log mixes three prefixes with the lines of its own
+peer engine. On Linux read it with `journalctl -u netzilo-aigw` (the binary logs to
+stdout; `--log-file <path>` for a file). The full line table, health endpoints and the
+troubleshooting table are `references/27-ai-gateway.md` §9–§10; `27` §6 explains what a
+refused caller saw.
+
+**Healthy start** (observed order may vary):
+
+```
+gateway: data directory <dir>
+gateway: version <v> starting in node mode (management <url>, egress public)
+gateway: bound to an account with N users                                ← the service token resolved the account
+gateway: peer <name> connected (…)                                       ← the gateway's own peer logged in
+aigw: agent gateway netzilo-aigw serving on http://127.0.0.1:<port> (data <dir>)   ← the built-in upstream is up
+gateway ai: listening on tunnel <ip>:8447 (inside the tunnel, plain) → …   /   gateway ai: listening on http://[::]:8447 → …
+gateway ai: policy ai-<hash>: N user(s) cached, N filter(s) held, N rule(s) loaded, N failed
+gateway ai: providers <hash>: N provider(s) from management  /  … applied to the upstream as <name> (N model(s))
+gateway ai: mcp <hash>: N server(s), N virtual MCP(s) from management  /  … applied to the upstream as /mcp/<slug> (<auth>, generation N)
+```
+
+`aigw: the agent gateway did not become healthy in 15s` in place of the `serving on`
+line means the built-in upstream did not start and the process exits (`27` §10).
+
+**The three prefixes:**
+
+| Prefix | Who writes it | What it covers |
+|---|---|---|
+| `gateway:` | the gateway process | start, data directory, account binding, its peer, credential refusals at any door, the browser proxy (§5.7) |
+| `aigw:` | the built-in LLM/MCP upstream | its start and health |
+| `gateway ai:` | the AI door | listeners, policy (filters and guardrails), providers, MCP servers, identity at the door, refusals, usage upload |
+
+Everything else comes from the gateway peer's own engine and reads like a client log (§4).
+
+**`gateway ai:` families** (from `27` §9.2):
+
+| Line | Meaning |
+|---|---|
+| `gateway ai: listener on :8447 serves plain HTTP: callers' tokens travel unencrypted (…)` | no certificate on a public door; a warning, not a refusal (`27` §5.1) |
+| `gateway ai: no --service-pat: no rules will be loaded and callers on the tunnel cannot be identified` | misconfiguration; chat will be refused until a service token is given |
+| `gateway ai: policy ai-<hash>: N user(s) cached, N filter(s) held, N rule(s) loaded, N failed` | gateway filters and guardrails loaded; `failed` counts guardrails that did not parse — fix their YAML (`28` §7) |
+| `gateway ai: filters for user <id> peer <id>: […]` | which gateway filters a user received; the first thing to read for "the filter is not applying" to a gateway user (`29` §5.2) |
+| `gateway ai: providers <hash>: N provider(s) from management` / `… applied to the upstream as <name> (N model(s))` | provider sync from Edge → Providers (`references/45-ai-gateway-providers-and-limits.md` §4 for its diagnosis) |
+| `gateway ai: mcp <hash>: N server(s), N virtual MCP(s) from management` / `… applied to the upstream as /mcp/<slug> (<auth>, generation N)` / `… credential of <user> for /mcp/<slug> written to the upstream` / `… waits for a credential before it can be created` | MCP sync (`references/46-ai-gateway-mcp-servers-and-bundles.md` §8 for its diagnosis); the last form is normal for a per-user server nobody has connected yet |
+| `gateway ai: cannot identify <addr>: <err>` / `… unattributed request from <addr> refused (N so far)` / `… passed through …` | identity at the door: the caller could not be mapped to a user; refused on the public door, passed through ungoverned on the tunnel door or with `--ai-allow-unattributed` |
+| `gateway ai: N request(s) passed through unattributed` | at shutdown, the total of the previous row |
+| `gateway: no data dir: the peer key is not persisted, every start registers a new peer` | the data directory is unusable; every restart creates a new peer until it is fixed |
+
+**Refusal lines** — what the caller got, by line:
+
+| Line | The caller saw |
+|---|---|
+| `gateway: credential refused at ai <host> for <ip>: <reason>` | 401 `a Netzilo credential is required`; also the activity **Credential refused at gateway** (`gateway.credential_refused`, door `ai`, reason `expired`, `unknown`, `no_user` or `not_in_account`) |
+| `gateway ai: refused <model> for <user>: <reason>` | a model-access refusal (403, `no model is granted to this user` / `model X is not granted to this user`) or a limit refusal (429 / 402). The matching activity is `ai.blocked` with engine `policy` or `limit`, source `gateway` |
+| no dedicated line in `27` §9.2 | a guardrail block or redaction: look in Activity for the `ai.*` event with source `gateway`; the caller got 403 `type: netzilo_policy` with the rule's reason, or an MCP tool result `Tool execution failed: Blocked by rule: <name>` |
+
+**Usage lines** (`gateway ai: usage: …`, `27` §8): `N record(s) recovered from the
+outbox` after a restart or a failed upload; `… kept, upload failed: …` while management is
+unreachable or the token is refused (records are kept and retried); `… N record(s)
+dropped: …` when the server rejected a batch as malformed. Successful uploads are logged at
+debug level only, so a quiet log is the healthy state; usage missing from the dashboard
+with none of these lines is the hourly snapshot, not the gateway.
+
 ---
 
 ## 6. Correlating client and server
@@ -576,7 +651,7 @@ every line's meaning and the troubleshooting table: `43-clientless-access-gatewa
 | `requestID` | — | groups all lines of one request | server-only; never reaches the client |
 | `accountID` | — | bracket field | get it from the server or API, then join on the key |
 | Timestamps | local + offset | usually `Z` | convert to UTC; dashboard event times trail the client log by up to ~30 s because events are batched |
-| AIDR `correlation_id`, `run_id`, `rule_name`, `filter_name` | `Buffered event: {…}` at debug; `MCP event:` lines | dashboard event metadata; snapshot API | joins a dashboard row to the client line that produced it |
+| AIDR `correlation_id`, `run_id`; `ai.*` event metadata `rule_name`, `filter_name`, `request_id`, `call_id`, `session_id` | `Buffered event: {…}` at debug | dashboard event metadata; `/api/aidr/*` (sessions, graph, observations, detections) | joins a dashboard row to the client line that produced it. For a gateway verdict the event's `source` is `gateway` and the join is the gateway's own log (§5.8), not a client log |
 
 Procedure: take the affected device's public key from `netzilo status -d`; on the
 server `grep '<first-20-chars>' mgmt.log`; convert the client's failing timestamp to UTC

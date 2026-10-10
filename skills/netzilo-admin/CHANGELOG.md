@@ -7,6 +7,94 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.0.0 — 2026-10-10
+
+AI governance gained a second enforcement point, the **Netzilo AI Gateway**, and the
+Edge objects were rebuilt around it. Two runbooks were retired and replaced, five were
+added, and every runbook that mentioned the old objects was corrected. Major version:
+files were renamed and removed.
+
+**Retired — do not follow older copies:**
+
+- `27-edge-tools-and-mcp.md` and `28-edge-scanners.md` are gone. **Edge Tools**,
+  discovered tools, the global catalogue, **premium/global scanners**, filter profiles
+  and posture on filters no longer exist; `tool.*` and `scanner.*` activity codes are
+  gone (old clients' `tool.*` events show as unknown activity).
+- The client no longer runs a local MCP gateway: port `41338`, `--mcp-gateway-port`,
+  `MCPGatewayPort` and the `mcp.db` file belong to clients before this release. The
+  client's loopback ports are `41336`, `41337` and `41339`.
+- The process-keyed rule API — `proc_instance()`, `proc_lineage()`, `query_events()`,
+  the `netzilo` dict, `meta["caller_pid"]`, `process://` nodes, `EXECUTE_PROCESS`,
+  `graph(type="Process")` — was removed from the engine. Scripts that use it fail and
+  take their `on_error` verdict.
+- `/api/peers/{id}/aidr-snapshot*` answer 404; the behaviour graph is read through
+  `/api/aidr/*`.
+
+**New runbooks:**
+
+- `27-ai-gateway.md` — the AI Gateway (`netzilo-aigw`): requirements, install on Linux,
+  macOS, Windows and containers, every flag, plain HTTP vs TLS, exposure through the
+  tunnel, publicly or as a published application, authentication (`Authorization:
+  Bearer` only) and every refusal (401/402/403/405/429), what it pulls from management,
+  usage telemetry, logs, token rotation, troubleshooting.
+- `48-installer-command-lines.md` — every installer and parameter, read from the
+  installer sources: the Windows client's four files (MSI `NONADMIN`/`CONFIGFILE`, offline
+  EXE `/S` and its fragile `NONADMIN=`/`CONFIGFILE=` parsing, the pack's `-q -s -na
+  --config-file=`, the online EXE that always exits 0), tenant-named installers, the
+  `deploy-user` file format, Intune/SCCM/GPO/Jamf detection rules and return codes,
+  upgrade and uninstall, the Enterprise Browser MSI (`TENANT`, `SHORTCUTNAME`, not
+  remembered) and EXE (`--system-level`, `--netzilo-tenant=`, `--netzilo-update=`,
+  `--shortcut-name=`), macOS and Linux, and the known installer limitations.
+- `28-edge-guardrails.md` — Edge → Guardrails (the former scanners): fields, contexts,
+  AI generation, Replay through `/api/aidr/replay`, lifecycle, diagnosis.
+- `45-ai-gateway-providers-and-limits.md` — Edge → Providers and Edge → Limits.
+- `46-ai-gateway-mcp-servers-and-bundles.md` — Edge → MCP: servers (HTTP, SSE, stdio),
+  every authentication type incl. shared and per-user OAuth, bundles, users' sign-ins
+  and statuses, OAuth 2.1 for MCP clients such as Claude Desktop.
+- `47-agentic-access-workplace.md` — Workplace → Agentic Access: what users see, the
+  Connect dialogs and snippets (Anthropic clients use `<gateway>/anthropic` with the
+  token as a Bearer auth token), the 90-day `mcp`-scoped token, and "my agent cannot use
+  the gateway".
+
+**Rewritten:**
+
+- `10-ai-security-aidr.md` — two enforcement points, a rollout for each, SDK 5.0.0
+  (breaking: `mcp_gateway_port` removed), old-client behaviour.
+- `29-edge-filters.md` — endpoint filters (groups, OS, agents, guardrails) and gateway
+  filters (models by provider id, limits, MCP servers and bundles, gateways, guardrails);
+  guardrails are required on both; effective filters per device and per user.
+- `32-detection-rule-authoring.md` — the session-keyed engine: sessions and the
+  observation log (`session()`, `lineage()`, `children()`, `sessions()`, `programs()`,
+  `events()`, `fs_activity(session, …)`, the `subject` dict), `requires:` capabilities
+  and which host loads which rule, the AI Gateway as a rule host, kill chains rooted at
+  sessions, merged-edge timestamps, evaluation order at the gateway, replay over stored
+  observations, fixtures, and a migration table from the process-keyed API. Every
+  example rule was run through the engine (attack and benign cases).
+- `33-api-request-schemas.md` regenerated from the corrected OpenAPI description: the
+  `/api/aidr/*` endpoints are in, the removed `/api/peers/{id}/aidr-snapshot*` are out.
+  `34-event-catalogue.md` regenerated (159 activities).
+
+**Installer corrections (`05`, `40`, `10`, `26`):** `nz_installer_64.exe -s` / `-s -na`
+were wrong — that file takes `/S` and `NONADMIN=1`, and `-s`/`-na` belong to the pack; a
+refused UAC prompt fails the install instead of falling back to non-admin; the install
+appends to `Path`; tenant-named installers and `CONFIGFILE` with `apiurl` replace the
+device's identity on upgrade; installer dialogs are logged only in the encrypted engine
+log and a failed install deletes `%ProgramData%\Netzilo`; Intune needs a Win32 app in
+System context and a file/registry detection rule; the browser's `TENANT` is also its
+update host.
+
+**Corrected across the set:** `00`, `05`, `06`, `07`, `08`, `09`, `11`, `12`, `13`,
+`14`, `15`, `16`, `17`, `21`, `22`, `23`, `24`, `25`, `30`, `31`, `35`, `39`, `40`,
+`42`, `43`, `44` — guardrail terminology, the Edge pages (Providers, MCP, Guardrails,
+Limits, Filters), Applications under Network, the single DNS page with Servers and
+Settings tabs, the new events (`ai.*`, `guardrail.*`, `gateway_*`, `mcp.*`,
+`gateway.credential_refused`, `published_app.*`), the AI Agent Activity and AI Usage
+reports, the dashboard home (Agentic Activity), posture on published applications and
+the old-client behaviour for gateway and extension checks, the client's new log lines
+and the AI Gateway's, data handling for gateway traffic and usage telemetry, incident
+response for gateway access, plans (no premium rules), and the published application's
+`forward_credential` and app-change watcher. `SKILL.md` routes every new surface.
+
 ## 3.0.0 — 2026-10-05
 
 The repository is a Claude Code plugin and its own marketplace. Nothing in the runbooks
