@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 20098
+chars: 20091
 sections:
 - id: '1'
   title: Global flags (all commands)
@@ -27,7 +27,7 @@ sections:
 # Netzilo Client — CLI and Configuration Reference
 
 **Audience:** an AI operator who needs the exact command, flag, environment variable,
-file path, or status field for the Netzilo client (`netzilo`, version line 4.4.x).
+file path, or status field for the Netzilo client (`netzilo`, 5.x clients).
 Flags not listed here do not exist in this build (in particular there is **no**
 `profile`, `lazy-connection`, `block-lan`, `block-inbound`, or `mtu` flag).
 
@@ -218,7 +218,7 @@ Flags: `--fullname`, `--email`, `--groups a,b`, `--password`, `--tokenname`,
 `--accountid`, `--use-current-user`, `--config-file <json>` (`${VAR}` expansion),
 `--debug`. Stores the PAT encrypted in `pat.dat`; `netzilo up` then logs in with it.
 
-### `netzilo version` — prints the version, e.g. `4.4.375`.
+### `netzilo version` — prints the version, e.g. `5.1.571`.
 
 ### Hidden / platform-specific
 `netzilo record` (Windows session recording; started from the tray), `netzilo webproxy`

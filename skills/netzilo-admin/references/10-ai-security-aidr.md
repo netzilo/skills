@@ -7,20 +7,20 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 35250
+chars: 35409
 sections:
 - id: '1'
   title: Architecture in one page
   chars: 3812
 - id: '2'
   title: Rollout runbook
-  chars: 3290
+  chars: 3375
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
   chars: 3501
 - id: '4'
   title: Coding-agent hooks (`netzilo hook`)
-  chars: 2717
+  chars: 2869
 - id: '5'
   title: SDK for custom agents
   chars: 4078
@@ -35,13 +35,13 @@ sections:
   chars: 1685
 - id: '9'
   title: Troubleshooting
-  chars: 5546
+  chars: 5565
 - id: '10'
   title: Reporting and evidence
   chars: 952
 - id: '11'
   title: Constraints to disclose early
-  chars: 3016
+  chars: 2919
 ---
 # Netzilo — AI Security (AIDR) Administration
 
@@ -110,8 +110,8 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
    groups `ai-users`, OS (Windows, Darwin…); **Agents**: process paths to intercept,
    wildcards and env vars allowed (`%PROGRAMFILES%\Google\Chrome\Application\chrome.exe`,
    `~/.cursor/**`, `/Applications/Claude.app/**`, `$HOME/.local/bin/claude`; empty = no
-   transparent interception, hooks/SDK/extension still work); **Guardrails** (required);
-   name; save.
+   transparent interception, hooks/SDK/extension still work); **Guardrails** (optional
+   on the filter, but without one nothing is judged); name; save.
 5. **Verify on a device:** the client log shows `Filters applied: N` (debug: `Rules
    updated: N loaded, 0 failed, version=mgmt-sync-…`) with no `Failed rules:` line. Use an
    AI app named in Agents; Activity shows **AI allowed / AI detected** events and the peer
@@ -135,9 +135,9 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 2. **Providers:** Edge → Providers → Add Provider (type, credential, Refresh models) (`45`).
 3. **(Optional) MCP servers and bundles:** Edge → MCP (`46`).
 4. **(Optional) Limits:** Edge → Limits (`45` §2).
-5. **Create a gateway Filter** (Filter Type Gateway): groups, **Models** (Browse Models),
-   Limits, **MCP**, **Gateways** (the address users paste — the tab is not on the
-   Continue path, open it), Guardrails (required), name.
+5. **Create a gateway Filter** (Filter Type Gateway): groups, **Models** (Browse Models;
+   at least one required), Limits, **MCP**, **Gateways** (the address users paste — the
+   tab is not on the Continue path, open it), Guardrails (optional; recommended), name.
 6. **Verify:** `GET /api/edge/filters/effective?type=gateway&user=<id>` lists it;
    `curl <gateway>/v1/models -H "Authorization: Bearer <user token>"` lists the models;
    the Workplace shows the card **Online**; a chat completion appears in Dashboard →
@@ -201,8 +201,10 @@ through the proxy (its executable in Agents).
 
 A coding agent that talks to the **AI Gateway** (Claude Code with
 `ANTHROPIC_BASE_URL=<gateway>/anthropic`, Codex with an OpenAI base URL) is identified,
-limited and counted there in addition; prompt guardrails apply at the gateway only on the
-OpenAI chat surface (`27` §1), so keep the hooks for synchronous tool-call blocking.
+limited, counted and governed there in addition: the gateway filter's guardrails judge
+its prompts, answers, the tool calls the model asks for and the tool results sent back
+(`27` §1). Keep the hooks for the tool's execution on the machine itself (session
+events, commands and files as they run), which the gateway never sees.
 
 ---
 
@@ -409,7 +411,7 @@ per rule whether a scan failure should block (`on_error: block`).
 | Browser extension **Protection: Inactive** / no browser events | not signed in from the popup; no enabled endpoint filter with OS **Browser** for the user's groups; a failed guardrail | `49` §10; the popup's Debug tab names the cause |
 | Bedrock traffic visible but not redacted | SigV4-signed requests cannot be rewritten by the daemon | use SDK embedded mode, or Bedrock's OpenAI-compatible bearer endpoint, or route through the AI Gateway |
 | Events with source `extension` and agent = a site (`chatgpt.com`, `claude.ai`, …) | events from the browser extension; Activity reads "<site> in the browser for <user>" | normal |
-| An agent gets 401/403/405/429 from the **gateway** | `27` §6 and `47` §5 | |
+| An agent gets 400 (`netzilo_policy`)/401/405/429 from the **gateway** | `27` §6 and `47` §5 | |
 | A user has no **Agentic Access** tab | no gateway filter grants them an address or MCP server | `29` §5.2 |
 
 **Degradation lines in the client log.** Each means a part of AI governance is running in
@@ -471,11 +473,10 @@ services with an OpenAI-compatible interface are parsed even when they are not n
 anywhere. The way to answer "is this provider supported" is to run the tool once and look
 for its activity in the dashboard, not to consult a list.
 
-**The gateway governs by API surface** (`27` §1): prompt and answer guardrails and
-Netzilo's own model-grant refusal cover the OpenAI chat surface; Responses, Anthropic,
-embeddings and completions are identified, limited by the virtual key and recorded.
-Streams are block-only. Say this before promising a prompt block for a Claude Code user
-on the gateway; the device hooks still block that user's tool calls.
+**The gateway governs by API surface** (`27` §1): model grants and guardrails cover the
+OpenAI chat surface, the Responses API and the Anthropic Messages surface (Claude Code,
+Claude Desktop), streamed or not; embeddings and text completions are identified,
+limited by the virtual key and recorded, not inspected.
 
 **Streamed answers are held back.** On every enforcement point — the client, the
 browser extension and the gateway — streamed answer text is released about 1 KB behind

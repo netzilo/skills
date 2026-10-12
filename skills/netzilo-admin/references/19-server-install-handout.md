@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 11649
+chars: 12165
 sections:
 - id: step-1-check-the-prerequisites
   title: Step 1 — Check the prerequisites
@@ -22,7 +22,7 @@ sections:
   chars: 654
 - id: step-5-log-in
   title: Step 5 — Log in
-  chars: 569
+  chars: 796
 - id: optional-unattended-scripted-install
   title: Optional — Unattended (scripted) install
   chars: 1722
@@ -31,7 +31,7 @@ sections:
   chars: 3285
 - id: troubleshooting
   title: Troubleshooting
-  chars: 1254
+  chars: 1543
 - id: uninstall
   title: Uninstall
   chars: 170
@@ -152,8 +152,11 @@ A wildcard certificate (`*.example.com`) is fine.
 When the installer finishes, it prints your dashboard address and credentials.
 
 1. Open **`https://<your-domain>`** in a browser (e.g. `https://go.example.com`).
-2. Sign in with the **admin email** and **password** you entered.
-3. You'll be asked to **set a new password** on first login.
+2. Sign in with the **admin email** and **password** you entered. That password stays in
+   use: no change is asked for at first login unless the install set
+   `NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED` (see the unattended install below). The
+   `CREDENTIALS` file says you will be required to change it in every case; that line is
+   printed regardless.
 
 Your credentials are also saved on the server at:
 `/opt/netzilo/CREDENTIALS`
@@ -281,7 +284,7 @@ server; keep the backup from the operations guide running.
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | Browser shows a certificate warning | The HTTPS certificate hasn't been issued yet, or DNS isn't pointing here | Confirm `A` record → server IP, ports 80/443 open, then wait a minute and refresh |
-| "Let's Encrypt will fail" warning during install | Domain doesn't resolve to this server yet | Fix the DNS `A` record (Step 1), then re-run the installer |
+| "Let's Encrypt will FAIL until the A record points here" warning during install | Domain doesn't resolve to this server yet | At `Continue anyway? [y/N]` answer `N`: nothing is installed yet; fix the DNS `A` record (Step 1), then run the installer again. If you continued anyway, no re-run is needed: fix the `A` record and the certificate is requested again on its own; to retry at once, `sudo docker compose restart caddy` in `/opt/netzilo` |
 | Can't reach the dashboard at all | Firewall/security group blocking 80/443 | Open the ports in Step 1 |
 | Clients sign in but cannot reach each other | Relay ports blocked (in the cloud firewall or on the server itself) | Open `3478/udp`, `49152–65535/udp` and `5349/tcp` (Step 1) |
 | Browsers with the extension show "Private access: unavailable" or cannot open internal apps | The gateway port is closed, or clientless access is not switched on | Open `8443/tcp` (Step 1); ask your operator to switch on Settings → Permissions → Allow clientless access |

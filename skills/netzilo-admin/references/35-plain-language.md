@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 8977
+chars: 9110
 sections:
 - id: '1'
   title: When an identifier belongs in the answer
   chars: 817
 - id: '2'
   title: Areas of the product
-  chars: 5016
+  chars: 5149
 - id: '3'
   title: 'Objects: names, not ids'
   chars: 599
@@ -73,8 +73,8 @@ dashboard; if a customer's build shows a different label, theirs wins.
 | a network route / an exit node | Network → Routes | `/api/routes` |
 | a published application | Network → Applications | `/api/published-apps` |
 | a nameserver / DNS settings | Network → DNS (Servers \| Settings tabs) | `/api/dns/nameservers`, `/api/dns/settings` |
-| a user, a service account ("agent") | Team → Users | `/api/users` |
-| account settings, the tenant, the plan | Team → Settings | `/api/accounts`, `/api/tenant` |
+| a user; a service account ("agent") | Team → Users; Team → Agents | `/api/users` |
+| account settings, groups, permissions, the plan, the tenant | Settings (tabs Authentication, Groups, Permissions, Plans & Billing (Netzilo Cloud only), Tenant) | `/api/accounts`, `/api/groups`, `/api/tenant` |
 | a provider (the gateway's model catalogue) | Edge → Providers | `/api/edge/providers` |
 | an MCP server | Edge → MCP → MCP Servers tab | `/api/edge/mcp-servers` |
 | an MCP bundle | Edge → MCP → MCP Bundles tab | `/api/edge/virtual-mcps` |

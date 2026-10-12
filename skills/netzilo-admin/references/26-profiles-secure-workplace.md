@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 32044
+chars: 32938
 sections:
 - id: '1'
   title: Model
-  chars: 4918
+  chars: 4961
 - id: '2'
   title: Enterprise Workspace — reference
-  chars: 5513
+  chars: 5518
 - id: '3'
   title: Enterprise Browser — reference
   chars: 779
@@ -23,7 +23,7 @@ sections:
   chars: 636
 - id: '5'
   title: Domain Settings (Browser Extension and Enterprise Browser)
-  chars: 3702
+  chars: 4382
 - id: 5a-proxy-clientless-access
   title: 5a. Proxy (clientless access)
   chars: 1305
@@ -35,7 +35,7 @@ sections:
   chars: 1358
 - id: '8'
   title: Diagnosis
-  chars: 1556
+  chars: 1722
 - id: '9'
   title: Troubleshooting the Workspace
   chars: 10397
@@ -59,9 +59,10 @@ one profile.
 | **Enterprise Workspace** | native Windows applications ("work apps") run inside an isolated, optionally encrypted enclave with restrictions (clipboard, printing, screen sharing, keylogging, watermark, recording, integrity) and optional posture checks | Windows x64, full (admin) install only |
 | **Enterprise Browser** | Netzilo's own Chromium-based browser: bookmarks, per-domain restrictions, extension allow/block list, encrypted profile, wipe on close | Windows, macOS (mobile apps exist) |
 | **Disposable Browser** | isolated throw-away browser sessions; everything is destroyed on close | Windows x64, full (admin) install only |
-| **Enterprise Browser Extension** | per-domain DLP inside the user's normal browser (Chrome/Edge/Firefox/Safari): downloads, URL blocking, redaction, watermark, clipboard, printing, source-code controls, classified content, prompt-injection prevention, temporary cookies; the client force-installs the extension in Chrome/Edge when such a profile applies. Its **Proxy** tab turns on clientless access for the profile's users (§5a) | any OS with a supported browser (Proxy: Chromium-based browsers and Firefox, not Safari) |
+| **Enterprise Browser Extension** | per-domain DLP inside the user's normal browser (Chrome/Edge/Firefox/Safari): downloads, URL blocking, redaction, watermark, clipboard, printing, source-code controls, classified content; the client force-installs the extension in Chrome/Edge when such a profile applies. Its **Proxy** tab turns on clientless access for the profile's users (§5a) | any OS with a supported browser (Proxy: Chromium-based browsers and Firefox, not Safari) |
 
-Profile fields: **Groups** (required), **OS** (Windows, Darwin, Linux, Android, iOS;
+**Add Profile** opens the dialog of that name; an existing profile opens **Edit
+Profile**. Profile fields: **Groups** (required), **OS** (Windows, Darwin, Linux, Android, iOS;
 default Windows), components, **Enable Profile**, Name, Description. A device gets a
 profile when it is in one of the groups and runs one of the OSs. Posture checks can gate
 the workspace and each domain setting (All/Any evaluation).
@@ -129,14 +130,14 @@ distribute software.
 | Setting | Help text | Value |
 |---|---|---|
 | Enforce Isolation | "Creates an isolated enclave on the endpoint for work apps" | opens Settings (below) |
-| Add Watermark | "Adds a watermark to graphical user interface of work apps" | text, Dense / Sparse. Tokens replaced at display time: `%netzilo.username%`, `%netzilo.hostname%`, `%netzilo.ip%`, `%netzilo.region%`, `%netzilo.deviceid%`, e.g. `%netzilo.username% - CONFIDENTIAL`. Older `[USERNAME] - [DATE]` placeholders are printed literally — replace them |
+| Add Watermark | "Adds a watermark to the graphical user interface of work apps" | text, Dense / Sparse. Tokens replaced at display time: `%netzilo.username%`, `%netzilo.hostname%`, `%netzilo.ip%`, `%netzilo.region%`, `%netzilo.deviceid%`, e.g. `%netzilo.username% - CONFIDENTIAL`. Older `[USERNAME] - [DATE]` placeholders are printed literally — replace them |
 | Restrict Clipboard Access | "Restrict copying and pasting data from work apps to non-work apps" | **from** workspace = users cannot copy out of work apps; **to** workspace = users cannot paste into them; **to and from** = both |
 | Restrict Printing | "Prevents work apps from printing sensitive data" | toggle |
 | Restrict Screen Sharing | "Prevents screen capturing or sharing apps to grab the screens of work apps" | toggle; mutually exclusive with Record Desktop Activity — turning one on turns the other off |
 | Record Desktop Activity | "Video records the desktop of users while they use workspace apps" | requires an **Amazon S3 or Min.io** event-streaming integration and a **privacy policy link** the user must accept before the first work app opens; the recorder runs as its own process and pauses while the user is idle; if it cannot start (declined consent, missing storage) the work app does not open and the workspace closes; recordings appear in Activity as `session.recorded` once the first chunk has uploaded |
 | Restrict Key-logging | "Prevents key-logging applications to record key strokes of work apps" | toggle; protects keystrokes typed into work-app windows |
 | Verify Workspace Integrity | "Hardens work apps against advanced attacks such as device rooting, debugging or memory injection attacks" | toggle; detections are recorded as `workspace.injection.detected` / `workspace.selfdefense.activated` events for the admin to act on |
-| Create Desktop Shortcut for Work Apps | "Choose a folder name where users can find shortcuts for workapps" | folder name; created on the Desktop **and** under Start Menu → Programs → Netzilo. Every profile sync deletes and recreates that Desktop folder — never point it at a folder that already holds the user's own files |
+| Create Desktop Shortcut for Work Apps | "Choose a folder name where users can find shortcuts for work apps" | folder name; created on the Desktop **and** under Start Menu → Programs → Netzilo. Every profile sync deletes and recreates that Desktop folder — never point it at a folder that already holds the user's own files |
 | Show Border | "Draws a border around work apps to identify them visually" | colour or None |
 
 **Enforce Isolation → Settings**:
@@ -214,17 +215,26 @@ Header: "Configure protection settings for the web domain". Domain field: e.g.
 | Restrict Content → Restrict Uploading Source Code | "Detect and block source code uploads heuristically" | toggle |
 | Restrict Content → Restrict Viewing Source Code | "Detect and redact source code snippets in pages" | toggle |
 | Restrict Content → Restrict Viewing Classified Content | "Block access to content based on your organization's data classification labels" | labels Public / Private / Confidential / Secret (custom allowed, max 10); must match the organisation's DLP labels |
-| Restrict Screen Sharing / Restrict Key Logging / Verify Workspace Integrity (Enterprise Browser only) | | toggles |
-| Prevent LLM Prompt Injections | "Intercept and secure AI conversations against injection attacks" | toggle (ChatGPT, Claude, Gemini, Copilot pages) |
-| Make Session Cookies Temporary | "Marks session cookies for deletion when the browser is closed" | toggle |
+| Restrict Screen Sharing (Enterprise Browser only) | "Prevents screen capturing or sharing apps to grab the screens of work apps" | toggle |
+| Restrict Key Logging (Enterprise Browser only) | "Prevents key logging apps from logging keystrokes" | toggle |
 | Show Gray Border | "Draws a gray border around protected web content" | toggle |
-| Allow Exceptions | "Define exceptions for restrictions for certain users" | temporary removal on/off, **Expires in** (Hours/Minutes; currently stored as minutes), support link, groups allowed to request |
+| Allow Exceptions | "Define exceptions for restrictions for certain users" | **Allow temporary removal of restrictions** on/off; **Expires in** 1–180 **Hours** or **Minutes** (default 24 hours; stored in seconds as `allow_exception.expiration`); **Provide a link to the following support site:**; **Allow exceptions for the following groups:** |
+
+The Enterprise Browser's domain settings are therefore Use Enterprise Workspace, Use
+Disposable Browser, Restrict Downloads, Restrict Uploads, Block URLs, Restrict Content,
+Restrict Screen Sharing, Restrict Key Logging, Show Gray Border and Allow Exceptions; the
+extension's are the same without Restrict Uploads, Restrict Screen Sharing and Restrict
+Key Logging. Older dashboards also show **Prevent LLM Prompt Injections**, **Make
+Session Cookies Temporary** and, for the Enterprise Browser, **Verify Workspace
+Integrity**: nothing on the device acts on them. Govern AI chats with guardrails
+(`49-browser-extension-aidr.md`); the Enterprise Workspace keeps its own **Verify
+Workspace Integrity** (§2).
 
 Every restriction produces events: `browser.url.blocked`, `browser.download.file`,
 `browser.upload.file`, `browser.download.content` (content regex hit),
 `browser.data.redacted`, `browser.data.print.blocked`, `browser.data.clipboard.blocked`,
 `browser.data.code.upload.blocked`, `browser.data.code.redacted`, `browser.data.classified`,
-`browser.data.screenshot.blocked`, `browser.data.prompt.injection.blocked`,
+`browser.data.screenshot.blocked`,
 `browser.isolation.bluezone.required` (workspace required), `browser.isolation.redzone.required`
 (disposable browser required), `browser.posture.check`, `browser.exception.request`,
 `browser.url.access`.
@@ -308,8 +318,8 @@ Read an existing profile with `GET` to see the exact shape before writing.
 | "Record Desktop Activity" greyed out | no S3/Min.io integration | Integrations → Event Streaming |
 | Users lose enclave files | Wipe Data When Closed on, or encryption key changed | expected; document it |
 | Component icon missing in table for Enterprise Browser | display only | ignore |
-| Delete tooltip about policies always shown | display only | delete proceeds |
-| Exception expiry shorter than expected | stored as minutes even when Hours selected | enter the value in minutes |
+| Older dashboards: a delete tooltip about policies is always shown | display only | delete proceeds |
+| Exception ends after minutes although hours were entered | the domain setting was saved by an older dashboard, which stored an hours value as minutes (2 hours → 120 s); minutes were stored correctly | open the domain setting, re-enter **Expires in**, save |
 
 Events: `profile.created/updated/removed`, plus the browser/workspace events in §5 and
 `workspace.app.started`, `workspace.posture.check`, `workspace.print.blocked`,

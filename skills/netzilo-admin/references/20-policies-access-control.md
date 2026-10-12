@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 10571
+chars: 10634
 sections:
 - id: '1'
   title: Model
   chars: 1281
 - id: '2'
-  title: Field reference (Add / Update Access Control Policy)
-  chars: 3003
+  title: Field reference (Create New / Update Access Control Policy)
+  chars: 3066
 - id: '3'
   title: API
   chars: 1025
@@ -61,7 +61,7 @@ field, safe change procedures, and how to prove why a connection is or is not al
 
 ---
 
-## 2. Field reference (Add / Update Access Control Policy)
+## 2. Field reference (Create New / Update Access Control Policy)
 
 Header text: "Use this policy to restrict access to groups of resources."
 
@@ -92,7 +92,8 @@ labels are the reverse of the arrows shown in the visual editor.
 **Posture Check Evaluation**: "Choose whether all posture checks must pass or if any one
 set can pass" → **All** (default) or **Any**.
 
-**Name & Description tab** — name (required; UI label "Name of the Rule"), description.
+**Name & Description tab** — **Name of the Policy** (required; "Set an easily identifiable
+name for your policy."), **Description (optional)**.
 
 Create flow buttons: Policy → Continue → Posture Checks → Continue → Name → **Add
 Policy**. Edit: **Save Changes** on any tab. Continue is disabled until every rule has

@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 10054
+chars: 10323
 sections:
 - id: '1'
   title: Model
   chars: 2494
 - id: '2'
   title: Field reference
-  chars: 1244
+  chars: 1513
 - id: '3'
   title: API
   chars: 871
@@ -85,9 +85,12 @@ Tabs:
 | DNS Server | IP (prefix "IP") + Port (prefix "Port", default 53) | up to 3; "Please enter a valid IP"; **Add DNS Server** button disabled at 3 |
 | DNS Server | Distribution Groups | "Advertise this DNS server to peers that belong to the following groups" — ≥1 required |
 | DNS Server | Enable DNS Server | "Use this switch to enable or disable the DNS server." |
-| Domains | Match Domains | "Add domain if you want to have a specific one resolved by this nameserver." |
+| Domains | Match Domains | "Add domain if you want to have a specific one resolved by this DNS server." |
 | Domains | Mark match domains as search domains | "E.g., 'peer.example.com' will be accessible with 'peer'" — only available when match domains exist |
-| Name & Description | DNS Name | "Enter a name for this nameserver." ≤40 chars |
+| Name & Description | DNS Name | "Enter a name for this DNS server." — required; over 40 characters: "Name should be less than 40 characters" |
+| Name & Description | Description (optional) | "Write a short description to add more context to this DNS server." |
+
+The last tab's button is **Add DNS Server** (a new one) or **Save Changes** (editing).
 
 Table: Name, Active toggle, Match Domains, DNS Servers (IP badges), Distribution Groups,
 Delete. Filter Enabled/All.

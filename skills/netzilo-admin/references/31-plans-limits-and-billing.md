@@ -5,7 +5,7 @@ requires:
 - dashboard-ui
 executable_on:
 - human-operator
-chars: 8703
+chars: 8810
 sections:
 - id: '1'
   title: The three plans
@@ -35,8 +35,9 @@ sections:
 billing.** These produce more tickets than any genuine fault, and almost all of them are
 self-service once the admin knows which limit they hit.
 
-**Dashboard:** Settings → **Plans & Billing** (owner only; not shown on self-hosted or
-managed instances). **API:** tenant subscription endpoints, owner only.
+**Dashboard:** Settings → **Plans & Billing** (owner only; hidden whenever the dashboard
+runs in MSP mode — every Netzilo installer, custom, AWS and Azure, turns MSP mode on, so
+self-hosted servers never show it). **API:** tenant subscription endpoints, owner only.
 
 Never quote a price from memory. Prices and trial terms are shown in the dashboard and
 are the only figures to rely on.

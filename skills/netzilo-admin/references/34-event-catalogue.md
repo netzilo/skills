@@ -6,11 +6,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 9628
+chars: 9839
 sections:
 - id: administration
   title: Administration
-  chars: 6013
+  chars: 6081
 - id: access-control
   title: Access Control
   chars: 816
@@ -19,7 +19,7 @@ sections:
   chars: 762
 - id: data-exfiltration
   title: Data Exfiltration
-  chars: 496
+  chars: 497
 - id: suspicious
   title: Suspicious
   chars: 454
@@ -43,6 +43,9 @@ asked for it or you are telling them what to search for themselves.
 
 Codes are also the vocabulary of `references/32-detection-rule-authoring.md` and the
 Activity page filters in `references/30-activity-reports-and-integrations.md`.
+
+Codes marked *(history only)* are no longer recorded; they stay in the table so
+rows written before they were retired still show their name.
 
 ## Administration
 
@@ -87,7 +90,7 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | MCP bundle updated | `gateway_virtual_mcp.updated` |
 | Group created | `group.add` |
 | Group deleted | `group.delete` |
-| Group issuer changed | `group.issuer.update` |
+| Group issuer changed | `group.issuer.update` (*history only*) |
 | Group updated | `group.update` |
 | Guardrail created | `guardrail.created` |
 | Guardrail deleted | `guardrail.deleted` |
@@ -132,9 +135,9 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Route created | `route.add` |
 | Route deleted | `route.delete` |
 | Route updated | `route.update` |
-| Rule added | `rule.add` |
-| Rule deleted | `rule.delete` |
-| Rule updated | `rule.update` |
+| Rule added | `rule.add` (*history only*) |
+| Rule deleted | `rule.delete` (*history only*) |
+| Rule updated | `rule.update` (*history only*) |
 | Service user created | `service.user.create` |
 | Service user deleted | `service.user.delete` |
 | Setup key created | `setupkey.add` |
@@ -207,7 +210,7 @@ Activity page filters in `references/30-activity-reports-and-integrations.md`.
 | Upload source code | `browser.data.code.upload.blocked` |
 | Printing blocked | `browser.data.print.blocked` |
 | Sensitive data redacted | `browser.data.redacted` |
-| Screeshot blocked | `browser.data.screenshot.blocked` |
+| Screenshot blocked | `browser.data.screenshot.blocked` |
 | Download content blocked | `browser.download.content` |
 | Printing blocked | `workspace.print.blocked` |
 

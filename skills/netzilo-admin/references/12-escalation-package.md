@@ -7,11 +7,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 43110
+chars: 43127
 sections:
 - id: '1'
   title: Escalate only when the answer needs the source code
-  chars: 2549
+  chars: 2566
   requires: []
   executable_on:
   - dashboard-assistant
@@ -151,7 +151,7 @@ Do **not** escalate — these are solvable, and the runbook says how:
 | Certificate, DNS, or port problem on the server | `03` §1–§4 |
 | Login, SSO, MFA, or "no e-mail" (SMTP is not configured by the installer) | `04` §5–§6 |
 | AI rule not firing, filter not bound, agent path not intercepted | `29` §5.1 (device), `29` §5.2 (gateway user), `28` §7 |
-| An agent refused at the AI gateway (401, 403, 429/402), a model not granted, a limit reached | `27` §6 and §10, `47` §5 |
+| An agent refused at the AI gateway (400 `netzilo_policy`, 401, 429/402), a model not granted, a limit reached | `27` §6 and §10, `47` §5 |
 | Plan limit, licence state, or an Enterprise-only feature | `25` §4 |
 | Behaviour that a newer version of this skill already documents | check first — see below |
 
@@ -572,7 +572,7 @@ The analyst starts here. Put it in `00-SUMMARY.md` and paste it into the e-mail 
 
 **Severity:** S2 — 34 users in `berlin-office` cannot reach 10.20.5.7:5432 since 2026-09-10 09:00 +02:00
 **Deployment:** self-hosted, on-prem installer, domain vpn.example.com
-**Client:** 4.4.375 (Windows 11)   **Server images:** see server/compose-images.txt
+**Client:** 5.1.571 (Windows 11)   **Server images:** see server/compose-images.txt
 **Reproducible:** yes, every attempt
 
 ## Observed

@@ -6,17 +6,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16955
+chars: 17700
 sections:
 - id: '1'
   title: Tell people before you install, not after
   chars: 1073
 - id: '2'
   title: The page to publish
-  chars: 8307
+  chars: 8750
 - id: '3'
   title: Translating what the employee says
-  chars: 5969
+  chars: 6271
 - id: '4'
   title: What to tell an employee who asks what is monitored
   chars: 1013
@@ -104,9 +104,14 @@ what the app shows, whether other websites work, and roughly when it started.
 
 **Your own portal.** You can see the applications, your devices, and — under **Agentic
 Access** — the AI gateways and MCP servers granted to you, and manage your own profile,
-from the web portal your administrator will link. It shows your devices and their
-connection quality. You can use it to check whether a device is connected without asking
-anyone.
+from the web portal your administrator will link (the **Workplace**). While the Netzilo
+app runs on the computer you open it from, it shows your devices and their connection
+quality, so you can check whether a device is connected without asking anyone. On
+Windows and Mac an **Onboarding Progress** panel lists **Install Client** and **Install
+Extension** until both are done; on an iPhone or iPad it offers **Install Enterprise
+Browser**. If you turn on **Display Status** in the menu under your name, the same panel
+shows **System Errors** when the app on this computer has lost its connection to the
+company's servers.
 
 **Using AI tools through the company gateway.** If your company grants you an AI
 gateway, the Workplace shows an **Agentic Access** page. The gateway is how your AI tools
@@ -203,7 +208,7 @@ When an admin forwards a complaint, this maps it to a cause and the file that fi
 | "Claude Desktop says gateway SSO …" (metadata invalid, no device_authorization_endpoint, discovery failed 401, device init failed) | The endpoint is not the gateway's `/anthropic` address, or the gateway or server is too old for the device sign-in | `47-agentic-access-workplace.md` §5 |
 | "The approval page asks me for a code" / "is this code right?" | The device sign-in's approval page; the code must be the one the application shows. Compare, then Allow | §2 "Signing in Claude Desktop", `47-agentic-access-workplace.md` §5 |
 | "Everything is slow since this was installed" | Relayed connection, or an inspection rule doing too much work | `11-connectivity-diagnosis.md`, `10-ai-security-aidr.md` |
-| "I got a scary red button on the dashboard" | The admin's system status widget | `16-onboarding-and-rollout.md` §0 |
+| "The Workplace shows System Errors" / "a red panel shows Management Server — Disconnected" | The Netzilo app on that computer reports a lost connection: Management or Signal (red), all relays or all DNS servers failing (orange), some DNS servers failing (yellow). Shown only after **Display Status** is turned on in the user menu (Windows, macOS, iOS) | `07-client-troubleshooting.md`, `11-connectivity-diagnosis.md` |
 | "I can't see the page my colleague sees" | Role, not a fault. Most pages are admin-only | `25-users-groups-and-account-settings.md` |
 | "I was told to approve something on my Mac and I clicked no" | Extension approval declined; features silently inactive | `07-client-troubleshooting.md` |
 | "My work apps went blurry" | A workspace posture check is failing on the device (screen lock, disk encryption, antivirus…). The apps keep running; the blur clears when the check passes | `26-profiles-secure-workplace.md` §9 (blurred windows row), `21-posture-checks.md` |

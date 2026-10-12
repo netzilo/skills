@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 18612
+chars: 18655
 sections:
 - id: '1'
   title: Model
   chars: 2355
 - id: '2'
   title: How policy reaches it
-  chars: 1486
+  chars: 1529
 - id: '3'
   title: Sign-in and the stand-down rule
   chars: 1788
@@ -107,8 +107,8 @@ stands down (§3).
 - The filter's **Agents** list is not used by the extension at all: process paths mean
   nothing in a browser. Leave it empty on a browser-only filter; on a mixed filter it
   still steers desktop processes on Windows and macOS.
-- Guardrails are required, as on every filter (`29` §1). Several matching filters are
-  merged into one rule set.
+- Guardrails are optional on the filter, but a browser filter without any judges
+  nothing (`29` §1). Several matching filters are merged into one rule set.
 - Refresh: the extension loads its filters at sign-in and refreshes them from management
   afterwards; the popup's **Refresh** button forces it. After changing a filter or a
   guardrail, ask the user to press Refresh and read the popup's filters count and rules

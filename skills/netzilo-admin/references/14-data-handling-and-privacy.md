@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 20795
+chars: 21647
 sections:
 - id: '1'
   title: The short answer
@@ -25,13 +25,13 @@ sections:
   chars: 858
 - id: '6'
   title: Answers to the questions reviewers actually ask
-  chars: 2469
+  chars: 3220
 - id: '7'
   title: Preparing for a security review
   chars: 1174
 - id: '8'
   title: Data flows by feature
-  chars: 9014
+  chars: 9115
 ---
 # What Netzilo Collects — Data Handling, Privacy and Security Review
 
@@ -184,6 +184,7 @@ it has stopped.
 | Where is data stored? | Self-hosted: on the customer's server, in their database and volumes. Cloud: in Netzilo's hosted environment. |
 | How long is it kept? | Activity events are retained until deleted; there is no automatic retention limit and no configurable retention period. Account statistics are pruned after ninety days. Plan database growth accordingly. Per-feature retention is in §8. |
 | Can we export or delete a person's data? | Deleting a user removes the user, their devices (peers) and their access tokens, and records a deletion event. It does **not** delete their activity history: events they initiated or that name them stay in the audit trail. Do not promise otherwise. Activity can be exported from the dashboard a page at a time or through the API. |
+| Are stored credentials encrypted? | Not at the field level. AI Gateway provider keys, the shared header values and sign-in of an MCP server, and users' own MCP sign-ins and header values are kept as plain JSON in the management database, masked in the API and dashboard, and delivered in clear to the account's gateways (§8). The AI provider keys under Integrations, integration secrets and setup keys are stored in plain form too, as are activity events; personal access tokens are stored only as hashes. The `DataStoreEncryptionKey` a self-hosted installer writes is not used to encrypt any of this. Protect database access, backups and the gateways' service tokens accordingly; on a self-hosted server, encrypt the database volume and backups. |
 | Is there an audit trail of admin actions? | Yes. Administrative changes are recorded as activity events attributed to the user or service account that made them. |
 | What if a device is offline? | Nothing is reported until it reconnects. Events queue on the device. |
 
@@ -290,7 +291,7 @@ browser, the extension stands down and reports nothing (`49` §3).
 | | |
 |---|---|
 | Collected | what a user enters in the Workplace to connect an MCP server (an OAuth sign-in, or header values such as an API key), per user and per server; the admin's shared OAuth sign-in for a server; the provider API keys the admin enters under Edge → Providers |
-| Stored | on the management server, **without field-level encryption** (masked in the API's answers) |
+| Stored | in the management database as plain JSON, **without field-level encryption** (the server applies no encryption key to them); masked in the API's answers and never shown again in the dashboard |
 | Sent to | every gateway of the account pulls them **in clear** with its service token, to present them to the MCP server or provider on the user's behalf |
 | Retained | while the connection, server or provider exists |
 | Deleted | the user disconnects the server (their own sign-in); the admin deletes the server or provider |

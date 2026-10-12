@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 28263
+chars: 30136
 sections:
 - id: '1'
   title: Rules of engagement
@@ -17,16 +17,16 @@ sections:
   chars: 2938
 - id: '3'
   title: 'Triage: route the request'
-  chars: 6662
+  chars: 6728
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
 - id: '5'
   title: Canonical facts (memorize)
-  chars: 3871
+  chars: 4753
 - id: '6'
   title: Known product gaps to warn about proactively
-  chars: 3722
+  chars: 4647
 - id: '7'
   title: Closing a task
   chars: 329
@@ -161,7 +161,7 @@ first; go to the device to see what the account cannot.
 | "Reach internal apps from a browser without the client" / "Private access unavailable" in the extension / install, add or debug the gateway / proxy errors in the browser | `43-clientless-access-gateway.md` |
 | "Publish an internal web app at its own address" / "the application tile is missing" / "Access Denied" or "Access Failed" opening a published application / "There is no application at this address" / install or add the reverse proxy / call an application from a script | `44-published-applications.md` |
 | "Govern AI agents / Claude Code hooks / SDK / browser extension / Enterprise Browser / which enforcement point (device or AI gateway) / test detection rules" | `10-ai-security-aidr.md` (the gateway side continues in `27-ai-gateway.md`) |
-| "Set up / run the AI gateway", connect Claude Code / Cursor / Codex / Claude Desktop to it, 401 / 403 / 405 / 429 from the gateway, the Workplace card shows Offline | `27-ai-gateway.md` (install, doors, refusals, logs) + `47-agentic-access-workplace.md` (what the user sees and pastes) |
+| "Set up / run the AI gateway", connect Claude Code / Cursor / Codex / Claude Desktop to it, 400 / 401 / 403 / 405 / 429 from the gateway, the Workplace card shows Offline | `27-ai-gateway.md` (install, doors, refusals, logs) + `47-agentic-access-workplace.md` (what the user sees and pastes) |
 | "Providers, models, limits" / "model X is not granted" / spend or token quotas | `45-ai-gateway-providers-and-limits.md` |
 | "MCP servers, bundles, MCP sign-in, Needs Attention, Claude Desktop connector" | `46-ai-gateway-mcp-servers-and-bundles.md` |
 | "Guardrails" (write, replay, bind, why a rule did not fire) | `28-edge-guardrails.md` |
@@ -180,7 +180,7 @@ it not applying" diagnosis) — load the one matching the dashboard page in ques
 | Network → DNS (Servers \| Settings) | `23-dns-management.md` |
 | Network → Applications (published applications) | `44-published-applications.md` |
 | Endpoint → Peers, Setup Keys | `24-peers-and-setup-keys.md` |
-| Team → Users / Agents, Settings, Tenant | `25-users-groups-and-account-settings.md` |
+| Team → Users / Agents; Settings (tabs Authentication, Groups, Permissions, Plans & Billing, Tenant) | `25-users-groups-and-account-settings.md` |
 | Endpoint → Profiles (Workspace, Enterprise Browser, Disposable Browser, Extension) | `26-profiles-secure-workplace.md` |
 | Edge → Providers | `45-ai-gateway-providers-and-limits.md` §1 |
 | Edge → MCP (tabs MCP Servers \| MCP Bundles) | `46-ai-gateway-mcp-servers-and-bundles.md` |
@@ -321,7 +321,7 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Server ports (inbound) | 22 (admin CIDR), 80, 443, 3478 tcp+udp, 5349 tcp+udp; 49152–65535/udp on cloud templates; 8443/tcp for the clientless-access gateway; 6379 must never be public |
 | Server containers | `caddy dashboard management signal zitadel coturn postgres redis support-worker gateway reverse-proxy` (eleven; `support-worker` = AI Assistant agent, internal only, absent on engines/images published before 2026-09; `gateway` = clientless access on `8443`, absent on older installs and on plain-HTTP installs, added in place with `43` §6; `reverse-proxy` = published applications behind Caddy on `443`, present only when an application domain was given at install, added in place with `44` §8.3) |
 | Server state dirs | on-prem `/opt/netzilo`; images `/opt/netzilo/run` (compose) + `/opt/netzilo` (state); credentials `/opt/netzilo/CREDENTIALS` |
-| Server secrets that cannot be recovered | `ZITADEL_MASTERKEY` (`zitadel.env`), `DataStoreEncryptionKey` (`management.json`) |
+| Server secrets that cannot be recovered | `ZITADEL_MASTERKEY` (`zitadel.env`). The installer also writes `DataStoreEncryptionKey` to `management.json`, but the server encrypts nothing with it |
 | Domain | permanent once installed; must not be `*.netzilo.com` |
 | Zitadel console | `https://<domain>/ui/console` |
 | Client binary / service | `netzilo` / service `Netzilo`; config `/etc/netzilo/config.json` or `%PROGRAMDATA%\Netzilo\config.json`; log `client.log` next to it |
@@ -334,8 +334,10 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Setup key facts | revoking does not disconnect enrolled peers; auto-groups apply to new peers only; ephemeral = deleted 10 min after offline |
 | `netzilo down`, service stop/restart | all log the device out and reset its keys; an SSO device then needs an interactive sign-in. To re-sync without logging out use `netzilo refresh` (or `mod.refresh`) |
 | Free plan limits (cloud) | 5 users, 100 peers; no posture-check edits, no event streaming; Enterprise needed for Profiles; filters and guardrails carry no plan gate; self-hosted runs unlimited |
-| AI Gateway | binary `netzilo-aigw`, Linux service `netzilo-aigw`, config `/etc/netzilo-aigw/aigw.env` (`AIG_ARGS`, `NZ_GATEWAY_SETUP_KEY`, `NZ_GATEWAY_SERVICE_PAT`), data `/var/lib/netzilo-aigw`; ports 8447 (AI door: on the peer's tunnel address always, public with `--ai-listen`) and 8443 (browser-access proxy, always on); `--workplace-url https://go.netzilo.com` on Cloud; callers send `Authorization: Bearer <token>` (never `x-api-key`); surfaces `<gateway>/v1/…`, `<gateway>/anthropic` (`…/v1/messages`), `<gateway>/mcp/<slug>`; sign-in metadata on the gateway's own origin (`<gateway>/.well-known/oauth-authorization-server`, endpoints under `/.netzilo/oauth2/`); Claude Desktop endpoint `<gateway>/anthropic` + **Sign in with your organization**; logs `journalctl -u netzilo-aigw` (`27-ai-gateway.md`) |
-| Support | support@netzilo.com; docs `https://doc.netzilo.com`; public rule corpus `github.com/netzilo/aidr-sigma` |
+| AI Gateway | binary `netzilo-aigw`, Linux service `netzilo-aigw`, config `/etc/netzilo-aigw/aigw.env` (`AIG_ARGS`, `NZ_GATEWAY_SETUP_KEY`, `NZ_GATEWAY_SERVICE_PAT`), data `/var/lib/netzilo-aigw`; ports 8447 (AI door: on the peer's tunnel address always, public with `--ai-listen`) and 8443 (browser-access proxy, always on); `--workplace-url https://go.netzilo.com` on Cloud; callers send `Authorization: Bearer <token>` (never `x-api-key`); surfaces `<gateway>/v1/…`, `<gateway>/anthropic` (`…/v1/messages`), `<gateway>/mcp/<slug>`; model grants and guardrails on chat completions, the Responses API and the Anthropic surface, streamed answers included (held about 1 KB, so redactable); embeddings and text completions counted, not inspected; policy refusals HTTP 400 `type: netzilo_policy` (403 on gateways before October 2026); sign-in metadata on the gateway's own origin (`<gateway>/.well-known/oauth-authorization-server`, endpoints under `/.netzilo/oauth2/`); Claude Desktop endpoint `<gateway>/anthropic` + **Sign in with your organization**; logs `journalctl -u netzilo-aigw` (`27-ai-gateway.md`) |
+| Edge filters | endpoint: ≥1 group and ≥1 OS (`Browser` = the browser extension); gateway: ≥1 group and ≥1 model grant; guardrails optional on both, but without one nothing is judged (`29` §1) |
+| Provider keys, MCP credentials | stored as plain JSON in the management database (no field-level encryption), masked in the API and dashboard, pulled in clear by every gateway's service token (`14` §8, `45` §5) |
+| Support | support@netzilo.com; docs `https://doc.netzilo.com` (for agents: index `https://doc.netzilo.com/llms.txt`, full text `https://doc.netzilo.com/llms-full.txt`); public rule corpus `github.com/netzilo/aidr-sigma` |
 
 ---
 
@@ -368,10 +370,21 @@ It is a tool you may use; it is never evidence about the customer's environment.
   session's OS version comes from the User-Agent (macOS frozen at 10.15.7, Windows 11 as
   10.0), so OS-minimum posture rules misjudge browser users (`43` §3.4); the Netzilo
   Gateway posture item belongs on network policies only (`43` §3.4).
-- **The AI Gateway governs prompts and model grants on the OpenAI chat surface only**
-  (`/v1/chat/completions`); the Responses API, the Anthropic Messages surface (Claude
-  Code), embeddings and completions are identified, limited and counted, not scanned
-  (`27` §1). Do not promise a prompt block for a Claude Code user.
+- **The AI Gateway does not inspect embeddings or text completions** (`/v1/embeddings`,
+  `/v1/completions`): they are identified, limited by the virtual key and counted only;
+  chat completions, the Responses API and the Anthropic surface are governed (`27` §1).
+  Streamed answers reach the caller about 1 KB behind the model so that they can be
+  redacted; warn users of a short delay on long answers.
+- **Secrets in the management database are not encrypted at rest**: Edge provider keys,
+  users' MCP credentials, the AI provider keys under Integrations, integration secrets and
+  setup keys are stored in plain form, and activity events (with user names and e-mails)
+  likewise; access tokens are stored only as hashes. Anyone with database access, or a
+  gateway's service token for the gateway-side credentials, can read them
+  (`14-data-handling-and-privacy.md` §8, `02-server-operations.md` §6.1). Restrict both.
+- **Profile domain settings saved from older dashboards**: an exception's **Expires in**
+  entered in hours was stored as minutes (re-enter and save), and **Prevent LLM Prompt
+  Injections**, **Make Session Cookies Temporary** and the Enterprise Browser's **Verify
+  Workspace Integrity** do nothing on devices (`26` §5, §8).
 - **Windows: no service for `netzilo-aigw`** — the installer puts the binary on the PATH
   only; a persistent gateway on Windows needs a service wrapper or scheduled task the
   admin provides (`27` §3).

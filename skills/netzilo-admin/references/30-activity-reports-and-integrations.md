@@ -7,26 +7,26 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 22134
+chars: 23484
 sections:
 - id: '1'
   title: Activity → Events
-  chars: 5949
+  chars: 6086
 - id: '2'
   title: Reports
-  chars: 2677
+  chars: 3073
 - id: '3'
   title: Dashboard home
   chars: 1708
 - id: '4'
   title: Integrations
-  chars: 6603
+  chars: 7135
 - id: '5'
   title: Procedures
   chars: 1730
 - id: '6'
   title: Diagnosis
-  chars: 2546
+  chars: 2831
 ---
 # Admin Skill — Activity Events, Reports, Dashboard Home and Integrations
 
@@ -59,7 +59,7 @@ Controls:
 |---|---|
 | Search box | keyword search ranked by relevance ("Ranked by relevance"); with AI Insights enabled, the ✦ button runs **AI Smart Search** in natural language ("Who uploaded a file to Dropbox last week?") and stores the answer as an `ai.insight` event with cited events/recordings |
 | Date range | default last 14 days |
-| Event types | multi-select grouped by category: Administration, Access Control, Data Exfiltration, Policy Violation, Suspicious, Investigation, AI Edge |
+| Event types | multi-select grouped by category: Administration, Access Control, Data Exfiltration, Policy Violation, Suspicious, Investigation, AI Edge; its search matches the event name and the code. It also lists codes that are no longer recorded (`rule.*`), so old rows stay filterable |
 | User | single user (or "Netzilo System") |
 | Rows per page | 10 / 25 / 50 / 100 (server-side pagination) |
 | Download CSV | exports the **current page** only: Timestamp, User, Email, Event (code), Source, Target, More Information |
@@ -126,7 +126,7 @@ Range, Groups with View / Download (PDF) / Delete.
 |---|---|
 | User Activity | Total/active users, average session time, total events; User Distribution pie; events radar (Access Control, Data Exfiltration, Policy Violation, Suspicious Activity, Administration); per user: session time, last seen, daily activity chart, Top Targets, Top Applications, Top Web Sites, Top Blocked Sites, per-category event tables |
 | Authentication Activity | Total logins, success/failed trend per day, failed-login reasons pie; per user: login/failed counts, session time, event list (from `user.login`/`user.failedlogin`) |
-| AI Agent Activity | Two tabs, **Users (n)** and **Agents (n)** — "Agents" are setup-key peers, which have no user. Stats Total Users / AI Agents / Servers / Total Tool Calls / Policy Violations; charts Agents, Models, Servers; per user or agent: Top Agents, Top Servers, Top Calls, Violations table (Date/Time, Category, Tool Call, Blocked By = the guardrail, Reason / Filter). Violations are the `ai.blocked` events; detected, redacted and redirected calls count as calls, not violations |
+| AI Agent Activity | Two tabs, **Users (n)** and **Agents (n)** — "Agents" are setup-key peers, which have no user. Stats Total Users / AI Agents / Servers / Total Tool Calls / Policy Violations; charts Agents, Models, Servers; per user or agent: Top Agents, Top Servers, Top Calls, Violations table (Date/Time, Category, Tool Call, Blocked By, Reason / Filter). **Blocked By** is **Guardrail** when a rule refused the call, **Limit** when a limit did (event engine `limit`), **Model or MCP grant** when the user's filters grant no such model or MCP server (engine `policy`); Reason / Filter names the guardrail and filter, or the refusal reason. Reports generated before this distinction show "—" in Blocked By for refusals that were not a rule — generate the report again. Violations are the `ai.blocked` events; detected, redacted and redirected calls count as calls, not violations |
 | AI Usage | What went through the AI Gateway. **LLM Usage**: cards Requests, Tokens, Cost, Avg Latency, Users, Cache Hit; "Over time" chart switchable Requests \| Tokens \| Cost; Breakdown by Model / User / Provider / Gateway; Top Models, Top Users. **MCP Usage**: Tool Calls, Servers, Avg Latency, Users; Breakdown by Server / Tool / User / Gateway; Top Servers, Top Tools. Breakdowns show at most 20 rows, Top lists at most 6 as shares; series are hourly up to 72 h, daily beyond. Empty: "No AI gateway usage in this period." The PDF is titled "NETZILO AI USAGE REPORT" |
 
 AI Usage counts **gateway usage only** (`27-ai-gateway.md` §8): what devices, hooks
@@ -191,8 +191,8 @@ integration will be lost." Free-plan tenants see **Upgrade Plan**.
 | Networking | **Cloudflare** | managed TURN relays | Token ID, API Token | exclusive |
 | Networking | **TURN/STUN Servers** | your own relays | STUN `host:port` UDP/TCP; TURN `host:port` UDP/TCP/DTLS/HTTPS + username/password; **Test Connection** runs a browser-side ICE test ("Connection test successful! Found: … candidates" / "TURN authentication failed - no relay candidates found…") | exclusive; overrides the built-in relay for all peers |
 
-**Artificial Intelligence is not a card and not an integration.** It is its own
-resource — see §4a.
+The **Artificial Intelligence** tab is not stored as an integration: it shows one card per
+AI provider plus an **Add Provider** card, backed by its own resource — see §4a.
 
 API: `GET/POST /api/integrations {platform:"twilio|cloudflare|static", config:{…}, enabled:true}`,
 `PUT/DELETE /api/integrations/{id}`; `GET/POST /api/event-streaming {platform:"s3"|"min.io", config:{bucket,access_key,secret_key,region,endpoint?}, enabled:true}`,
@@ -203,14 +203,22 @@ secret can never be read back out of it.
 ### 4a. Artificial Intelligence — providers, models and approvals
 
 Any endpoint that speaks a supported protocol can be added; there is no fixed
-list of vendors. **Integrations → Artificial Intelligence** shows a table of
-providers, not cards, with **Add provider**.
+list of vendors. **Integrations → Artificial Intelligence** shows one card per
+provider (its protocol, the features it is used for, its verification status, an
+on/off switch and **Configure**) and an **Add Provider** card.
 
-A provider has a name, a **protocol** (`anthropic-messages` or
-`openai-completions` — the latter covers Azure OpenAI, vLLM, Ollama, Groq,
-Together, OpenRouter, Mistral, DeepSeek and any other OpenAI-compatible
-gateway), an optional **endpoint** (empty means the vendor's own API), an API
-key, and a list of **models**.
+A provider has a name, a **protocol** (`anthropic-messages`; `openai-completions`,
+which covers Azure OpenAI, vLLM, Ollama, Groq, Together, OpenRouter, Mistral,
+DeepSeek and any other OpenAI-compatible gateway; or `typesafe-systemone`, see
+below), an optional **endpoint** (empty means the vendor's own API), optional
+**Request headers** (every admin can read them; keep credentials in the API key), an
+API key, a **Priority** (lower wins when several providers can serve the same
+feature), and a list of **models**.
+
+A **System One (TypeSafe)** provider (`typesafe-systemone`) answers typed questions
+and never generates text. Only AIDR detection rules call it
+(`32-detection-rule-authoring.md`); it is approved for no feature, so its models step
+has nothing to tick and its card reads "Called by AIDR rules".
 
 **Approval is per feature.** There are three: **Assistant** (`assistant`) is
 the admin chat panel; **Log Analysis** (`log-analysis`) covers AI Smart Search
@@ -281,9 +289,6 @@ then gained one) falls back to the default and the chat continues — so "the
 picker shows Opus but I am refused for another model" should no longer occur;
 if it does, the dashboard is out of date.
 
-Cloud-only integrations (identity-provider sync, EDR) are documented in the public docs
-and are not present on self-hosted servers.
-
 ---
 
 ## 5. Procedures
@@ -327,6 +332,7 @@ and are not present on self-hosted servers.
 | Guardrail generation unavailable (Edge → Guardrails) | no model approved for Threat Analysis (428), or the provider is not approved for it (422) | Integrations → Artificial Intelligence → approve a model for Threat Analysis |
 | Report empty | date range / groups; users not in the selected groups | widen |
 | AI Agent Activity report lists peers under **Agents** | setup-key peers (no user) | expected; shown per peer |
+| AI Agent Activity violation shows "—" under **Blocked By** | the report was generated before reports recorded what refused a call (limit or model/MCP grant), or the event came from a client or gateway that does not report its engine | generate the report again for the same period |
 | AI Usage report empty although devices produce `ai.*` events | the report counts gateway usage only; device, hook and extension traffic never appears in it | use the AI Agent Activity report for device traffic |
 | Agentic Activity on the home page empty although the gateway works | the snapshot is computed hourly; the AI Usage report reads live data | wait for the next run, or generate the report |
 | Tokens tile zero | no gateway usage that day | — |

@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16011
+chars: 16167
 sections:
 - id: '1'
   title: Peer lifecycle
   chars: 2395
 - id: '2'
   title: Peers page — field and action reference
-  chars: 3399
+  chars: 3555
 - id: '3'
   title: Setup keys — reference
   chars: 2099
@@ -84,16 +84,18 @@ Detail page (`/peer?id=`): rename (pencil; "Domain Name Preview" shows the resul
 label), **Login Expiration** toggle ("Enable to require SSO login peers to
 re-authenticate when their login expires."), **SSH Access** toggle ("Enable the SSH
 server on this peer to access the machine via an secure shell."), **Assigned Groups**
-(typing a new name + Enter creates a group), **Available Snapshots** (AI session
-snapshots, admins), information card (Device ID, Netzilo IP, Public IP, Domain Name, AD
+(typing a new name + Enter creates a group), **Behavior Sessions** (agent and program
+sessions observed on the device, with **View Graph**; admins only, hidden while the peer
+has none), information card (Device ID, Netzilo IP, Public IP, Domain Name, AD
 Domain Name, Hostname, Region, Operating System, **Browser** (gateway sessions only, e.g.
-`Edge 154.0.0.0`), Security Score with ten posture indicators, Last seen, Agent Version,
+`Edge 154.0.0.0`), Security Score with eleven posture indicators, Last seen, Agent Version,
 UI Version), and **Network Routes** for this peer
 (Add Exit Node, Add Route → New Network Route / Existing Network).
 
 Security Score indicators (tooltips): Firewall, Antivirus (active and up to date), Disk
 Encryption, OS up to date, Virtual device, Screen locked, Device Integrity, Enterprise
-Workspace, Enterprise Browser, Netzilo Gateway ("Peer is a Netzilo gateway session").
+Workspace, Enterprise Browser, Netzilo Gateway ("Peer is a Netzilo gateway session"),
+Netzilo Extension ("Device carries the Netzilo browser extension").
 Grades: A ≥ 80, B ≥ 60, C ≥ 40, D ≥ 20, F below.
 
 How the score is computed (points for each signal that is true; the total is clamped to

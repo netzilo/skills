@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 19776
+chars: 19812
 sections:
 - id: '1'
   title: Check types (cards in the Create/Update Posture Check modal)
-  chars: 8636
+  chars: 8672
 - id: '2'
   title: Creating and attaching
   chars: 1179
@@ -69,7 +69,7 @@ are kernel builds (Windows 10 22H2 `10.0.19045`, Windows 11 23H2 `10.0.22631`, S
 
 Peer detail page shows the live posture indicators the checks read: firewall, antivirus,
 disk encryption, OS updates, virtual device, screen lock, device integrity, Enterprise
-Workspace, Enterprise Browser — use it to predict a check's result before attaching it.
+Workspace, Enterprise Browser, Netzilo Gateway, Netzilo Extension — use it to predict a check's result before attaching it.
 
 **Signal caveats (what each indicator actually reads).** State these when a compliant
 device fails, instead of telling the customer the device is misconfigured:

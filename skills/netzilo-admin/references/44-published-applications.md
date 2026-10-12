@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 66218
+chars: 66291
 sections:
 - id: '1'
   title: How it works
-  chars: 4641
+  chars: 4644
 - id: '2'
   title: Requirements and support
   chars: 2320
@@ -25,7 +25,7 @@ sections:
   - human-operator
 - id: '4'
   title: Publishing an application
-  chars: 9860
+  chars: 9930
   requires:
   - api
   executable_on:
@@ -87,7 +87,7 @@ customers skip those. Logs and health are §10; symptoms are §11.
 ## 1. How it works
 
 1. An administrator turns publishing on for the tenant (**Settings → Permissions →
-   Allow published applications**, §3) and publishes an application (**Edge →
+   Allow published applications**, §3) and publishes an application (**Network →
    Applications**, §4): an **address**, a **target** (`http://10.1.2.3:8080`), the
    **groups** that may open it, and whether it is **enabled**.
 2. The address points at the **reverse proxy**: a wildcard DNS record for the
@@ -224,7 +224,8 @@ Verify link: `{"configured":true,"matches_gateway":true,"resolves_to":["203.0.11
 
 **Network → Applications** (administrators). The table lists name, **Address**, target,
 groups and an **Active** switch per row; filters All / Active / Inactive and by group; a
-search box. **Add Application** opens a two-step modal:
+search box. **Add Application** opens a modal with three tabs, **Application** →
+**Posture Checks** → **Name & Description**:
 
 **Application**
 

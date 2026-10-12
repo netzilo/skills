@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 67930
+chars: 68081
 sections:
 - id: '1'
   title: Method
@@ -23,7 +23,7 @@ sections:
   chars: 39536
 - id: '5'
   title: The management log
-  chars: 18222
+  chars: 18373
 - id: '6'
   title: Correlating client and server
   chars: 1548
@@ -630,8 +630,8 @@ Everything else comes from the gateway peer's own engine and reads like a client
 | Line | The caller saw |
 |---|---|
 | `gateway: credential refused at ai <host> for <ip>: <reason>` | 401 `a Netzilo credential is required`; also the activity **Credential refused at gateway** (`gateway.credential_refused`, door `ai`, reason `expired`, `unknown`, `no_user` or `not_in_account`) |
-| `gateway ai: refused <model> for <user>: <reason>` | a model-access refusal (403, `no model is granted to this user` / `model X is not granted to this user`) or a limit refusal (429 / 402). The matching activity is `ai.blocked` with engine `policy` or `limit`, source `gateway` |
-| no dedicated line in `27` §9.2 | a guardrail block or redaction: look in Activity for the `ai.*` event with source `gateway`; the caller got 403 `type: netzilo_policy` with the rule's reason, or an MCP tool result `Tool execution failed: Blocked by rule: <name>` |
+| `gateway ai: refused <model> for <user>: <reason>` | a model-access refusal (400 `type: netzilo_policy`, `no model is granted to this user`, `none of this user's filters grants a model` or `model X is not granted to this user`; gateways before October 2026 answered 403) or a limit refusal (429 / 402). The matching activity is `ai.blocked` with engine `policy` or `limit`, source `gateway` |
+| no dedicated line in `27` §9.2 | a guardrail block or redaction: look in Activity for the `ai.*` event with source `gateway`; the caller got 400 `type: netzilo_policy` with the rule's reason (403 on gateways before October 2026), or an MCP tool result `Tool execution failed: Blocked by rule: <name>` |
 
 **Usage lines** (`gateway ai: usage: …`, `27` §8): `N record(s) recovered from the
 outbox` after a restart or a failed upload; `… kept, upload failed: …` while management is

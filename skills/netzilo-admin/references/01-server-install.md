@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 34844
+chars: 35166
 sections:
 - id: '0'
   title: What gets installed (all paths)
-  chars: 6069
+  chars: 5876
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
   chars: 8918
@@ -25,7 +25,7 @@ sections:
   chars: 1119
 - id: '5'
   title: Variant — running the core engine directly (advanced / air-gapped)
-  chars: 2733
+  chars: 3248
 - id: '6'
   title: Installation failures — diagnosis table
   chars: 5282
@@ -113,9 +113,10 @@ Inputs every path needs:
 | TLS mode | `letsencrypt` (default) or `provided` (fullchain + key). |
 | Published applications domain (optional) | A domain other than the server's, e.g. `apps.<domain>`, with a wildcard `A` record `*.apps.<domain>` at the server; not under `netzilo.network`. Installs the `reverse-proxy` container (`44-published-applications.md` §8). |
 
-Sizing: min 2 vCPU / 4 GB / 40 GB; recommended 2 vCPU / 8 GB.
-
-**On the minimum.** The published product documentation quotes a higher floor than the numbers above, which reflect what the marketplace images actually run on. Below the published minimum a server will start and work for a small pilot, but sizing questions during a support case will be judged against the published figure. For anything beyond a pilot, provision to the published minimum and treat the lower numbers as a lab floor, not a target.
+Sizing (the same figures as `02-server-operations.md` §13 and the public docs): minimum
+2 vCPU / 4 GB RAM / 40 GB disk; recommended 2 vCPU / 8 GB / 40 GB SSD; beyond a few
+hundred peers 4 vCPU / 16 GB. The installer does not check CPU, memory or disk; a host
+below 4 GB RAM shows up as Zitadel failing to start (§6).
 
 Firewall inbound (`02-server-operations.md` §11 is the reference): **required** `443/tcp`
 (web, management, signal), `80/tcp` (Let's Encrypt validation + redirect), `3478/udp`
@@ -469,7 +470,7 @@ Engine variables not exposed by the wrapper:
 | `NETBIRD_DOMAIN` | — | FQDN, or literal `use-ip` for **plain HTTP on port 80** (test only; no TLS at all) |
 | `NETZILO_TLS_MODE` | `letsencrypt` | `selfsigned` generates a 1-year RSA-4096 cert in `./certs`; `provided` uses `NETZILO_CERT_DIR` |
 | `NETZILO_CERT_DIR` | `./certs` | must contain `fullchain.pem` + `privkey.pem` |
-| `NETZILO_IMAGE_SOURCE` | `cloud` | `disk` loads images from `NETZILO_IMAGES_DIR` (`*.tar.gz`/`*.tar`) — **air-gapped**; the archives named in the engine's `NETZILO_IMAGE_FILES` (including `netzilo-gateway.tar.gz`) must carry the expected tags |
+| `NETZILO_IMAGE_SOURCE` | `cloud` | `disk` loads every `*.tar.gz`/`*.tar` in `NETZILO_IMAGES_DIR` — **air-gapped**; the ten archives named in the engine's `NETZILO_IMAGE_FILES` (`netzilo-{caddy,coturn,dashboard,gateway,reverse-proxy,management,postgres,redis,signal,zitadel}.tar.gz`) must carry the expected tags. The AI Assistant's `support-worker` image is **not** in that list — save it too (below) |
 | `NETZILO_ADMIN_PASSWORD_CHANGE_REQUIRED` | `false` | force a password change at first login even with a supplied password; the wrapper passes it through unchanged, so it also works in the §1.3 env file |
 | `NETZILO_DB_*` | container | external DB (see §4) |
 | `NETZILO_ZITADEL_DB_MAXOPENCONNS` etc. | 20/20/30m/5m | Zitadel pool |
@@ -479,10 +480,14 @@ Engine variables not exposed by the wrapper:
 | `NETZILO_L3_TOKEN` | empty | Netzilo Cloud service-account token; empty **disables** the Assistant's escalation tool (the Assistant itself still works) |
 
 Air-gapped procedure: on a connected machine `docker pull` the images (tags from
-the engine's `IMAGE_*` lines, `IMAGE_GATEWAY` included), `docker save <image> | gzip > netzilo-<name>.tar.gz`,
-copy them plus the engine to the host, run with `NETZILO_IMAGE_SOURCE=disk
-NETZILO_IMAGES_DIR=/path`. Docker must already be installed. Let's Encrypt is impossible
-offline → use `provided` or `selfsigned`.
+the engine's `IMAGE_*` lines, `IMAGE_GATEWAY` and `IMAGE_SUPPORT_WORKER` included),
+`docker save <image> | gzip > netzilo-<name>.tar.gz` for each — eleven archives, the ten
+of `NETZILO_IMAGE_FILES` plus `netzilo-support-worker.tar.gz` — copy them plus the engine
+to the host, run with `NETZILO_IMAGE_SOURCE=disk NETZILO_IMAGES_DIR=/path`. The loader
+loads the support-worker archive like the others but does not check it: it must carry
+exactly the reference on the engine's `IMAGE_SUPPORT_WORKER` line, or Compose tries to
+pull that image and the install fails offline. Docker must already be installed. Let's
+Encrypt is impossible offline → use `provided` or `selfsigned`.
 
 Docker prerequisite error: `ERROR: Docker is not installed or not running.` — the engine
 never installs Docker (the wrapper does).

@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 29821
+chars: 30109
 sections:
 - id: '1'
   title: What it is made of
@@ -22,7 +22,7 @@ sections:
   chars: 3470
 - id: '5'
   title: The runbooks the agent follows
-  chars: 2474
+  chars: 2762
 - id: '6'
   title: Compose installs (one-liner, AWS, Azure)
   chars: 7619
@@ -203,8 +203,11 @@ sudo docker compose exec support-worker python -c \
 `skills: 0` means no runbooks at all: the agent still answers but guesses, so treat it as a
 fault.
 
-**Air-gapped servers.** Set `SUPPORT_SKILLS_REFRESH_MINUTES=0`. The runbooks are then the
-ones in the image, and a newer set arrives with a newer worker image. The AI provider must
+**Air-gapped servers.** The installer's offline image list does not include the worker:
+save the `net-support-worker` image under the exact reference of the engine's
+`IMAGE_SUPPORT_WORKER` line and put its archive next to the others
+(`01-server-install.md` §5), or the install stops when Compose cannot pull it. Set
+`SUPPORT_SKILLS_REFRESH_MINUTES=0`. The runbooks are then the ones in the image, and a newer set arrives with a newer worker image. The AI provider must
 still be reachable, typically an OpenAI-compatible endpoint inside the network, connected by
 the owner in the dashboard like any provider (this is the assistant's provider, not the
 Netzilo AI Gateway).

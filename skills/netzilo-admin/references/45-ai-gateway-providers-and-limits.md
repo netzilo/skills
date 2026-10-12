@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 13932
+chars: 14312
 sections:
 - id: '1'
   title: Providers
@@ -20,10 +20,10 @@ sections:
   chars: 1309
 - id: '4'
   title: Diagnosis
-  chars: 1829
+  chars: 1923
 - id: '5'
   title: Limits to state before a customer discovers them
-  chars: 768
+  chars: 1054
 ---
 # Admin Skill — AI Gateway Providers, Models and Limits
 
@@ -219,8 +219,8 @@ requests_max, requests_reset`).
 | Symptom | Cause | Fix |
 |---|---|---|
 | Refresh lists nothing / "Could not list the models" | wrong key; endpoint unreachable **from management**; type cannot list | check the error text; type the models by hand (Custom) |
-| Models listed but users get 403 `model X is not granted to this user` | no gateway filter grants it; the grant names another provider of the same type; model disabled in the catalogue | `29` §2.2 |
-| Users get 403 `no model is granted to this user` | user in no group a gateway filter targets, or the filter grants no model | fix the filter's groups/Models |
+| Models listed but users get 400 `model X is not granted to this user` | no gateway filter grants it; the grant names another provider of the same type; model disabled in the catalogue | `29` §2.2 |
+| Users get 400 `no model is granted to this user` / `none of this user's filters grants a model` | user in no group a gateway filter targets, or the matching filters grant no enabled model | fix the filter's groups/Models; enable the provider or model |
 | 502 / provider errors through the gateway for one provider | endpoint unreachable **from the gateway host**; TLS (private CA) → Skip TLS Verification or add the CA; wrong `base_url` form (`/v1` is not appended twice) | `journalctl -u netzilo-aigw` shows the upstream error at `--ai-upstream-log-level debug` |
 | Provider deleted/disabled, users still see its models in the Workplace | the Workplace card lists what the gateway answered at its last probe (30 s) | wait, or reload |
 | Cannot delete a provider / limit (412) | referenced by filters | edit the filters first |
@@ -241,8 +241,11 @@ lines (`27` §9.2).
   (`30` §2) shows spend after the fact.
 - **No cost for local models** and no custom price list; cost comes from the
   gateway's built-in pricing catalogue.
-- **Only the OpenAI chat surface is model-gated by Netzilo's own refusal** (`27` §1);
-  the Responses and Anthropic surfaces are limited and counted through the virtual key.
-- **A key is stored on the server** (write-only through the API, masked in the
-  dashboard, clear to the gateway's service token). Treat the gateway's service user as
-  holding every provider key.
+- **Embeddings and text completions are gated only by the virtual key** (`27` §1): an
+  ungranted model there gets the upstream's own refusal, not Netzilo's `netzilo_policy` refusal; the chat,
+  Responses and Anthropic surfaces get Netzilo's refusal.
+- **A key is stored on the server unencrypted**: the credential fields are kept as plain
+  JSON in the management database (no field-level encryption), write-only through the
+  API, never shown again in the dashboard (masked), and delivered in clear to the
+  gateways' service token. Treat database access and the gateway's service user as
+  holding every provider key (`14-data-handling-and-privacy.md`).

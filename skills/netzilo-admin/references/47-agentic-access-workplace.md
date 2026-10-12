@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14734
+chars: 14899
 sections:
 - id: '1'
   title: What the user sees
@@ -23,7 +23,7 @@ sections:
   chars: 696
 - id: '5'
   title: Diagnosis — "my agent cannot use the gateway"
-  chars: 5050
+  chars: 5092
 - id: '6'
   title: What to tell employees
   chars: 1037
@@ -31,7 +31,8 @@ sections:
 # Admin Skill — Agentic Access: what users do at the Workplace
 
 **Dashboard:** Workplace → **Agentic Access** (`/workplace#gateways`), for every user,
-regular users included. **API the page uses:** `GET /api/users/current/ai-access`,
+regular users included. Regular users have **Workplace** in the sidebar; admins and
+owners open the Workplace from the company logo in the header. **API the page uses:** `GET /api/users/current/ai-access`,
 `/api/users/current/mcp-connections…`, `POST /api/users/{id}/tokens` (scope `mcp`).
 **Admin side:** `27-ai-gateway.md`, `29-edge-filters.md` §2.2, `45`, `46`.
 
@@ -179,9 +180,9 @@ are granted; it cannot change grants.
 | Claude shows a code; the approval page says "That code was not found or has expired" | the code as typed; more than 10 minutes since Claude showed it | retype (letters only, `XXXX-XXXX`); start the sign-in again in Claude |
 | **Allow** pressed, Claude keeps waiting | Claude polls every 5 s; the approval must be collected within 5 minutes | wait a few seconds; else sign in again (`46` §6.2) |
 | Claude Desktop signed in once, now refuses or uses a stale sign-in | the token `Claude (MCP)` under Profile Settings → Access Tokens (revoked or expired: 1 day, refresh 30 days) | sign in again in Claude; as a last resort on macOS reset Claude's remembered sign-in (below) |
-| 403 `no model is granted to this user` / `model X is not granted to this user` | Models tab of the dialog lists what they may use | ask for the model, or the admin grants it (`29` §2.2) |
+| 400 (older gateways 403) `no model is granted to this user` / `model X is not granted to this user` | Models tab of the dialog lists what they may use | ask for the model, or the admin grants it (`29` §2.2) |
 | 429 / 402 | a limit (`45` §2.2) | wait for the window, or the admin raises it |
-| 403 `type: netzilo_policy` with a reason | a guardrail blocked the prompt, answer or tool call; the Guardrails tab names the rules that apply | expected; the event in Activity names the rule |
+| 400 `type: netzilo_policy` with a reason (older gateways 403) | a guardrail blocked the prompt, answer or tool call; the Guardrails tab names the rules that apply | expected; the event in Activity names the rule |
 | MCP tool answers `Connect <server> in your Workplace…` | `GET /api/users/current/mcp-connections` → `not_connected` / `needs_reauth` | connect in the dialog (§3) |
 | MCP card **Needs Attention** after it worked | `needs_reauth`: the stored sign-in could not be renewed | **Reconnect** |
 | Claude Desktop connector asks to sign in, then fails | the consent page was denied, or management is not reachable under its dashboard host | retry, Allow; `46` §6 |

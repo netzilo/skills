@@ -22,6 +22,18 @@ ENTRY_RE = re.compile(
     r'^\s*[A-Za-z0-9_]+:\s*\{\s*"(?P<name>(?:[^"\\]|\\.)*)"\s*,\s*"(?P<code>[^"]+)"\s*,\s*"(?P<category>[^"]+)"\s*\},',
     re.MULTILINE,
 )
+# Codes still in the activity table only so that rows written before they were
+# retired keep their name; nothing records them any more. Keep in step with the
+# comments on these constants in codes.go.
+HISTORY_ONLY = {"rule.add", "rule.update", "rule.delete", "group.issuer.update"}
+
+# Extra context printed after a code: the event meta a reader needs to explain it.
+NOTES = {
+    "user.failedlogin": "meta `error_type` = `expired`, `revoked`, `over_used` or "
+    "`key_not_found`, plus `reason`, `setup_key_name`, `usage_limit`, `used_times`; "
+    "`13-log-interpretation.md` §4.8",
+}
+
 CATEGORY_ORDER = [
     "Administration", "Authentication", "Access Control", "Policy Violation",
     "Data Exfiltration", "Suspicious", "System",
@@ -58,6 +70,9 @@ def main(path: str) -> None:
         "Codes are also the vocabulary of `references/32-detection-rule-authoring.md` and the",
         "Activity page filters in `references/30-activity-reports-and-integrations.md`.",
         "",
+        "Codes marked *(history only)* are no longer recorded; they stay in the table so",
+        "rows written before they were retired still show their name.",
+        "",
     ]
     for category, rows in by_category.items():
         if not rows:
@@ -68,7 +83,15 @@ def main(path: str) -> None:
             if r["code"] in seen:
                 continue
             seen.add(r["code"])
-            out.append(f'| {r["name"]} | `{r["code"]}` |')
+            code = f'`{r["code"]}`'
+            extra = []
+            if r["code"] in NOTES:
+                extra.append(NOTES[r["code"]])
+            if r["code"] in HISTORY_ONLY:
+                extra.append("*history only*")
+            if extra:
+                code += " (" + "; ".join(extra) + ")"
+            out.append(f'| {r["name"]} | {code} |')
         out.append("")
     print("\n".join(out))
 

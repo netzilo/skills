@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 85720
+chars: 86237
 sections:
 - id: '1'
   title: Know which layout you are on
@@ -19,16 +19,16 @@ sections:
   chars: 1203
 - id: '4'
   title: Upgrading
-  chars: 29253
+  chars: 29356
 - id: '5'
   title: Configuration changes
   chars: 2332
 - id: '6'
   title: Backup
-  chars: 16007
+  chars: 16379
 - id: '7'
   title: Restore
-  chars: 9043
+  chars: 9055
 - id: '8'
   title: TLS certificates
   chars: 3490
@@ -46,7 +46,7 @@ sections:
   chars: 2828
 - id: '13'
   title: Capacity and sizing
-  chars: 880
+  chars: 910
 - id: '14'
   title: Decommission
   chars: 566
@@ -619,8 +619,9 @@ same as `update` for them plus a forced recreation of the container.
   rejected file restores the backup), starts the reverse proxy, reloads Caddy, and checks
   that Caddy reaches the reverse proxy's `/tls-ask`. It ends with the three steps the
   customer still owns: the wildcard DNS record, **Settings → Permissions** (allow
-  published applications, add the domain with the server's address), **Edge →
-  Applications**. With `--yes`, `NETZILO_APPS_DOMAIN` is required.
+  published applications, add the domain with the server's address), **Network →
+  Applications** (the installer's closing text still says Edge → Applications; the menu is
+  Network → Applications). With `--yes`, `NETZILO_APPS_DOMAIN` is required.
 
 Afterwards run the gates of §4.1 and `01-server-install.md` §1.5.
 
@@ -778,12 +779,12 @@ backup; never proceed with a destructive operation on the strength of one.
 
 | Artifact | Required? | Why |
 |---|---|---|
-| `netzilo` database dump | **Required** | accounts, peers, groups, policies, routes, setup keys, users |
+| `netzilo` database dump | **Required** | accounts, peers, groups, policies, routes, setup keys, users, and every stored credential as written, unencrypted: Edge provider credentials (plain JSON), users' MCP credentials, the AI providers' API keys under Integrations, integration secrets, and the setup keys in clear. Access tokens are stored only as hashes. Treat every dump as a secret |
 | `zitadel` database dump | **Required** | identities, passwords, OIDC applications, instance configuration |
 | Database roles (`globals.sql`, bundled database) | **Required** | the identity provider's login role and its password |
 | Management data volume (`/var/lib/netzilo` in the container) | **Required** | management data directory |
 | `docker-compose.yml` | **Required** | image references, database admin password, `NETZILO_MSP_KEY`, worker token, `extra_hosts` |
-| `management.json` | **Required** | `DataStoreEncryptionKey` (setup keys and tokens are encrypted with it), IdP client secret, TURN password, worker token |
+| `management.json` | **Required** | IdP client secret, TURN password, worker token, `InternalAPIToken`; also `DataStoreEncryptionKey`, which the installer writes but current management does not read (nothing in the database is encrypted with it — restore it unchanged anyway) |
 | `zitadel.env` | **Required** | **`ZITADEL_MASTERKEY`** (without it the identity database is unreadable), database credentials |
 | `dashboard.env`, `Caddyfile`, `turnserver.conf` | **Required** | dashboard, proxy and relay configuration; all bound to the domain |
 | `certs/fullchain.pem`, `certs/privkey.pem` | **Required** in `provided`/`selfsigned` TLS mode | the certificate and key Caddy and coturn serve; not present in Let's Encrypt mode |
@@ -1052,7 +1053,7 @@ recovered.
    4. It passes only when all of these hold: every gate green; an admin signs in; the
       Zitadel log has no `unable to decrypt key` (the master key matches); peer, user,
       group and policy counts match the backup; and a setup key that existed before the
-      backup is listed in the dashboard (the data encryption key matches).
+      backup is listed in the dashboard.
    5. Destroy the rehearsal host and its disks, and remove the hosts-file entry. The
       host held every production secret.
 
@@ -1139,8 +1140,8 @@ Constraints that cannot be worked around:
 - The **domain must be the same**. It is embedded in Zitadel's instance/OIDC config
   (in the DB), `management.json`, `Caddyfile`, `zitadel.env`, `dashboard.env`,
   `turnserver.conf`. Point the DNS `A` record at the new host.
-- `ZITADEL_MASTERKEY` and `DataStoreEncryptionKey` must be the originals (they are in
-  `config.tgz`).
+- `ZITADEL_MASTERKEY` must be the original (it is in `config.tgz`); restore
+  `management.json` unchanged as well.
 
 Procedure:
 
@@ -1440,7 +1441,7 @@ the relay by its public address; if relayed peers cannot pass traffic, add
 | | Minimum | Recommended |
 |---|---|---|
 | CPU / RAM | 2 vCPU / 4 GB | 2 vCPU / 8 GB (`t3.large`, `Standard_D2s_v5`) |
-| Disk | 40 GB (images ship 30 GB root) | 40 GB SSD + monitor `/var/lib/docker` |
+| Disk | 40 GB (the AWS and Azure templates create a 30 GB root disk) | 40 GB SSD + monitor `/var/lib/docker` |
 | Peers | "up to a few hundred" on the base size | scale to 4 vCPU / 16 GB (`t3.xlarge`, `Standard_D4s_v5`) beyond that |
 
 Check disk: `df -h / && sudo du -sh /var/lib/docker/volumes/*netzilo_* /var/lib/docker/containers`.

@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14729
+chars: 15015
 sections:
 - id: '1'
   title: Model
   chars: 1929
 - id: '2'
   title: Field reference
-  chars: 2771
+  chars: 3057
 - id: '3'
   title: API
   chars: 835
@@ -72,22 +72,23 @@ diagnosis.
 
 ## 2. Field reference
 
-**Create Route** (Routes → Add Route) — tabs Route / Name & Description / Additional Settings.
+**Create New Route** (Routes → Add Route) — tabs **Route** / **Name & Description** /
+**Additional Settings**.
 
-| Field | UI help | Notes |
-|---|---|---|
-| Route Type | "Select your route type to add either a network range or a list of domains." | **Network Range** or **Domains** |
-| Network Range | "Add a private IPv4 address range" | CIDR e.g. `172.16.0.0/16`; error "Please enter a valid CIDR" |
-| Domains | "Add domains that dynamically resolve to one or more IPv4 addresses" | list; **Keep Routes** toggle: "Retain previously resolved routes after IP address updates to maintain stable connections." Domains force masquerade on |
-| Routing Peer | "Assign a single peer as a routing peer for the network route." | Linux peers only |
-| Peer Group | "Assign a peer group with Linux machines to be used as routing peers." | exactly one group; automatic HA |
-| Distribution Groups | "Advertise this route to peers that belong to the following groups" | who gets the route |
-| Policy Groups (Optional) | "Policy groups are used in policies while specifying access control rules on this route such as IP based filtering" | groups to reference in policies' Routes rules |
-| Network Identifier | "Add a unique network identifier that is assigned to each device." | ≤40 chars; same identifier = same network (HA) |
-| Description | | |
-| Enable Route | "Use this switch to enable or disable the route." | |
-| Masquerade | "Allow access to your private networks without configuring routes on your local routers or other devices." | hidden for exit nodes |
-| Metrics | "A lower metric indicates higher priority routes." | 1–9999, default 9999 |
+| Tab | Field | UI help | Notes |
+|---|---|---|---|
+| Route | Route Type | "Select your route type to add either a network range or a list of domains." | **Network Range** or **Domains** |
+| Route | Network Range | "Add a private IPv4 address range" | CIDR e.g. `172.16.0.0/16`; error "Please enter a valid CIDR, e.g., 192.168.1.0/24" |
+| Route | Domains | "Add domains that dynamically resolve to one or more IPv4 addresses" | list; **Keep Routes** toggle: "Retain previously resolved routes after IP address updates to maintain stable connections." Domains force masquerade on |
+| Route | Routing Peer | "Assign a single peer as a routing peer for the network route." | Linux peers only |
+| Route | Peer Group | "Assign a peer group with Linux machines to be used as routing peers." | exactly one group; automatic HA |
+| Route | Distribution Groups | "Advertise this route to peers that belong to the following groups" | who gets the route |
+| Route | Policy Groups (Optional) | "Policy groups are used in policies while specifying access control rules on this route such as IP based filtering" | groups to reference in policies' Routes rules |
+| Name & Description | Network Identifier | "Add a unique network identifier that is assigned to each device." | ≤40 chars; same identifier = same network (HA) |
+| Name & Description | Description (optional) | "Write a short description to add more context to this route." | |
+| Additional Settings | Enable Route | "Use this switch to enable or disable the route." | |
+| Additional Settings | Masquerade | "Allow access to your private networks without configuring routes on your local routers or other devices." | hidden for exit nodes |
+| Additional Settings | Metrics | "A lower metric indicates higher priority routes." | 1–9999, default 9999 |
 
 **Update route**: network range/domains and identifier are **not editable** — delete and
 recreate to change them. Editable: routing peer / peer group, distribution groups, policy

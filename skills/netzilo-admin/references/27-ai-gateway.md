@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 41509
+chars: 42778
 sections:
 - id: '1'
   title: How it works
-  chars: 4693
+  chars: 5295
 - id: '2'
   title: Requirements
   chars: 1399
@@ -25,7 +25,7 @@ sections:
   chars: 4294
 - id: '6'
   title: How a caller authenticates, and what it gets back
-  chars: 5751
+  chars: 5966
   requires:
   - api
   executable_on:
@@ -55,10 +55,10 @@ sections:
   chars: 3651
 - id: '10'
   title: Troubleshooting
-  chars: 5723
+  chars: 6109
 - id: '11'
   title: Limits to state before a customer discovers them
-  chars: 2199
+  chars: 2265
 ---
 # Admin Skill — The Netzilo AI Gateway (`netzilo-aigw`)
 
@@ -127,7 +127,8 @@ gateway filters that target the user's groups (cached for `--ai-policy-refresh`,
 1. **Model access** — the request's model must be granted by one of the user's gateway
    filters (`29-edge-filters.md` §2.2). A bare model name is routed to the granted
    provider that serves it; `provider/model` must be granted for that provider. Nothing
-   granted, or an ungranted model, is refused with HTTP 403.
+   granted, or an ungranted model, is refused with HTTP 400 (`type: netzilo_policy`;
+   gateways before October 2026 answered 403).
 2. **Limits** — spend, token and request quotas from the user's filters, enforced by the
    upstream's governance on a per-user virtual key; across filters the lowest limit of
    each kind applies. Exceeded limits answer 429 or 402.
@@ -140,19 +141,22 @@ gateway filters that target the user's groups (cached for `--ai-policy-refresh`,
 **Which API surfaces are governed.** This is the fact customers trip over, so say it
 before they ask:
 
-| Surface on the gateway | Model grant and guardrails | Limits (virtual key) | Usage recorded |
-|---|---|---|---|
-| `/v1/chat/completions` (OpenAI chat shape; what most SDKs, Cursor, LangChain and the Workplace snippets use) | yes | yes | yes |
-| `/v1/responses` (OpenAI Responses API, Codex) | **no** — recorded only | yes | yes |
-| `/anthropic/v1/messages` (Anthropic Messages API, Claude Code) | **no** — recorded only; served as a Responses request | yes | yes |
-| `/v1/embeddings`, `/v1/completions` | no — recorded only | yes | yes |
-| `/mcp/<slug>` (MCP servers and bundles) | yes — tool calls and results | yes | yes |
-| `/v1/models` | lists what the user may use | — | no |
+| Surface on the gateway | Model grant | Guardrails | Limits (virtual key) | Usage recorded |
+|---|---|---|---|---|
+| `/v1/chat/completions` (OpenAI chat shape; what most SDKs, Cursor, LangChain and the Workplace snippets use) | yes (400 with the reason) | yes — prompt, tool results, answer, tool calls | yes | yes |
+| `/v1/responses` (OpenAI Responses API, Codex) | yes (400 with the reason) | yes — as chat | yes | yes |
+| `/anthropic/v1/messages` (Anthropic Messages API, Claude Code, Claude Desktop) | yes; served as a Responses request | yes — as chat | yes | yes |
+| `/v1/embeddings`, `/v1/completions` and other request types | only through the virtual key (the upstream's own refusal) | **no** — counted, not inspected | yes | yes |
+| `/mcp/<slug>` (MCP servers and bundles) | the server and tool grants | yes — tool calls and results | yes | yes |
+| `/v1/models` | lists what the user may use | — | — | no |
 
-So a Claude Code user is identified, limited and counted, but a guardrail that blocks a
-prompt applies to them only through the OpenAI chat surface. Streamed chat answers are
-evaluated once, on the final chunk: a block ends the stream; a redaction cannot be
-applied to a stream.
+**Streamed answers are governed while they stream**, on the chat and Responses surfaces
+alike: the answer text and each thinking block are held back about 1 KB behind the model
+and released window by window, so a rule can **redact** a streamed answer, not only end
+it. A tool call's arguments are held until the call is complete (on chat, at the
+choice's finish) and judged then; a block ends the stream. When the answer ends it is
+judged once more whole, and an answer a rule would still change is refused. Where no
+bound rule judges answers or tool calls, nothing is held.
 
 **Fail-open inside, strict at the door.** Netzilo's own authentication is never
 relaxed: a caller the public door cannot identify gets 401 (unless
@@ -461,8 +465,8 @@ and can revoke it there; the app then has to sign in again.
 | 404 `not served by the AI gateway` | same shape | the upstream's own admin or UI paths (`/`, `/api/…`, `/ui`): the gateway never forwards them |
 | 405 `Method Not Allowed` on `POST /v1/messages` | — | the Anthropic Messages API is served under `/anthropic`; the caller's base address lacks it (Claude Desktop endpoint, `ANTHROPIC_BASE_URL`) → `<gateway>/anthropic` |
 | 502 `the AI gateway upstream is not reachable` | same shape | the built-in upstream is down; the process will have logged why |
-| 403, `type: netzilo_policy`, message `no model is granted to this user` / `none of this user's filters grants a model` / `model <m> is not granted to this user` / `model <provider>/<m> is not granted to this user` | the error envelope of the API surface called | no gateway filter grants the user that model (`29` §2.2); also what a user gets while their filters cannot be fetched |
-| 403 `type: netzilo_policy`, a guardrail's reason (default `blocked by Netzilo policy`) | same | a guardrail blocked the prompt, the answer, a requested tool call, an MCP tool call or an MCP result; the event names the rule |
+| 400, `type: netzilo_policy`, message `no model is granted to this user` / `none of this user's filters grants a model` / `model <m> is not granted to this user` / `model <provider>/<m> is not granted to this user` | the error envelope of the API surface called | no gateway filter grants the user that model (`29` §2.2); also what a user gets while their filters cannot be fetched |
+| 400 `type: netzilo_policy`, a guardrail's reason (default `blocked by Netzilo policy`) | same; a block in the middle of a streamed answer ends the stream with this error | a guardrail blocked the prompt, the answer, a requested tool call, an MCP tool call or an MCP result; the event names the rule. Policy refusals are 400, not 401/403, so that clients do not read them as a credential failure; gateways before October 2026 answered 403 |
 | 429 / 402 | the upstream's governance error (`budget_exceeded`, `rate_limited`, `token_limited`, `request_limited`) | a limit from the user's filters is exhausted for its window; recorded with status `limited` |
 | MCP tool answer `Connect <server> in your Workplace before using its tools: <workplace>/workplace?connect=<server>#gateways` | tool result text | the server needs the user's own sign-in or header values and the user has not connected it (`46` §4) |
 
@@ -580,11 +584,11 @@ and users are fetched afresh.
 | Exits after `aigw: the agent gateway did not become healthy in 15s` | `--ai-data-dir` writable? disk? `--ai-upstream-log-level debug` for the upstream's own error | fix the data directory; escalate with the log if it repeats |
 | Workplace card shows the gateway **offline** although `curl` works | the browser's call is refused for its origin: `--workplace-url` missing or wrong (Cloud: `https://go.netzilo.com`) | set `--workplace-url`, restart; the card recovers at its next probe (30 s) |
 | 401 `a Netzilo credential is required` from a valid token | token of another account; token expired; typed with a space | `curl -s -o /dev/null -w '%{http_code}' https://<mgmt>/api/users -H "Authorization: Token <t>"` → 200 proves the token; then check the account |
-| 403 `no model is granted to this user` | the user is in no group a **gateway** filter targets, or the filter grants no model, or is disabled, or is of type endpoint | `GET /api/edge/filters/effective?type=gateway&user=<id>` with an admin token lists what applies; fix the filter (`29` §2.2) |
-| 403 `model X is not granted to this user` | the filter grants other models/providers | grant the model (or `provider/*`), or tell the user which models `GET /v1/models` lists for them |
-| Every request 403 for everyone after a policy change | the filters failed to load (`N failed` in the policy line is about guardrails; a fetch failure shows as `gateway ai: cannot …`) | management reachable from the host? service token still valid (401 in the log)? |
+| 400 `no model is granted to this user` / `none of this user's filters grants a model` | the user is in no group an enabled **gateway** filter targets (first text), or the filters that match grant no enabled model (second text: the provider or model was disabled, or the filter was saved without models by an older server) | `GET /api/edge/filters/effective?type=gateway&user=<id>` with an admin token lists what applies; fix the filter (`29` §2.2) |
+| 400 `model X is not granted to this user` | the filter grants other models/providers | grant the model (or `provider/*`), or tell the user which models `GET /v1/models` lists for them |
+| Every request refused (400 `no model is granted…`) for everyone after a policy change | the filters failed to load (`N failed` in the policy line is about guardrails; a fetch failure shows as `gateway ai: cannot …`) | management reachable from the host? service token still valid (401 in the log)? |
 | 429 / 402 before any real use | a limit's window and counters | `45` §3; counters restart when grants or limits change |
-| Guardrail does not fire for Claude Code / Codex users | by design: prompt guardrails and model grants apply to `/v1/chat/completions` only (§1) | state it; limits and usage still apply |
+| Guardrail does not fire for a user | the request went to `/v1/embeddings`, `/v1/completions` or another surface guardrails do not inspect (§1); or the rule is not bound by one of the user's gateway filters; or it needs an endpoint-only context (process, file) | check which path the client calls; `GET /api/edge/filters/effective?type=gateway&user=<id>`; Replay the rule (`28` §4) |
 | MCP tool answers `Connect <server> in your Workplace…` | the user has no sign-in/header values for that server | `46` §4 and `47` §3 |
 | `Tool execution failed: Blocked by rule: <name>` | a guardrail on the tool result or arguments | expected; the event names the rule |
 | Claude Desktop: `gateway SSO discovery failed: 401` | the endpoint in Claude is `<gateway>/v1`, `<gateway>/openai` or another path: no sign-in is served there (the bare `<gateway>` signs in but then fails with 405 on `/v1/messages`) | set the endpoint to exactly `<gateway>/anthropic` |
@@ -610,12 +614,13 @@ admin, and `netzilo-aigw --version`.
 
 ## 11. Limits to state before a customer discovers them
 
-- **Governance is per API surface** (§1): prompt and answer guardrails and Netzilo's own
-  model-grant refusal cover the OpenAI chat surface; the Responses API, the Anthropic
-  Messages surface, embeddings and completions are identified, limited by the virtual key
-  and recorded, nothing more. Do not promise a prompt block for a Claude Code user.
-- **Streams are block-only.** A streamed chat answer or a streamed tool call is evaluated
-  on its final chunk and can be ended, not rewritten.
+- **Governance is per API surface** (§1): model grants and guardrails cover the OpenAI
+  chat surface, the Responses API and the Anthropic Messages surface (Claude Code, Claude
+  Desktop); embeddings, text completions and other request types are identified, limited
+  by the virtual key and recorded, not inspected.
+- **Streamed answers arrive held back.** Text and thinking are released about 1 KB behind
+  the model so that a match can be redacted; a streamed tool call's arguments arrive once
+  the call is judged. Users see a short delay on long answers.
 - **A limit is per user per gateway.** Two gateways in one account count separately; a
   group pool shared by users does not exist. Changing a user's grants or limits restarts
   their counters.

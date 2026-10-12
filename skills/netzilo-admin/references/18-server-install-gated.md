@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 28223
+chars: 28450
 sections:
 - id: '0'
   title: Gather inputs from the user (mandatory — do not assume)
   chars: 2795
 - id: '1'
   title: Pre-flight (run on the host)
-  chars: 4368
+  chars: 4493
 - id: '2'
   title: Install (non-interactive)
   chars: 6200
@@ -28,7 +28,7 @@ sections:
   chars: 656
 - id: '6'
   title: Diagnostics (when a gate fails)
-  chars: 3319
+  chars: 3421
 - id: '7'
   title: Cleanup / teardown
   chars: 829
@@ -169,8 +169,9 @@ rssh '
 ```
 
 **Gate 1 — environment:** OS is Ubuntu 20.04/22.04/24.04, arch `x86_64`, ≥ 2 CPU,
-≥ 4 GB RAM, ≥ 20 GB free disk, and nothing already listens on 80, 443, 3478,
-5349 or 8443. If not, stop and report.
+≥ 4 GB RAM, ≥ 20 GB free disk (the minimum server is 2 vCPU / 4 GB / 40 GB disk,
+`02-server-operations.md` §13; the installer itself checks none of these), and nothing
+already listens on 80, 443, 3478, 5349 or 8443. If not, stop and report.
 
 **Firewall / ports.** Management and signal are served through Caddy on `443`;
 the relay is a separate coturn container in **host network mode**, on its own
@@ -444,7 +445,7 @@ rssh 'cd /opt/netzilo && sudo -n docker compose ps && echo "--- caddy ---" && su
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | Install log has `ERROR: password must contain …` | Weak admin password | Use 12+ chars incl. upper/lower/number/symbol; re-run |
-| Install log warns DNS mismatch, then LE fails | `DOMAIN` doesn't resolve to `PUBLIC_IP` | Fix DNS `A` record (or use `<ip>.nip.io`); re-run |
+| Install log warns DNS mismatch, then LE fails | `DOMAIN` doesn't resolve to `PUBLIC_IP` | Fix the DNS `A` record; Caddy keeps retrying the certificate on its own (no re-run; `sudo docker compose restart caddy` retries at once). Re-run Gate 5 |
 | Gate 5: cert `issuer` is not Let's Encrypt / self-signed | LE could not validate (ports 80/443 blocked, DNS, or rate limit) | Confirm 80/443 open + DNS; if rate-limited, set `NETZILO_TLS_MODE=provided` (self-signed) and waive Gate 5 |
 | Gate 4: `HTTP 000`/timeout | Ports 80/443 not open, or still warming up | Open ports; wait 60 s; retry once |
 | Gate 3: a container `Restarting`/`Exit` | That service crashed | `sudo docker compose logs <svc>` — read the error |

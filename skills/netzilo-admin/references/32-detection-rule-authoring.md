@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 189575
+chars: 189955
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
@@ -32,7 +32,7 @@ sections:
   chars: 1630
 - id: how-it-works-architecture-overview
   title: How It Works — Architecture Overview
-  chars: 6975
+  chars: 7108
 - id: what-are-rules
   title: What Are Rules?
   chars: 591
@@ -83,7 +83,7 @@ sections:
   chars: 1554
 - id: evaluation-order-and-verdicts
   title: Evaluation Order and Verdicts
-  chars: 5196
+  chars: 5443
 - id: semantic-events
   title: Semantic Events
   chars: 19482
@@ -504,7 +504,7 @@ A host declares the capabilities it produces. A rule declares the capabilities i
 | `connect` | raw outbound TCP/UDP connections | ✅ | — |
 | `skill` | `skill_acquired` semantic events | ✅ | ✅ |
 
-An endpoint with the probe, the proxy and the hooks produces every capability. The gateway governs LLM traffic on the OpenAI chat surface and every MCP call it serves; it never sees processes, files or raw connections, so rules that require `process_exec`, `file_activity` or `connect` are never loaded there.
+An endpoint with the probe, the proxy and the hooks produces every capability. The gateway governs LLM traffic on the OpenAI chat, Responses and Anthropic Messages surfaces and every MCP call it serves; it never sees processes, files or raw connections, so rules that require `process_exec`, `file_activity` or `connect` are never loaded there.
 
 ### Hook path vs proxy path
 
@@ -522,7 +522,7 @@ All paths feed the same observation log and behaviour graph and publish the same
 |---|---|
 | **MCP tool calls** | Agent → tool: the arguments sent to `read_file`, `bash`, `search`, etc., and their results. On a device: hook tool events and MCP over HTTP from intercepted apps. At the AI Gateway: every MCP call to the servers and bundles it serves (`/mcp/<slug>`) |
 | **MCP prompts / sampling** | Agent → prompt templates and sampling operations defined by MCP servers |
-| **LLM API calls** | Agent → OpenAI / Anthropic / Azure / Gemini: the full prompt and model response, including `tool_use` and `tool_result` blocks. At the AI Gateway, prompts and answers are evaluated on the OpenAI chat surface (`/v1/chat/completions`) |
+| **LLM API calls** | Agent → OpenAI / Anthropic / Azure / Gemini: the full prompt and model response, including `tool_use` and `tool_result` blocks. At the AI Gateway, prompts and answers are evaluated on `/v1/chat/completions`, `/v1/responses` and `/anthropic/v1/messages`, streamed answers included; embeddings and text completions are not evaluated |
 | **HTTP** | Any request the proxy sees (endpoint) or the gateway forwards |
 | **Process / file / connect** | Endpoint only: spawns, file activity, raw connections |
 | **Semantic events** | Synthesized by the classifier: `skill_acquired`, `external_message`, `file_upload`, etc. — see [Semantic Events](#semantic-events) |
@@ -2659,7 +2659,7 @@ Verify every exception in both of these ways before relying on it:
 
 ### At the AI Gateway
 
-Gateway filters are evaluated by the AI Gateway per calling user, with the same order and the same verdict rules. The contexts that occur there are `llm_request` / `llm_response` (prompts and answers on the OpenAI chat surface, `/v1/chat/completions`), `tool_call` / `tool_response` (tool calls the model requests, and every MCP call through `/mcp/<slug>`), `http_request`, and `skill_acquired`. `execute_process`, `connects` and the `file_*` contexts never occur, and rules that require `process_exec`, `file_activity` or `connect` are not loaded. A `block` at the gateway answers the caller with `403` and `type: netzilo_policy`; the reason names the rule.
+Gateway filters are evaluated by the AI Gateway per calling user, with the same order and the same verdict rules. The contexts that occur there are `llm_request` / `llm_response` (prompts and answers on `/v1/chat/completions`, `/v1/responses` and `/anthropic/v1/messages`; a streamed answer is judged window by window as it streams, so `redact` works on it, and once whole at its end), `tool_call` / `tool_response` (tool calls the model requests, and every MCP call through `/mcp/<slug>`), `http_request`, and `skill_acquired`. `execute_process`, `connects` and the `file_*` contexts never occur, and rules that require `process_exec`, `file_activity` or `connect` are not loaded. A `block` at the gateway answers the caller with `400` and `type: netzilo_policy` (gateways before October 2026: `403`); the reason names the rule. A block in the middle of a streamed answer ends the stream with that error.
 
 ---
 

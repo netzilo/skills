@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 23891
+chars: 24092
 sections:
 - id: '1'
   title: Peers (Endpoint → Peers, `/peers`)
-  chars: 2892
+  chars: 2938
 - id: '2'
   title: Setup keys (Endpoint → Setup Keys, `/setup-keys`)
   chars: 975
@@ -32,10 +32,10 @@ sections:
   chars: 3696
 - id: '8'
   title: Activity, reports, integrations
-  chars: 4889
+  chars: 5018
 - id: '9'
   title: Multi-tenant / self-service (cloud and MSP servers)
-  chars: 781
+  chars: 807
 ---
 # Netzilo — Network Administration (Peers, Policies, Routes, DNS, Posture, Activity)
 
@@ -83,9 +83,10 @@ Per-peer actions (⋮ or detail page `/peer?id=`):
 Detail page shows Device ID, Netzilo IP, Public IP, Domain Name, AD Domain, Hostname,
 Region, OS, Security Score with posture indicators (firewall, antivirus, disk encryption,
 OS updates, virtual device, screen lock, device integrity, Enterprise Workspace,
-Enterprise Browser, Netzilo Gateway; weights in `24-peers-and-setup-keys.md` §2), the
-browser for a gateway session, Last seen, Agent/UI version, and (admins) **Available Snapshots**
-(AI session snapshots) and the peer's **Network Routes**.
+Enterprise Browser, Netzilo Gateway, Netzilo Extension; weights in
+`24-peers-and-setup-keys.md` §2), the browser for a gateway session, Last seen, Agent/UI
+version, and (admins) **Behavior Sessions** (agent and program sessions observed on the
+device) and the peer's **Network Routes**.
 
 Peer lifecycle facts:
 
@@ -309,11 +310,11 @@ geo: `GET /api/locations/countries`, `GET /api/locations/countries/{cc}/cities`.
 
 ## 8. Activity, reports, integrations
 
-**Activity → Events** (`/activity`): server-side paginated (`GET /api/events/paginated?limit&offset&user=<email>&code=…&date_from&date_to&q=`), default last 14 days, 25 rows. Filters: date range, event types (grouped by category: Administration, Access Control, Data Exfiltration, Policy Violation, Suspicious, Investigation, AI Edge), user (incl. "Netzilo System"). Keyword search is BM25 ranked; with a model approved for Log Analysis under Integrations → Artificial Intelligence the sparkle button runs **AI Smart Search** and stores the answer as an `ai.insight` event. **Download CSV** exports the *current page* (Timestamp, User, Email, Event code, Source, Target, More Information). Event rows for `session.recorded` play recordings; `aidr.graph` opens the session snapshot; events with a kill chain open **Kill Chain**.
+**Activity → Events** (`/activity`): server-side paginated (`GET /api/events/paginated?limit&offset&user=<email>&code=…&date_from&date_to&q=`), default last 14 days, 25 rows. Filters: date range, event types (grouped by category: Administration, Access Control, Data Exfiltration, Policy Violation, Suspicious, Investigation, AI Edge; search matches name and code), user (incl. "Netzilo System"). Keyword search is BM25 ranked; with a model approved for Log Analysis under Integrations → Artificial Intelligence the sparkle button runs **AI Smart Search** and stores the answer as an `ai.insight` event. **Download CSV** exports the *current page* (Timestamp, User, Email, Event code, Source, Target, More Information). Event rows for `session.recorded` play recordings; `aidr.graph` opens the session snapshot; events with a kill chain open **Kill Chain**.
 
-Key event codes: `user.peer.add`, `setupkey.peer.add`, `peer.remove`, `peer.rename`,
-`peer.login.expire`, `peer.access.granted/blocked`, `policy.add/update/remove`,
-`group.add/update/delete`, `route.add/update/remove`, `nameserver.group.*`,
+Key event codes: `user.peer.add`, `setupkey.peer.add`, `user.peer.delete`, `peer.rename`,
+`peer.login.expire`, `peer.access.granted/blocked`, `policy.add/update/delete`,
+`group.add/update/delete`, `route.add/update/delete`, `nameserver.group.*`,
 `setupkey.add/revoke/overuse/deleted`, `user.invite/join/block/unblock/delete`,
 `user.login/failedlogin/logout` (imported from the IdP), `account.setting.*`,
 `profile.*`, `guardrail.*`, `filter.*`, `gateway_provider.*`, `gateway_limit.*`,
@@ -342,7 +343,7 @@ restrict access. Details: `30-activity-reports-and-integrations.md` §2.
 | Event Streaming | Min.io | same, S3-compatible | endpoint, bucket, access key, secret |
 | Networking | Twilio / Cloudflare | managed TURN instead of the built-in relay | account SID + auth token / token id + API token |
 | Networking | TURN/STUN Servers | your own STUN/TURN (`static`) with a browser-side **Test Connection** | STUN `host:port` UDP/TCP; TURN `host:port` UDP/TCP/DTLS/HTTPS + username/password |
-| Artificial Intelligence | a table of providers (OpenAI, Anthropic, any compatible endpoint), not a card | management's own AI: the Assistant, AI Smart Search, guardrail generation and the AI judge | provider + per-model approval per feature: **Assistant**, **Log Analysis**, **Threat Analysis** (`/api/ai/providers`, owner writes). These are **not** the gateway's upstream providers — those live under Edge → Providers (`/api/edge/providers`, `45-ai-gateway-providers-and-limits.md` §1); the two lists are independent |
+| Artificial Intelligence | one card per provider (Anthropic Messages, OpenAI-compatible or System One endpoint) plus an **Add Provider** card | management's own AI: the Assistant, AI Smart Search, guardrail generation and the AI judge; a System One provider is called only by detection rules | provider + per-model approval per feature: **Assistant**, **Log Analysis**, **Threat Analysis** (`/api/ai/providers`, owner writes). These are **not** the gateway's upstream providers — those live under Edge → Providers (`/api/edge/providers`, `45-ai-gateway-providers-and-limits.md` §1); the two lists are independent |
 
 Only one of Twilio / Cloudflare / static TURN can be active. Disabling an integration
 deletes its settings.
@@ -370,6 +371,7 @@ Tenant Name, Tenant ID (for support), Company Logo upload (PNG/JPG/SVG ≤ 500 K
 **Delete Tenant** (irreversible; removes peers, users, groups, policies, routes; logging in
 again creates a fresh account).
 
-Plans (Settings → Plans & Billing, owner only; hidden on MSP/self-hosted Enterprise):
+Plans (Settings → Plans & Billing, owner only; hidden in MSP mode, which every
+self-hosted installer turns on):
 Free (5 users / 100 peers), Professional, Enterprise (14-day trial; Enterprise required
 for Profiles; filters and guardrails carry no plan gate). Counts refresh daily.

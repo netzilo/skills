@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 15404
+chars: 15561
 sections:
 - id: '1'
   title: Model
@@ -29,10 +29,10 @@ sections:
   chars: 803
 - id: '7'
   title: Diagnosis
-  chars: 2689
+  chars: 2734
 - id: '8'
   title: Limits to state before a customer discovers them
-  chars: 1308
+  chars: 1320
 ---
 # Admin Skill — Edge Guardrails (detection rules)
 
@@ -49,7 +49,7 @@ in two places depending on the filter's type:
 | Bound in | Runs on | Sees |
 |---|---|---|
 | an **endpoint** filter | the Netzilo client of each device in the filter's groups and OS | LLM prompts and responses of intercepted apps, hooks and the extension; MCP over HTTP from intercepted apps; HTTP requests; semantic events; process and file activity (where the client has those probes) |
-| a **gateway** filter | the AI Gateway, per user of the filter's groups | the OpenAI chat prompt and response, tool calls a model asks for, every MCP tool call and result through `/mcp/<slug>`. No process, file or connect contexts: rules needing them are not loaded there |
+| a **gateway** filter | the AI Gateway, per user of the filter's groups | prompts and answers (streamed or not) on the OpenAI chat, Responses and Anthropic Messages surfaces, tool calls a model asks for, every MCP tool call and result through `/mcp/<slug>`; not embeddings or text completions. No process, file or connect contexts: rules needing them are not loaded there |
 
 For deep authoring (Starlark scripts over the behaviour graph, the full field, modifier,
 action and builtin reference), load `32-detection-rule-authoring.md`. This file is the
@@ -252,7 +252,7 @@ silently at expansion, and the next save of such a filter fails with
 |---|---|---|
 | Rule saved, never fires | not bound (Used by = No Filters); the filter does not match the device or user; wrong `logsource.category` for where the content is; bound in a gateway filter but needs an endpoint-only context (process, file, connect); a more severe rule already blocks the same events, so a lower-severity `report` rule is skipped | bind it; check filter targets and type; Replay to see the real context and payload |
 | Fires far too often | broad `contains`; no exclusions | tighten; `excl` selection + `condition: sel and not excl`; report mode |
-| Redaction not visible | redaction applies to matched content only; a streamed gateway answer can only be blocked, not rewritten; a Cursor streamed request is blocked instead of redacted | Replay shows the redaction; check the event's content |
+| Redaction not visible | redaction applies to matched content only; a match longer than about 1 KB in a streamed answer has its start released before the rule sees all of it; a Cursor streamed request is blocked instead of redacted | Replay shows the redaction; check the event's content |
 | ✦ button missing / generate returns 428 | no model approved for Threat Analysis | Integrations → Artificial Intelligence → approve one |
 | Replay: "No peers with AIDR data" | no device has produced observations yet | generate traffic on a filtered device |
 | Blocked call but another rule named in the event | the named rule is the most severe match across all filters (equal severity: lowest rule `id`) | correct the `level` values or narrow the other rule; reordering has no effect |
@@ -280,10 +280,10 @@ not bind the rule, and make sure no other filter matching them (a baseline `All`
 for example) binds it. To exempt specific traffic for everyone, narrow the rule's own
 conditions. Prove every exception with Replay and a live pilot.
 
-**The gateway sees only some surfaces** (`27-ai-gateway.md` §1): prompt and response
-rules reach the OpenAI chat surface; Responses-API, Anthropic-surface, embedding and
-completion requests are not scanned there. Streams are block-only. Say so before
-promising a prompt block for Claude Code users on the gateway.
+**The gateway does not inspect every surface** (`27-ai-gateway.md` §1): prompt, answer
+and tool-call rules reach the OpenAI chat, Responses and Anthropic Messages surfaces,
+streamed or not (a streamed answer is held about 1 KB behind the model so it can be
+redacted); embeddings and text completions are counted, not scanned.
 
 **Performance is not instrumented for customers.** No overhead figure and no per-rule
 timing are exposed. When AI tools feel slow, narrow the rules and move expensive ones to

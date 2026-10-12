@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 22222
+chars: 22243
 sections:
 - id: '1'
   title: What a regular user can see through the API
@@ -18,7 +18,7 @@ sections:
   chars: 2164
 - id: '3'
   title: The questions a regular user brings, and where each one ends
-  chars: 10299
+  chars: 10320
 - id: '4'
   title: Ending on the administrator's side of the boundary
   chars: 1736
@@ -147,7 +147,7 @@ administrator.
 | "Our internal site opens by IP but not by name" / "it works in Chrome but not in Firefox" / "the browser says Secure Connection Failed for an http site" | their gateway session or peer in `GET /api/peers` (connected); ask whether the address bar shows `https://` after typing `http://`, and whether the IP or another browser works. No device tools for a browser | Their side, with the one-site browser reset of `43-clientless-access-gateway.md` §11.3a once all four conditions hold (ask before: it clears that site's cookies in that browser); **administrator** for what served the name over HTTPS outside the tunnel |
 | "Private access says unavailable" / "I can't open our internal sites in the browser" (browser extension, no Netzilo app) | Ask what hovering over **unavailable** shows; their `vp-<n>-PROXY` session in `GET /api/peers` (connected, public IP). There are no device tools for a browser | Their side for Firefox private-window access or a proxy owned by another extension; **administrator** for an operating-system proxy the profile does not name, the account switch, the profile, the gateway port, or a policy (`43-clientless-access-gateway.md` §11.2) |
 | "I have no Agentic Access tab" / "where is the AI gateway?" | `GET /api/users/current/ai-access` — `gateways` and `mcp` both empty? | **Administrator**: no gateway filter targets a group they are in, or it grants no gateway address and no MCP server (`47-agentic-access-workplace.md` §5) |
-| "My coding agent cannot reach the model" / 403 `no model is granted to this user` or `model X is not granted` | `ai-access` — the models listed under their gateway; is the one the tool asks for among them | **Administrator**: the gateway filter grants the models; the user can switch to a granted model meanwhile (`47` §5) |
+| "My coding agent cannot reach the model" / 400 (older gateways 403) `no model is granted to this user` or `model X is not granted` | `ai-access` — the models listed under their gateway; is the one the tool asks for among them | **Administrator**: the gateway filter grants the models; the user can switch to a granted model meanwhile (`47` §5) |
 | 429 or 402 from the gateway / "limit reached" | the error body names the limit; `ai-access` lists the guardrails but not the limits as objects | **Administrator** raises the limit, or the user waits for the window to reset (`47` §5, `45-ai-gateway-providers-and-limits.md` §2.2) |
 | An MCP server shows **Needs Attention** / "it asks me to sign in" / a tool answers `Connect <server> in your Workplace…` | `GET /api/users/current/mcp-connections` → `not_connected` or `needs_reauth` for that server | Their side: open the server's card, **Connect** or **Reconnect** (`47` §3). **Administrator** when the server uses the admin's shared sign-in ("An admin has not connected this server yet") |
 | A gateway card shows **Offline** | `ai-access` has the address; ask whether `curl <gateway>/v1/models -H "Authorization: Bearer <token>"` works from their machine (never ask for the token itself) | **Administrator**: the gateway is down, started without the Workplace's address, or not reachable from the user's network (`47` §5, `27-ai-gateway.md` §5) |

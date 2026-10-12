@@ -7,6 +7,57 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.1.1 — 2026-10-12
+
+Corrections from a check of every runbook against the product code and the rewritten
+public documentation. Patch version: nothing added or moved; several statements an agent
+would have acted on were wrong.
+
+**Filters and the AI Gateway:**
+
+- Guardrails are **optional** on every filter (`29`, `10`, `16`, `49`); the "guardrails
+  required" error quoted before does not exist. A **gateway** filter must grant at least
+  one model; the "MCP only, no models" pattern is replaced.
+- The AI Gateway governs chat completions **and** the Responses API, which also serves
+  `/anthropic/v1/messages`; streamed answers are held back and can be **redacted**, not
+  only blocked (`27`, `28`, `10`, `32`, `45`, `00`).
+- Gateway refusals for model grants and guardrails answer **400** `type: netzilo_policy`
+  (403 on gateways before October 2026) (`27`, `07`, `12`, `13`, `32`).
+
+**Data handling:**
+
+- Secrets in the management database are not encrypted at rest: Edge and Integrations
+  provider keys, MCP credentials, integration secrets, setup keys and activity events;
+  access tokens are stored as hashes. `DataStoreEncryptionKey` encrypts nothing
+  (`14`, `02`, `00`).
+
+**Dashboard names and screens:**
+
+- Settings is a top-level menu; Applications is under **Network**; the Add Application
+  dialog has a Posture Checks step; the peer panel is **Behavior Sessions**, and peer
+  security indicators include Netzilo Extension; Integrations → Artificial Intelligence
+  shows provider cards; there is no EDR or identity-provider-sync integration
+  (`35`, `44`, `02`, `24`, `08`, `21`, `30`).
+- Profile domain settings: **Prevent LLM Prompt Injections** and **Make Session Cookies
+  Temporary** are gone from both dialogs, and **Verify Workspace Integrity** from the
+  Enterprise Browser's (the Workspace component keeps its own); an exception's
+  **Expires in** is stored in seconds, and older dashboards saved hours as minutes (`26`).
+- AI Agent Activity reports name what refused a call: Guardrail, Limit, or Model or MCP
+  grant (`30`). Updated labels: **Name of the Policy**, **Add DNS Server**,
+  **Edit Profile**; agent pages show no password or MFA (`20`, `23`, `25`, `26`).
+- Workplace: admins open it from the company logo; onboarding steps per platform; System
+  Errors behind **Display Status** (`47`, `17`).
+
+**Server and installer:**
+
+- The admin password change at first login is not forced by default; before DNS resolves
+  the installer stops at **Continue anyway?** (answer N and run it again), or, once past
+  that, the proxy retries the certificate on its own (`19`, `18`). The offline image set
+  must include the AI Assistant worker image (`01`, `42`). Plans & Billing is hidden on
+  every installed server (managed mode) (`08`, `25`, `31`, `35`).
+- `34` marks `rule.*` and `group.issuer.update` as history only; client samples show 5.x
+  (`06`, `12`). `00` points agents at the documentation index `llms.txt`.
+
 ## 4.1.0 — 2026-10-12
 
 The browser extension became a full AI enforcement point, and Claude Desktop can sign in
