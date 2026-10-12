@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 18685
+chars: 20795
 sections:
 - id: '1'
   title: The short answer
@@ -31,7 +31,7 @@ sections:
   chars: 1174
 - id: '8'
   title: Data flows by feature
-  chars: 6904
+  chars: 9014
 ---
 # What Netzilo Collects — Data Handling, Privacy and Security Review
 
@@ -243,11 +243,27 @@ say it needs confirmation rather than filling the gap.
 
 | | |
 |---|---|
-| Collected | on the device: the sequence of actions an AI agent took |
-| Stored | on the management server, viewable per peer by admins |
+| Collected | on the device, at the gateway or in the browser: the sequence of actions an AI agent took (observations: what was called, not the text, unless a guardrail matched) |
+| Stored | on the management server, viewable per peer, per gateway and per browser source by admins; a regular user sees their own sessions only |
 | Sent to | the management server |
-| Retained | not stated |
-| Deleted | not stated |
+| Retained | 7 days (observations); the session views are rebuilt from them |
+| Deleted | by the hourly retention sweep after 7 days; no per-user deletion |
+
+**Browser extension — AI events, network log and browser sessions (`49-browser-extension-aidr.md`)**
+
+| | |
+|---|---|
+| Collected | in the browser, by the same engine as on a device, for the signed-in user: (1) AI events for prompts, answers and tool calls on the web AI apps and the LLM APIs a page calls — the triggering content only when a guardrail matches, as in §3; (2) a **network log** of the tab's requests: host, path, method and content type, **never request or response bodies** (none in Safari, which gives the extension no network log); (3) behaviour observations per browser tab and site — what happened (a prompt, an answer, a request, a tool call) with content **references** (sizes, hashes, hosts), not the prompt text, unless a guardrail matched |
+| Stored | events as activity events on the management server; observations in the management server's behaviour store, as one browser source per user and browser (`kind: browser`), visible to that user and to admins |
+| Sent to | the management server only, as the signed-in user: events in batches, observations in paced batches (per-user limits, `49` §7); nothing goes to the AI site that the page did not send itself, except a redacted prompt in place of the original |
+| Retained | events: like all activity events; observations: **7 days**, pruned hourly |
+| Deleted | observations by the retention job; events as in §6 |
+
+Say to a reviewer: the extension reads what the page sends to and receives from the AI
+sites in order to judge it; what leaves the browser for management is the event metadata
+of §3, the triggering content when a rule fires, the hosts and paths the tab requested,
+and the behaviour observations without prompt text. When the desktop client governs the
+browser, the extension stands down and reports nothing (`49` §3).
 
 **AI Gateway — LLM and MCP traffic (`27-ai-gateway.md`)**
 

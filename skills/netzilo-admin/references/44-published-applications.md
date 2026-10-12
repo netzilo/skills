@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 64244
+chars: 66218
 sections:
 - id: '1'
   title: How it works
@@ -43,7 +43,7 @@ sections:
   chars: 1532
 - id: '8'
   title: Self-hosted installation
-  chars: 9457
+  chars: 10200
 - id: '9'
   title: Configuration reference
   chars: 2880
@@ -52,7 +52,7 @@ sections:
   chars: 7347
 - id: '11'
   title: Troubleshooting
-  chars: 11400
+  chars: 12631
 - id: '12'
   title: Supporting a user who cannot open an application
   chars: 3425
@@ -569,6 +569,16 @@ volumes:
 If the compose file has an `extra_hosts:` block on the `gateway` service (installs whose
 domain resolves to a private address), copy it onto `reverse-proxy` too.
 
+**`--workplace-url` also carries the gateway sign-in.** On every published hostname the
+reverse proxy answers the OAuth sign-in metadata at `/.well-known/oauth-authorization-server`
+(and the same under `/anthropic`, for Claude Desktop) and the endpoints under the
+reserved prefix `/.netzilo/oauth2/`; an application's own paths are untouched. That is
+how an MCP connector or Claude Desktop signs in through a published AI gateway
+(`27-ai-gateway.md` §5.3, `46` §6). The sign-in page is a redirect to
+`<workplace>/api/mcp/oauth2/…`, so the value of `--workplace-url` (the installers and the
+chart set it) must be a host that routes `/api/*` to management — the server's own
+domain does; a bare dashboard host that serves no `/api/*` does not.
+
 In the `Caddyfile`, add to the global options block (the first `{ … }`):
 
 ```
@@ -813,6 +823,9 @@ curl -sS -H "Authorization: Token $USER_TOKEN" https://<api-host>/api/users/curr
 | **Connecting** (`503`, retries by itself) | the peer's `ready` line | the tunnel or its route is not up yet (the first request after an idle hour); it clears within seconds. Persisting: as *Access Failed* |
 | **Not reachable** (`502`) / **Timed out** (`504`) | debug log for the target | the target refused or did not answer within 20 seconds through the tunnel: the application itself, or the wrong port |
 | `502 The application did not answer.` on an **AI gateway** target | the application's target; the user's groups' policies; the reverse proxy's version (first log line) | the target lacks `:8447` (the proxy then dials port 80 of the gateway peer), or no policy lets the user's groups reach the gateway peer on TCP 8447, or a reverse proxy older than this release still holds a stale target (up to 10 minutes, §9). Fix the target as `http://<gateway-name>.netzilo.network:8447`; `27-ai-gateway.md` §5.3 |
+| an MCP connector or Claude Desktop cannot sign in through a published AI gateway: `GET https://<published name>/.well-known/oauth-authorization-server` is 404, or Claude says the metadata is invalid / not same-origin | the reverse proxy's version (first log line); the metadata document on the published name | a reverse proxy older than the gateway sign-in: upgrade it (§10.4). A current one answers the metadata on every published name, at the root and under `/anthropic`, with endpoints under `/.netzilo/oauth2/` on that name |
+| Claude Desktop `gateway SSO discovery failed: 401` through a published gateway | the endpoint in Claude | it is not `https://<published name>/anthropic`: `/v1` and `/openai` serve no sign-in, and the bare name fails later with 405 on `/v1/messages` (`27` §10) |
+| the gateway sign-in's browser step lands on a 404 or a page that is not the Workplace consent page | `--workplace-url` in the container's command; `curl -sI https://<that host>/api/mcp/oauth2/verify` | the sign-in page is a redirect to `<workplace>/api/mcp/oauth2/…`; that host does not route `/api/*` to management. Point `--workplace-url` at the server's domain (or a host that serves the API) and recreate the container (§8.3) |
 | the application loads but links, redirects or logins go to its internal name | the application's configuration | it builds absolute URLs from its configured base address: set that to the published address, or turn on **Send the address as Host header** (§4) |
 | the application works for some users only | §11.1 with each user's token; their groups and policies | groups admit them differently, or their policies reach the target differently (§4) |
 | **Peers** show the server's or the ingress's IP for `vp-<n>-RPROXY` | the container's `--publish-trusted-proxies` | it does not cover the proxy in front (compose: `172.20.0.0/24`; Kubernetes: the pod network) |

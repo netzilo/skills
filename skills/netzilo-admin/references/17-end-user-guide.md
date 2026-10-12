@@ -6,17 +6,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 13921
+chars: 16955
 sections:
 - id: '1'
   title: Tell people before you install, not after
   chars: 1073
 - id: '2'
   title: The page to publish
-  chars: 6158
+  chars: 8307
 - id: '3'
   title: Translating what the employee says
-  chars: 5084
+  chars: 5969
 - id: '4'
   title: What to tell an employee who asks what is monitored
   chars: 1013
@@ -119,6 +119,34 @@ tool you used, when, how many tokens and what it cost; the text of a prompt only
 guardrail matched it. "Needs Attention" on an MCP server means you still have to connect
 it: open it and press Connect.
 
+**AI assistants in your browser.** If your company applies an AI policy to ChatGPT,
+Claude or Gemini in your browser, you notice it in three ways. A value the policy does
+not allow out — a card number, a social security number — is replaced before it leaves:
+the message you sent shows a bracketed token such as `[CARD-REDACTED]` in its place, and
+the same token appears in the answer where the assistant repeats it. A message the policy
+does not allow at all is refused: ChatGPT shows an error naming the rule; Claude and
+Gemini answer "Netzilo Guardrail: Blocked by rule: <rule name>". Answers can appear a
+moment later than usual while they are checked, and a short answer arrives all at once at
+the end. Reloading a conversation shows the redacted version, not the original; that is
+expected. The Netzilo extension's popup shows **Protection: Active** when it is working
+and **Inactive** when it is not. If you also run the Netzilo app, the extension may
+report that the desktop client governs this browser: the app is doing the same checks
+itself and nothing is wrong.
+
+**Signing in Claude Desktop with your organization.** If your company grants you an AI
+gateway, Claude Desktop can sign in through it with **Sign in with your organization**.
+The address to enter is the **Anthropic API** address on your Agentic Access page — it
+ends in `/anthropic`; the shorter gateway address fails. Claude then shows a code
+(`XXXX-XXXX`) and opens a page in your browser headed "Claude wants to access your Netzilo account". Check
+that the code on the page is the one Claude shows you, then press **Allow**. The page
+says **Access allowed** and that Claude signs in on its own within a few seconds; go back
+to Claude. If the page asks you to **Enter the code** instead, type it as Claude shows
+it; "That code was not found or has expired" means retype it or start again from Claude.
+Approving creates an access token in your name, named **Claude (MCP)** and listed under
+Profile Settings → Access Tokens; it renews itself, so you are not asked again. To sign
+Claude out of the gateway, delete that token there; Claude asks you to sign in the next
+time.
+
 **If you use only the browser extension (no Netzilo app).** Your company may let you open
 internal sites from Chrome, Edge or Firefox with just the Netzilo extension. Click the
 Netzilo icon, **Login**, and sign in with your work account. The popup's **Private
@@ -171,6 +199,9 @@ When an admin forwards a complaint, this maps it to a cause and the file that fi
 | "It worked yesterday and now it doesn't" | A policy, group or posture check changed. Check Activity first | `20-policies-access-control.md`, `15-incident-response-and-recovery.md` §6.2 |
 | "My AI assistant stopped working" (on the device) | Inspection, a blocked guardrail, or certificate trust | `10-ai-security-aidr.md` §9 |
 | "My AI assistant stopped working" (through the company gateway: a refusal names the gateway, or the tool is configured with the Agentic Access address) | A gateway refusal: no model granted to the user, a limit reached (429/402), an MCP server that needs a new sign-in, or an expired access token (401) | `47-agentic-access-workplace.md` §5 |
+| "ChatGPT shows [SOMETHING-REDACTED]" / "my answer was cut" / "Claude answered Netzilo Guardrail: Blocked by rule …" | A guardrail redaction or block in the browser, working as configured: the bracketed token is the rule's replacement text, the refusal names the rule, and a reloaded chat shows the redacted version | `49-browser-extension-aidr.md` |
+| "Claude Desktop says gateway SSO …" (metadata invalid, no device_authorization_endpoint, discovery failed 401, device init failed) | The endpoint is not the gateway's `/anthropic` address, or the gateway or server is too old for the device sign-in | `47-agentic-access-workplace.md` §5 |
+| "The approval page asks me for a code" / "is this code right?" | The device sign-in's approval page; the code must be the one the application shows. Compare, then Allow | §2 "Signing in Claude Desktop", `47-agentic-access-workplace.md` §5 |
 | "Everything is slow since this was installed" | Relayed connection, or an inspection rule doing too much work | `11-connectivity-diagnosis.md`, `10-ai-security-aidr.md` |
 | "I got a scary red button on the dashboard" | The admin's system status widget | `16-onboarding-and-rollout.md` §0 |
 | "I can't see the page my colleague sees" | Role, not a fault. Most pages are admin-only | `25-users-groups-and-account-settings.md` |

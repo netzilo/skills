@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 7819
+chars: 8977
 sections:
 - id: '1'
   title: When an identifier belongs in the answer
   chars: 817
 - id: '2'
   title: Areas of the product
-  chars: 3858
+  chars: 5016
 - id: '3'
   title: 'Objects: names, not ids'
   chars: 599
@@ -101,6 +101,10 @@ scanners, catalogue) in this release.
 | **MCP server / MCP bundle** | an admin-defined server the gateway serves at `<gateway>/mcp/<slug>`; a bundle is one endpoint that combines tools of several servers |
 | **Agentic Access** | the Workplace section where a user sees their gateways and MCP servers, creates their AI Gateway token and signs in to per-user MCP servers |
 | **AI Gateway** | the Netzilo AI Gateway (`netzilo-aigw`), a peer of the account that identifies callers as users and applies their gateway filters; not the clientless-access gateway on 8443, although the same binary serves both |
+| **browser extension** (as an AI enforcement point) | the Netzilo extension in Chrome, Edge, Firefox or Safari running the same governance engine as the client and the gateway: it applies the endpoint filters whose Operating Systems include **Browser** to the signed-in user's AI use in the page. Say "the extension governs the browser"; it is not a device, not a peer, and not the Enterprise Browser (which bundles it) |
+| **browser source** | the user's browser as an uploader of behaviour: one per user and browser under `GET /api/aidr/sources` with `kind: browser`. Say "Erin's browser" or "the browser on Erin's MacBook", not the source id |
+| **tab session** | the behaviour-graph session of one browser tab on one site (its parent is the browser session); the `session_id` on browser `ai.*` events. Say "the ChatGPT tab" or "that conversation's session" |
+| **Session snapshot** | the Activity entry (`aidr.graph`) that announces the first behaviour of a session, on a device ("… for peer <peer>") or in the browser ("… for <program> in the browser"); it opens the session's behaviour graph. Say "the session snapshot for that tab", never the code |
 
 ## 3. Objects: names, not ids
 

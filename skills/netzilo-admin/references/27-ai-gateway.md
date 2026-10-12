@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 35633
+chars: 41509
 sections:
 - id: '1'
   title: How it works
@@ -22,10 +22,10 @@ sections:
   chars: 4368
 - id: '5'
   title: Exposing the gateway to callers
-  chars: 3553
+  chars: 4294
 - id: '6'
   title: How a caller authenticates, and what it gets back
-  chars: 3271
+  chars: 5751
   requires:
   - api
   executable_on:
@@ -55,10 +55,10 @@ sections:
   chars: 3651
 - id: '10'
   title: Troubleshooting
-  chars: 3838
+  chars: 5723
 - id: '11'
   title: Limits to state before a customer discovers them
-  chars: 1429
+  chars: 2199
 ---
 # Admin Skill — The Netzilo AI Gateway (`netzilo-aigw`)
 
@@ -373,6 +373,16 @@ proxy (`44-published-applications.md`):
 3. Put the same address in the gateway filter's **Gateways** list so the Workplace shows
    it (`29` §2.2, `47`).
 
+**Sign-in through the published address.** The reverse proxy answers, on the published
+hostname, the sign-in metadata (`https://aigw.<application-domain>/.well-known/oauth-authorization-server`,
+and the same under `/anthropic` for Claude Desktop) and the endpoints under
+`/.netzilo/oauth2/`, so MCP connectors and Claude Desktop's **Sign in with your
+organization** (§6) work through it without a public door. It needs the reverse proxy's
+`--workplace-url` (the installers and the Kubernetes chart set it): the sign-in page is a
+redirect to `<workplace>/api/mcp/oauth2/…`, so the Workplace host must route `/api/*` to
+management (the installers do; `44` §8). Claude Desktop's endpoint is then
+`https://aigw.<application-domain>/anthropic`.
+
 A change to the application (target, groups, enabled) reaches running sessions within
 about 40 s: the reverse proxy asks management every 10 s whether the application changed
 and makes affected sessions re-check on their next request (log: `gateway: application at
@@ -400,7 +410,7 @@ public door never identifies by address.
 
 | Header | Accepted values |
 |---|---|
-| `Authorization: Bearer <token>` | a user's **personal access token** (`nzl_…`), the signed-in user's identity-provider token (what the Workplace holds), or an OAuth access token the gateway issued to an MCP client (`46` §6) |
+| `Authorization: Bearer <token>` | a user's **personal access token** (`nzl_…`), the signed-in user's identity-provider token (what the Workplace holds), or the token a client obtained by **signing in at the gateway** — an MCP connector by authorization code, Claude Desktop or another device client by device authorization (below; `46` §6) |
 
 The token is checked against management (`GET /api/users` as that token; the entry marked
 current is the caller) and cached 60 s (10 s for a refused one; never past a token's
@@ -415,6 +425,33 @@ A token of another account on the same management server is refused as unknown
 ("not a user of the gateway's account"). A revoked token can be honoured for up to a
 minute at the door (the cache); management refuses it at once.
 
+**Signing in at the gateway.** A client that cannot carry a token of its own signs in at
+the gateway and receives one; management is the authorization server behind the door.
+Two flows exist:
+
+| Flow | Clients | How it goes |
+|---|---|---|
+| **Authorization code** (OAuth 2.1, PKCE) | MCP connectors: Claude Desktop custom connector, claude.ai connector, IDEs | the client registers itself, the browser opens the consent page, Allow sends the browser back to the client with the code (`46` §6.1) |
+| **Device authorization** (RFC 8628) | Claude Desktop in gateway mode (**Sign in with your organization**) and other device clients | the client asks for a device code and a user code, shows the user the code and the verification link, and polls for the token; nothing returns through the browser (`46` §6.2) |
+
+Both doors, and the published address (§5.3), serve the authorization-server metadata on
+**their own origin**: `GET <gateway>/.well-known/oauth-authorization-server` and, for
+Claude Desktop, `GET <gateway>/anthropic/.well-known/oauth-authorization-server`. The
+sign-in exists only at the root and under `/anthropic`; `/v1` and `/openai` take tokens
+only. The metadata document is authoritative for what a gateway serves — read it before
+telling a customer which endpoint exists. A current gateway lists the issuer (the
+gateway's origin) and, under `<gateway>/.netzilo/oauth2/`, `authorize`, `token`,
+`register`, `revoke`, `device` and a `verify` page, all on that origin: the sign-in and
+verification pages are redirects to management (the Workplace host for a published
+address), the token, registration, revocation and device calls are forwarded. Claude
+requires the issuer, token and device endpoints to be on the same origin as the endpoint
+it was given, which is why the gateway serves them itself.
+
+What either flow yields is the user's **own personal access token**, named `<app> (MCP)`
+(`Claude (MCP)`), scope `mcp`, valid **1 day**, with a refresh token valid **30 days**
+(each refresh rotates both). The user sees it under Profile Settings → **Access Tokens**
+and can revoke it there; the app then has to sign in again.
+
 **Refusals, in the order a caller can meet them:**
 
 | HTTP | Body | Cause and fix |
@@ -422,6 +459,7 @@ minute at the door (the cache); management refuses it at once.
 | 401 `a Netzilo credential is required` (with `WWW-Authenticate: Bearer realm="netzilo", resource_metadata=…`) | `{"error":{"message":…,"type":"netzilo_gateway"}}` | no token, a malformed token, a token of another account, or an expired one, on the public door. The same body on the tunnel door never appears: there an unidentified caller passes through ungoverned |
 | 503 `management is not reachable, try again` (`Retry-After: 5`) | same shape | the gateway could not ask management who the token belongs to; nothing is cached about it |
 | 404 `not served by the AI gateway` | same shape | the upstream's own admin or UI paths (`/`, `/api/…`, `/ui`): the gateway never forwards them |
+| 405 `Method Not Allowed` on `POST /v1/messages` | — | the Anthropic Messages API is served under `/anthropic`; the caller's base address lacks it (Claude Desktop endpoint, `ANTHROPIC_BASE_URL`) → `<gateway>/anthropic` |
 | 502 `the AI gateway upstream is not reachable` | same shape | the built-in upstream is down; the process will have logged why |
 | 403, `type: netzilo_policy`, message `no model is granted to this user` / `none of this user's filters grants a model` / `model <m> is not granted to this user` / `model <provider>/<m> is not granted to this user` | the error envelope of the API surface called | no gateway filter grants the user that model (`29` §2.2); also what a user gets while their filters cannot be fetched |
 | 403 `type: netzilo_policy`, a guardrail's reason (default `blocked by Netzilo policy`) | same | a guardrail blocked the prompt, the answer, a requested tool call, an MCP tool call or an MCP result; the event names the rule |
@@ -549,6 +587,14 @@ and users are fetched afresh.
 | Guardrail does not fire for Claude Code / Codex users | by design: prompt guardrails and model grants apply to `/v1/chat/completions` only (§1) | state it; limits and usage still apply |
 | MCP tool answers `Connect <server> in your Workplace…` | the user has no sign-in/header values for that server | `46` §4 and `47` §3 |
 | `Tool execution failed: Blocked by rule: <name>` | a guardrail on the tool result or arguments | expected; the event names the rule |
+| Claude Desktop: `gateway SSO discovery failed: 401` | the endpoint in Claude is `<gateway>/v1`, `<gateway>/openai` or another path: no sign-in is served there (the bare `<gateway>` signs in but then fails with 405 on `/v1/messages`) | set the endpoint to exactly `<gateway>/anthropic` |
+| Claude Desktop: `Gateway returned HTTP 405 … /v1/messages` | the endpoint lacks `/anthropic` (Claude probes `/v1/models` and `/v1/messages` relative to its endpoint) | same |
+| Claude Desktop: `gateway SSO metadata invalid: token_endpoint: must be same-origin as inferenceGatewayBaseUrl` | the gateway (or the reverse proxy in front of a published address) is older than the gateway sign-in: its metadata pointed at management | upgrade the gateway (§3.4) or the reverse proxy (`44` §10.4) |
+| Claude Desktop: `gateway SSO: server does not advertise device_authorization_endpoint` | `GET <gateway>/anthropic/.well-known/oauth-authorization-server` has no `device_authorization_endpoint`: gateway or management too old | upgrade; re-read the metadata |
+| Claude Desktop: `gateway SSO device init failed: HTTP 400` | management is older than the device sign-in (it required a client id) | upgrade management |
+| Consent page: "That code was not found or has expired. Check it and try again." | mistyped code (letters only, `XXXX-XXXX`), or more than 10 minutes since Claude showed it | retype; after 10 minutes start the sign-in again in Claude |
+| **Allow** pressed, Claude keeps waiting | Claude polls every 5 s and must collect the token within 5 minutes of Allow; a management restart or another replica (§11) lost the pending sign-in | wait a few seconds; else sign in again; single replica or session affinity |
+| 429 `too many sign-ins from this address; try again later` | 30 device sign-in starts per address in 10 minutes (a shared egress address counts as one) | wait for the window |
 | Through a published application: 502 `The application did not answer.` | target without `:8447`; gateway down; no policy from the user's device groups to the gateway peer; the proxy still on a stale target (≤10 min on old proxies) | fix the target; `44` §11 |
 | Through a published application: 404 `There is no application at this address.` | application disabled or unpublished; name cache up to 30 s old | enable; wait; `44` §11 |
 | Usage never appears on the dashboard | `gateway ai: usage: … kept, upload failed` (management unreachable or token refused) or `… dropped` (server rejected the batch); the dashboard snapshot is hourly | fix the cause; wait for the next hourly snapshot; the AI Usage report reads the same data |
@@ -575,6 +621,15 @@ admin, and `netzilo-aigw --version`.
   their counters.
 - **A revoked token works for up to a minute** at the door; management refuses it
   immediately, so the window is the gateway's cache only.
+- **Sign-ins at the gateway live in one management process** for 10 minutes — connector
+  and device sign-ins alike: several management replicas need session affinity, and a
+  management restart drops sign-ins mid-flight (the user starts again).
+- **The device sign-in exists only under `/anthropic`.** Claude Desktop's endpoint must be
+  exactly `<gateway>/anthropic`; `/v1` and `/openai` are token-only surfaces.
+- **A token from a gateway sign-in lasts 1 day** (refresh token 30 days, rotated on each
+  refresh), unlike the 90-day Workplace token; a revoked one makes the app sign in again.
+- **Per address:** 30 device sign-in starts and 20 client registrations per 10 minutes;
+  a sign-in must be approved within 10 minutes and collected within 5 minutes of Allow.
 - **The tunnel door governs by peer.** A request from a peer the gateway cannot map to a
   user passes through ungoverned (counted and logged). Keep the gateway peer reachable
   only from groups that should use it.

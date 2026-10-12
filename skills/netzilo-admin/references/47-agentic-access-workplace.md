@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12005
+chars: 14734
 sections:
 - id: '1'
   title: What the user sees
   chars: 1578
 - id: '2'
   title: The LLM gateway dialog
-  chars: 2457
+  chars: 2948
 - id: '3'
   title: The MCP server dialog
   chars: 2724
@@ -23,10 +23,10 @@ sections:
   chars: 696
 - id: '5'
   title: Diagnosis — "my agent cannot use the gateway"
-  chars: 3102
+  chars: 5050
 - id: '6'
   title: What to tell employees
-  chars: 747
+  chars: 1037
 ---
 # Admin Skill — Agentic Access: what users do at the Workplace
 
@@ -103,12 +103,15 @@ the user's traffic.
 | **Anthropic SDK** | `anthropic.Anthropic(base_url="<gateway>/anthropic", auth_token="<token>")` — `auth_token`, not `api_key` (§5) |
 | **Cursor** | Settings → Models: OpenAI API Key = token, Override OpenAI Base URL = `<gateway>/v1`, Model = `<model>` |
 | **curl** | `curl <gateway>/v1/chat/completions -H "Authorization: Bearer <token>" …` |
+| **Claude Desktop** (no tab in the dialog; set up in Claude itself) | endpoint **`<gateway>/anthropic`** (exactly), then **Sign in with your organization** — no token needed: Claude shows a code, the browser opens the approval page, the user checks the code and presses **Allow** (`46` §6.2). Alternatively the access token above as the API key |
 
 `<model>` is the first model the gateway listed for the user. Any OpenAI-compatible
 client works the same way: base URL `<gateway>/v1`, API key = the token. Any
 Anthropic-compatible client: base URL `<gateway>/anthropic`, the token as a **Bearer**
-(auth token), model names as the admin's provider lists them. Claude Desktop with a
-custom endpoint: endpoint `<gateway>/anthropic`.
+(auth token), model names as the admin's provider lists them. Claude Desktop's
+organization sign-in works only with the `<gateway>/anthropic` endpoint: `/v1` serves no
+sign-in, and the bare address signs in but cannot serve Claude's requests (they belong
+under `/anthropic`).
 
 ---
 
@@ -171,6 +174,11 @@ are granted; it cannot change grants.
 | 401 `a Netzilo credential is required` from the agent | token mistyped, expired (90 days), deleted under Access Tokens, or of another account | create a new token in the dialog |
 | 401 from the **Anthropic SDK or Claude Desktop** while curl works | the key was given as `api_key` → sent as `x-api-key`, which the gateway does not accept | pass it as the **auth token** (`ANTHROPIC_AUTH_TOKEN`, `auth_token=`), base `<gateway>/anthropic` |
 | 405 `Method Not Allowed` on `/v1/messages` | the Anthropic base URL lacks `/anthropic` | `ANTHROPIC_BASE_URL=<gateway>/anthropic`; Claude Desktop endpoint `<gateway>/anthropic` |
+| Claude Desktop: `gateway SSO discovery failed: 401` or `Gateway returned HTTP 405 … /v1/messages` | the endpoint in Claude: `/v1` and `/openai` serve no sign-in (401 at discovery); the bare address signs in but the Anthropic API is under `/anthropic` (405) | endpoint exactly `<gateway>/anthropic`, then **Sign in with your organization** |
+| Claude Desktop: `gateway SSO metadata invalid: token_endpoint: must be same-origin as inferenceGatewayBaseUrl` / `gateway SSO: server does not advertise device_authorization_endpoint` / `gateway SSO device init failed: HTTP 400` | `GET <gateway>/anthropic/.well-known/oauth-authorization-server`: endpoints on the gateway's origin with a `device_authorization_endpoint`? | the gateway, the reverse proxy in front of a published address, or management is older than the device sign-in → admin upgrades (`27` §10) |
+| Claude shows a code; the approval page says "That code was not found or has expired" | the code as typed; more than 10 minutes since Claude showed it | retype (letters only, `XXXX-XXXX`); start the sign-in again in Claude |
+| **Allow** pressed, Claude keeps waiting | Claude polls every 5 s; the approval must be collected within 5 minutes | wait a few seconds; else sign in again (`46` §6.2) |
+| Claude Desktop signed in once, now refuses or uses a stale sign-in | the token `Claude (MCP)` under Profile Settings → Access Tokens (revoked or expired: 1 day, refresh 30 days) | sign in again in Claude; as a last resort on macOS reset Claude's remembered sign-in (below) |
 | 403 `no model is granted to this user` / `model X is not granted to this user` | Models tab of the dialog lists what they may use | ask for the model, or the admin grants it (`29` §2.2) |
 | 429 / 402 | a limit (`45` §2.2) | wait for the window, or the admin raises it |
 | 403 `type: netzilo_policy` with a reason | a guardrail blocked the prompt, answer or tool call; the Guardrails tab names the rules that apply | expected; the event in Activity names the rule |
@@ -179,6 +187,12 @@ are granted; it cannot change grants.
 | Claude Desktop connector asks to sign in, then fails | the consent page was denied, or management is not reachable under its dashboard host | retry, Allow; `46` §6 |
 | "The access token could not be created." | the user may not create tokens (blocked user), or the request failed | `GET /api/users/{id}/tokens` as the user; Profile Settings → Access Tokens |
 | Everything works for the admin, not for a user | the admin's filters differ; the user's groups | compare `GET /api/edge/filters/effective?type=gateway&user=<id>` for both (admin token) |
+
+**Resetting Claude Desktop's remembered sign-in** (macOS, last resort): quit Claude; its
+gateway-mode data is under `~/Library/Application Support/Claude-3p/`; the remembered
+sign-in is the key `custom3pGatewaySso` in `config.json` there (remove the key, keep a
+backup); the gateway settings are in `configLibrary/` (move it aside to get the setup
+screen back). Other OSes: the equivalent application-data folder.
 
 **Evidence to collect** before escalating: the dialog's Details tab values, the exact
 error body (no token), `GET /api/users/current/ai-access` as the user, and the gateway's
@@ -198,3 +212,7 @@ error body (no token), `GET /api/users/current/ai-access` as the user, and the g
   a guardrail matched it (`14-data-handling-and-privacy.md` §3).
 - "Needs Attention" on an MCP server means you still have to connect it: open it and
   press Connect.
+- In Claude Desktop, set the endpoint to the gateway address followed by `/anthropic`
+  and choose **Sign in with your organization**; no token to paste. Claude shows a code
+  and opens an approval page: check that the page shows the same code, then press
+  **Allow** and return to Claude.

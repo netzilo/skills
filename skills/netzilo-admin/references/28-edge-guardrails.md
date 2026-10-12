@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 13233
+chars: 15404
 sections:
 - id: '1'
   title: Model
@@ -17,7 +17,7 @@ sections:
   chars: 1418
 - id: '3'
   title: Minimal rule template
-  chars: 2157
+  chars: 3482
 - id: '4'
   title: Testing with Replay
   chars: 1072
@@ -29,7 +29,7 @@ sections:
   chars: 803
 - id: '7'
   title: Diagnosis
-  chars: 1843
+  chars: 2689
 - id: '8'
   title: Limits to state before a customer discovers them
   chars: 1308
@@ -151,6 +151,44 @@ server, the AI judge needs a model approved for **Threat Analysis** under Integr
 Artificial Intelligence). A scan that cannot run (management unreachable, no approved
 model, timeout) is an **error for the rule's `on_error`**, not an allow by default.
 
+Two tested PII templates, prompt direction. The response rule is the same with
+`event_type: llm_response` and its own `id`; the API body carries
+`"context":["agent_events"]`. Both redact in the prompt as sent and in the answer, on
+devices, in the browser extension and at the gateway.
+
+```yaml
+title: Redact US social security numbers in prompts
+id: 1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f
+level: high
+logsource: {product: ai_agent, category: agent_events}
+detection:
+  sel:
+    event_type: llm_request
+    content|re: '\b\d{3}[-\x{2010}-\x{2015} ]\d{2}[-\x{2010}-\x{2015} ]\d{4}\b'
+  condition: sel
+action: redact
+replace: "[SSN-REDACTED]"
+```
+
+```yaml
+title: Redact payment card numbers in prompts
+id: 2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a
+level: high
+logsource: {product: ai_agent, category: agent_events}
+detection:
+  sel:
+    event_type: llm_request
+    content|re: '\b(?:4\d{3}|5[1-5]\d{2}|3[47]\d{2}|6(?:011|5\d{2}))(?:[ \x{2010}-\x{2015}-]?\d{4}){3}\b'
+  condition: sel
+action: redact
+replace: "[CARD-REDACTED]"
+```
+
+**Patterns that silently fail.** `|re` is RE2: a lookaround, a backreference or a `\u`
+escape does not compile, and the rule never fires. The list is in
+`32-detection-rule-authoring.md`, "`|re` is RE2 — four things that silently kill a
+rule". Read the host's rule load after every save (§7, first row).
+
 ---
 
 ## 4. Testing with Replay
@@ -220,6 +258,9 @@ silently at expansion, and the next save of such a filter fails with
 | Blocked call but another rule named in the event | the named rule is the most severe match across all filters (equal severity: lowest rule `id`) | correct the `level` values or narrow the other rule; reordering has no effect |
 | `scan` rules slow down the agent | classifier or AI-judge latency (15 s timeout on devices and gateways) | narrow the `detection` first; `on_timeout: report` |
 | Device log `Failed rules: [<id>, …]` / gateway log `… N rule(s) loaded, N failed` | those rules do not parse | open each, fix the YAML, save |
+| Rule saved but the host reports it failed: client log `Rules updated: n loaded, k failed`, the extension's status (failed rules by name), gateway log `… N failed` | the `\|re` pattern does not compile as RE2: lookaround, a backreference, `\u` | rewrite the pattern (`32-detection-rule-authoring.md`, the RE2 section), save, read the next rule load |
+| SSN rule never matches the test data | the pattern excludes the 9xx and 000 ranges test data is made of, or the hyphens in the text are not ASCII (U+2010–U+2015) | use the §3 pattern: open ranges and the separator class `[-\x{2010}-\x{2015} ]` |
+| Redaction in the event but not in the page or the answer | an old extension or client renders the original; the event shows what the engine produced | check the host's version (the extension's in its popup, the client's in Peers) and upgrade |
 | Filter save fails `guardrail <id> does not exist` | a bound guardrail was deleted | remove it from the filter |
 
 Events: `guardrail.created/updated/deleted`; verdicts `ai.*`.

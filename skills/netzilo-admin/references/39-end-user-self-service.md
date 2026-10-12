@@ -8,17 +8,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 18959
+chars: 22222
 sections:
 - id: '1'
   title: What a regular user can see through the API
-  chars: 5271
+  chars: 5992
 - id: '2'
   title: What you may do on their device
   chars: 2164
 - id: '3'
   title: The questions a regular user brings, and where each one ends
-  chars: 7757
+  chars: 10299
 - id: '4'
   title: Ending on the administrator's side of the boundary
   chars: 1736
@@ -67,9 +67,10 @@ here is what the person's devices themselves hold, no more.
 | `GET /api/edge/filters` | Their enabled **endpoint** filters only (what the extension reads). Gateway grants are not in it: they come from `GET /api/users/current/ai-access` |
 | `GET /api/users/current/ai-access` | The Workplace's **Agentic Access** view: their gateways with models, their MCP servers with connection state, bundles, and the guardrails that apply. Both lists empty = no gateway filter grants them anything, and the tab is hidden |
 | `GET /api/users/current/mcp-connections`, and the connect / complete / headers / disconnect calls under it | Their own sign-ins and header values for per-user MCP servers (`not_connected`, `needs_reauth`, connected); the writes a user makes from the MCP server dialog (`47-agentic-access-workplace.md` §3, `46-ai-gateway-mcp-servers-and-bundles.md` §4) |
-| `POST/DELETE /api/users/{their id}/tokens` | Their own personal access tokens; the Workplace creates one named **AI Gateway** with scope `mcp` (90 days) for gateway use — that scope identifies them to gateways and reads nothing else |
+| `GET/POST/DELETE /api/users/{their id}/tokens` | Their own personal access tokens; the Workplace creates one named **AI Gateway** with scope `mcp` (90 days) for gateway use — that scope identifies them to gateways and reads nothing else. An application they approved on the consent page (Claude Desktop's **Sign in with your organization**) holds one named **<app> (MCP)**, for example **Claude (MCP)**, same scope, renewed by the application itself; deleting it signs that application out |
 | `GET /api/users/current/published-apps` | The published applications the person may open (the Workplace's Applications tiles): name, address, `url`. Empty when publishing is off for the tenant or none of their groups is admitted (`44-published-applications.md` §12) |
 | `GET /api/users/{their id}/gateway-sessions` | Their browser sessions through a Netzilo gateway (`vp-<n>-PROXY`) with `connected`, browser and OS: the Workplace page's **Private access** status (`43-clientless-access-gateway.md` §3.5, §10.3). Another user's id answers 403. (Not the AI gateway: for that, `ai-access` above) |
+| `GET /api/aidr/sessions`, `GET /api/aidr/sources` | Their own AI sessions and sources only: the sessions recorded on their devices and in their browser (a source of `kind: browser`, with the `device` it runs on and the `capabilities` the browser offers). Without `scope` the list is narrowed to theirs; `scope=session:<id>` for someone else's session answers 403 (`session is not one of yours`); `scope=source:<id>` must be one of their peers or their browser |
 
 When the administrator has **disabled the portal for regular users** (Settings → Permissions),
 every list above is empty: the person's client still works,
@@ -151,6 +152,11 @@ administrator.
 | An MCP server shows **Needs Attention** / "it asks me to sign in" / a tool answers `Connect <server> in your Workplace…` | `GET /api/users/current/mcp-connections` → `not_connected` or `needs_reauth` for that server | Their side: open the server's card, **Connect** or **Reconnect** (`47` §3). **Administrator** when the server uses the admin's shared sign-in ("An admin has not connected this server yet") |
 | A gateway card shows **Offline** | `ai-access` has the address; ask whether `curl <gateway>/v1/models -H "Authorization: Bearer <token>"` works from their machine (never ask for the token itself) | **Administrator**: the gateway is down, started without the Workplace's address, or not reachable from the user's network (`47` §5, `27-ai-gateway.md` §5) |
 | 401 `a Netzilo credential is required` from the gateway | the token: expired (90 days), deleted under Access Tokens, mistyped, or passed as an API key instead of a bearer/auth token | Their side: create a new token in the gateway dialog, and for Anthropic clients pass it as the auth token (`47` §5) |
+| "My browser extension says Inactive" / "nothing is redacted in ChatGPT" | the popup: are they signed in (**Login**), what the **Protection** line says; `GET /api/edge/filters?os=browser` — is any endpoint filter with **Browser** among its operating systems in the list; `GET /api/aidr/sources` — does their browser appear with `kind: browser`. No device tools for a browser | Their side: sign in from the popup, update the extension; in Safari enable the **Netzilo Browser** extension and allow it on all websites. **Administrator** when no endpoint filter listing **Browser** targets their groups, or that filter binds no guardrail (`49-browser-extension-aidr.md`) |
+| "The extension says the desktop client governs this browser" | `GET /api/peers` — their device on that computer is connected. Nothing else to check | Expected: the Netzilo client on that device inspects the AI sites itself and the extension stands down; the same rules apply through the client. On Linux the client does not take over the browser, so the extension stays in charge there (`49-browser-extension-aidr.md`) |
+| "Claude Desktop sign-in fails" — "gateway SSO discovery failed: 401", "Gateway returned HTTP 405 … /v1/messages", "gateway SSO metadata invalid: token_endpoint: must be same-origin …", "server does not advertise device_authorization_endpoint", "gateway SSO device init failed: HTTP 400" | the endpoint they typed against the **Anthropic API** address in `ai-access`: it must end in `/anthropic` (401 and 405 mean it does not) | Their side for the address; **administrator** for the other three: the gateway or the server predates the device sign-in and needs an upgrade (`47-agentic-access-workplace.md` §5, `46-ai-gateway-mcp-servers-and-bundles.md` §6) |
+| "I approved but Claude still waits" | did the page reach **Access allowed**; how long ago — the sign-in expires 10 minutes after Claude started it and the approval is collected within 5 minutes; a server restart in between drops it | Their side: start again from Claude (**Sign in with your organization**) and approve once more; **administrator** if every attempt ends the same way (`47` §5, `46` §6) |
+| "A token named Claude (MCP) appeared under my Access Tokens — what is it" | `GET /api/users/{their id}/tokens` — a token named **<app> (MCP)**, scope `mcp`, created the moment they pressed **Allow** for that application | Their side, expected: it is the application's sign-in and it renews itself; deleting it signs the application out and nothing else changes (`47` §5, `46` §6) |
 
 Work the symptom with the loop in `38-device-diagnosis-method.md` §2 and stop at the
 tree's stop condition. The trees end at a cause; §4 below says how to end the conversation.

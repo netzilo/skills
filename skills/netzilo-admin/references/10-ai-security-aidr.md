@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 32089
+chars: 35250
 sections:
 - id: '1'
   title: Architecture in one page
-  chars: 3504
+  chars: 3812
 - id: '2'
   title: Rollout runbook
   chars: 3290
@@ -26,7 +26,7 @@ sections:
   chars: 4078
 - id: '6'
   title: Browser extension and Enterprise Browser
-  chars: 2792
+  chars: 4726
 - id: '7'
   title: The AI Gateway and MCP
   chars: 1292
@@ -35,13 +35,13 @@ sections:
   chars: 1685
 - id: '9'
   title: Troubleshooting
-  chars: 5029
+  chars: 5546
 - id: '10'
   title: Reporting and evidence
   chars: 952
 - id: '11'
   title: Constraints to disclose early
-  chars: 2614
+  chars: 3016
 ---
 # Netzilo — AI Security (AIDR) Administration
 
@@ -81,7 +81,7 @@ Ways traffic enters the device-side engine:
 | **Netzilo client (daemon)** | a TLS-inspecting proxy on `127.0.0.1:41339`; per-app traffic is steered into it by the Windows `nwfilter` driver or the macOS system extension for processes listed in an endpoint filter's **Agents**. Parses OpenAI, Anthropic, Gemini, Perplexity, Cursor, Cohere, Bedrock, NVIDIA, Ollama, Telegram, OpenShell and MCP over HTTP; classifies semantic events (skill acquisition, file upload/download, external messages, automation) | desktop AI apps, IDE assistants, any process on a managed machine |
 | **Coding-agent hooks** | `netzilo hook` registered in Claude Code / Codex CLI / Gemini CLI / OpenClaw; each tool call, prompt and session event is POSTed to the daemon's `http://localhost:41336/evaluate` before it runs | CLI coding agents, where the hook can *block* a tool call or prompt synchronously |
 | **SDK** (`pip install netzilo`, `npm install netzilo`, 5.0) | the whole client embedded in the agent process; `is_allowed()`/`wrapTool()`/framework adapters; optional **advanced governance** (Linux only) adds in-process TLS interception and a syscall probe | agents you build (CrewAI, LangGraph, Strands/AgentCore, LangChain, AutoGen, …) |
-| **Browser extension** ("Netzilo Secure Browser") | evaluates prompts to ChatGPT/Claude/Gemini/Perplexity/… in the page, fetches its rules from the server (`/api/edge/filters?os=…`), sends events to `/api/edge/events`; when the desktop client is present it defers LLM governance to the client | browser AI use on managed or BYOD devices |
+| **Browser extension** ("Netzilo Secure Browser") | the same engine built for the browser: governs the web AI apps (ChatGPT signed-in and logged-out, claude.ai, Gemini, Perplexity), direct API calls from pages and MCP over WebMCP, keeps a network log (no bodies) and uploads tab sessions to the behaviour graph; reads the endpoint filters whose Operating Systems include **Browser** (`/api/edge/filters?os=browser`) for the signed-in user's groups; stands down when the desktop client on the device governs the browser (`49-browser-extension-aidr.md`) | browser AI use on managed or BYOD devices, and the only browser enforcement point on Linux |
 
 Central policy objects (Dashboard → **Edge**, in this order): **Providers** (`45`),
 **MCP** servers and bundles (`46`), **Guardrails** (`28`), **Limits** (`45`),
@@ -277,7 +277,11 @@ governs what the agent does, the gateway what it may ask of models.
 
 **Extension ("Netzilo Secure Browser"):** Chrome Web Store id
 `kdcpnkonhjcknlkjmjapclhpoamlckji`; Edge Add-ons id `efflopncanncclcfnddajplbnmhoebml`;
-Firefox `netzilo-secure-browser`; Safari App Store `6740890085`.
+Firefox ≥ 128 `netzilo-secure-browser`; Safari through the **Netzilo Secure Browser**
+app, App Store `6740890085` (the Safari extension inside it is named **Netzilo Browser**;
+enable it under Safari → Settings → Extensions and allow it on all websites). Version
+line 5.1.x. Everything below in full, with the diagnosis table, is
+`49-browser-extension-aidr.md`.
 
 - Force-install via browser policy: Chrome `ExtensionInstallForcelist` =
   `kdcpnkonhjcknlkjmjapclhpoamlckji;https://clients2.google.com/service/update2/crx`;
@@ -285,17 +289,38 @@ Firefox `netzilo-secure-browser`; Safari App Store `6740890085`.
   The Netzilo client does this automatically when an **Enterprise Browser Extension**
   profile applies to the device (registry / `/etc/opt/chrome/policies/managed/` /
   `/Library/Managed Preferences/`), and removes it on `service uninstall`.
-- Standalone mode (no client): the user signs in at the dashboard; the extension stores
-  `nz_cloud_url` + `nz_auth_token` and refreshes rules every 5 minutes from
-  `GET /api/edge/filters?os=…` — only **endpoint** filters whose **Agents** list matches the
-  browser name ("Google Chrome", "Microsoft Edge", "Mozilla Firefox", "Apple Safari")
-  apply.
-- Enforcement: a blocked prompt returns HTTP 403 "Blocked by policy" to the web app;
-  redactions rewrite the request body silently; responses are observed, not blocked. The
-  `Prevent LLM Prompt Injections` domain setting in a profile enables prompt scanning via
-  `POST /api/ai/scanprompt`.
-- Popup → Debug tab shows `LLM Guard: ENABLED (standalone mode)` / `DISABLED (client mode)`,
-  and pills `SW DOWN`, `INIT ERR`, `RULES:n`, `OK R:n`. Console prefixes `[Netzilo]`, `[LLMGuard]`.
+- **One engine.** The extension runs the same governance engine as the client and the
+  AI Gateway; guardrails, the behaviour graph and `ai.*` events are the same. It governs
+  the web AI apps (ChatGPT signed-in and logged-out, claude.ai, Gemini, Perplexity),
+  direct API calls a page makes to the LLM providers, MCP over WebMCP, and keeps a
+  network log of the tab's requests (host, path, method, content type; never bodies).
+  Safari has no network log, so rules that `requires: http` are skipped there.
+- **Policy:** only **endpoint** filters whose Operating Systems include **Browser**
+  (`os: browser`) and whose groups contain the signed-in user; the Agents list is not
+  used by the extension. A desktop OS never matches the browser and a browser-only
+  filter never reaches a desktop client.
+- **Sign-in:** standalone, from the popup's **Login** (the tenant picker at the
+  Workplace); the popup shows **Protection: Active / Inactive**. When the desktop client
+  on the device governs the browser (browser executable in Agents **and** the AI hosts
+  within its inspection), the extension **stands down** after confirming with management
+  that the user has a connected device; on Linux the extension is always the browser
+  enforcement point.
+- **Enforcement:** a redaction replaces the matched text with the rule's `replace`
+  token in the prompt as sent and in the answer as shown; a blocked prompt is refused in
+  the chat (ChatGPT shows an error with the reason; claude.ai and Gemini show the answer
+  "Netzilo Guardrail: Blocked by rule: <rule name>"); conversation history is governed
+  again when reloaded. Streamed answers are held about 1 KB behind the model.
+- **`fail_mode`** (browser managed policy, key `fail_mode`): `open` (default) passes
+  traffic while the engine cannot judge it; `closed` stops such requests on AI endpoints
+  only.
+- Events: source `extension`, agent = the site, program = the site origin, session = the
+  tab's session; Activity reads "<site> in the browser for <user>". Sessions appear
+  under `GET /api/aidr/sources` with `kind: browser`, and a **Session snapshot** entry
+  announces the first behaviour of a session.
+- Popup → Debug tab is the status screen to ask a user for: state, Protection,
+  stand-down, rules version, filters count, rules loaded / failed / skipped with names,
+  capabilities, active tabs, `unmapped` counters (traffic on AI endpoints the engine
+  could not read — the site changed; report to Netzilo).
 
 **Netzilo Enterprise Browser** (Chromium-based, Windows/macOS/Linux/mobile):
 `pkg.netzilo.com/download/windows/browser_setup.exe`, `…/macos/{amd64,arm64}/NetziloEnterpriseBrowser_*.dmg`,
@@ -380,9 +405,10 @@ per rule whether a scan failure should block (`on_error: block`).
 | Rule never fires | wrong `logsource.category`; content not where expected; a more severe rule already blocks the same events; a gateway filter with an endpoint-only context | Replay to see the real payload; `28` §7 |
 | Too many false positives | | tighten the regex, add `excl` + `condition: sel and not excl`, switch to `report` |
 | ✦ generation returns 428 / 422 | no model approved for Threat Analysis / provider not approved | Integrations → Artificial Intelligence |
-| Browser extension `DISABLED (client mode)` in plain Chrome with the client installed | by design: the client proxy handles LLM traffic | ensure the Chrome path is in the filter's Agents (Windows/macOS) |
+| Browser extension stands down ("the desktop client governs this browser") with the client installed | by design on Windows/macOS when the browser executable is in the filter's Agents and the AI hosts are within the client's inspection; events then come with source `mitm` | nothing, unless the client does not inspect the AI sites: then remove the browser from Agents so the extension governs it (`49` §3, §10) |
+| Browser extension **Protection: Inactive** / no browser events | not signed in from the popup; no enabled endpoint filter with OS **Browser** for the user's groups; a failed guardrail | `49` §10; the popup's Debug tab names the cause |
 | Bedrock traffic visible but not redacted | SigV4-signed requests cannot be rewritten by the daemon | use SDK embedded mode, or Bedrock's OpenAI-compatible bearer endpoint, or route through the AI Gateway |
-| Events show `peer="edge.netzilo.extension"` | events from the browser extension in standalone mode | normal |
+| Events with source `extension` and agent = a site (`chatgpt.com`, `claude.ai`, …) | events from the browser extension; Activity reads "<site> in the browser for <user>" | normal |
 | An agent gets 401/403/405/429 from the **gateway** | `27` §6 and `47` §5 | |
 | A user has no **Agentic Access** tab | no gateway filter grants them an address or MCP server | `29` §5.2 |
 
@@ -450,6 +476,12 @@ Netzilo's own model-grant refusal cover the OpenAI chat surface; Responses, Anth
 embeddings and completions are identified, limited by the virtual key and recorded.
 Streams are block-only. Say this before promising a prompt block for a Claude Code user
 on the gateway; the device hooks still block that user's tool calls.
+
+**Streamed answers are held back.** On every enforcement point — the client, the
+browser extension and the gateway — streamed answer text is released about 1 KB behind
+the model so that a match can be redacted before it is shown. Users see a short delay on
+long answers, and short answers appear at once at the end. Say this before a user
+reports "the AI got slower" after a redaction rule was bound.
 
 **Old clients.** A client from before this release still receives its endpoint filters
 with guardrails and enforces them; it reports its verdicts with activity codes the server

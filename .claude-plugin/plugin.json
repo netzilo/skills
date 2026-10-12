@@ -1,7 +1,7 @@
 {
   "name": "netzilo",
   "displayName": "Netzilo",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Operate Netzilo end to end: self-hosted server install and day-2 operations, identity and SSO, client deployment, network policy, AI security (AIDR) on devices and through the Netzilo AI Gateway (model grants, limits, MCP servers and bundles, guardrails, Agentic Access, AI usage), detection-rule authoring, installer command lines, REST API automation, clientless access, published applications, the AI Assistant on self-hosted servers, and connectivity diagnosis.",
   "author": {
     "name": "Netzilo",

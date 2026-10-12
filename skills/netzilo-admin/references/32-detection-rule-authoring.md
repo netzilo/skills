@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 188777
+chars: 189575
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
@@ -56,7 +56,7 @@ sections:
   chars: 5449
 - id: detection-what-to-look-for
   title: Detection — What to Look For
-  chars: 8761
+  chars: 9559
 - id: metadata-filtering-moving-when-into-detection
   title: Metadata Filtering — Moving `when:` into Detection
   chars: 790
@@ -913,10 +913,12 @@ across restarts. See
 
 #### `|re` is RE2 — four things that silently kill a rule
 
-`|re:` patterns are compiled as RE2. On a compile failure
-**that leaf simply never matches** — no load error,
-no log line, no indication the rule is dead. All four of these have shipped in this
-corpus and been caught only by running the engine:
+`|re:` patterns are compiled as RE2. On a compile failure **the rule fails to load and
+never fires**: the host counts it (`Rules updated: n loaded, k failed` in the client
+log) and names it where it lists its rules (the extension's status; `28-edge-guardrails.md`
+§7), but no line in the log names the pattern — check the failed count after every
+edit. All four of these have shipped in this corpus and been caught only by running the
+engine:
 
 | Don't | Do | Why |
 |---|---|---|
@@ -935,6 +937,13 @@ Two more traps worth knowing:
   different flags, so a blanket `(?i)` over `'curl\b.*\s-d\s+@'` makes the rule
   match header dumps. Fold only the parts that are case-irrelevant:
   `'(?i:curl)\b.*\s-d\s+@'`.
+- **PII patterns: the separator and the "valid range" trap.** Models write SSNs and
+  card numbers with Unicode hyphens (U+2010–U+2015) and spaces as often as with `-`,
+  and the test data people paste starts with `9xx` or `000` — a pattern that excludes
+  the "invalid" SSN ranges, or accepts only `-`, misses what is actually tested. The
+  separator class is `[-\x{2010}-\x{2015} ]`. Tested in the engine on prompts and
+  answers: SSN `\b\d{3}[-\x{2010}-\x{2015} ]\d{2}[-\x{2010}-\x{2015} ]\d{4}\b`;
+  card `\b(?:4\d{3}|5[1-5]\d{2}|3[47]\d{2}|6(?:011|5\d{2}))(?:[ \x{2010}-\x{2015}-]?\d{4}){3}\b`.
 
 **Value list semantics:**
 ```yaml

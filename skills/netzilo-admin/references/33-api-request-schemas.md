@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 99987
+chars: 101971
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -60,6 +60,9 @@ sections:
 - id: post-api-ai-scanprompt
   title: '`POST /api/ai/scanprompt`'
   chars: 412
+- id: post-api-aidr-browser-observations
+  title: '`POST /api/aidr/browser/observations`'
+  chars: 1072
 - id: get-api-aidr-detections
   title: '`GET /api/aidr/detections`'
   chars: 661
@@ -116,13 +119,13 @@ sections:
   chars: 369
 - id: post-api-edge-events
   title: '`POST /api/edge/events`'
-  chars: 501
+  chars: 818
 - id: get-api-edge-filters
   title: '`GET /api/edge/filters`'
-  chars: 348
+  chars: 485
 - id: post-api-edge-filters
   title: '`POST /api/edge/filters`'
-  chars: 1861
+  chars: 2090
 - id: get-api-edge-filters-effective
   title: '`GET /api/edge/filters/effective`'
   chars: 572
@@ -131,7 +134,7 @@ sections:
   chars: 263
 - id: put-api-edge-filters-filterid
   title: '`PUT /api/edge/filters/{filterId}`'
-  chars: 1914
+  chars: 2143
 - id: delete-api-edge-filters-filterid
   title: '`DELETE /api/edge/filters/{filterId}`'
   chars: 267
@@ -597,7 +600,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-10-10 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-10-12 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -855,6 +858,31 @@ Request body (JSON):
 
 Responses: `200` Scan result, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `422` Validation failed, `500` Internal Server Error
 
+## `POST /api/aidr/browser/observations`
+
+Upload a browser's observation batch
+
+Request body (JSON):
+- `source` (object, **required**)
+  - `device` (string, **required**): The browser's device id
+  - `capabilities` (array of string, optional)
+- `seq` (integer (uint64), optional): The last observation's seq
+- `observations` (array of object, **required**): At most 5000; each needs a seq of its own, increasing per browser (the engine starts at the Unix time in nanoseconds)
+  - `seq` (integer (uint64), **required**)
+  - `ts` (integer (int64), **required**): Unix nanoseconds
+  - `kind` (string, **required**)
+  - `subject` (?, **required**)
+  - `target` (object, optional)
+    - `type` (string, **required**)
+    - `id` (string, **required**)
+    - `props` (object, optional)
+  - `props` (object, optional)
+  - `content_ref` (string, optional)
+  - `call_id` (string, optional)
+  - `report_callid` (string, optional)
+
+Responses: `200` Batch stored, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
+
 ## `GET /api/aidr/detections`
 
 List AIDR detections
@@ -1086,10 +1114,12 @@ Responses: `200` A JSON Object of DNS Setting, `400` Bad Request, `401` Requires
 Push client events
 
 Request body (JSON):
-- `events` (array of object, **required**): At most 100 events per request
+- `device_id` (string, optional): The browser's device id; AI events are recorded on it
+- `events` (array of object, **required**): At most 100 events per request, 4 MB in all. An element with `type` `ai` is an AIEvent; any other is a client event (timestamp, activity, json_meta).
+  - `type` (string, optional): `ai` for an AIEvent; absent for a client event
   - `timestamp` (string, optional): RFC3339; defaults to now
-  - `activity` (integer, optional): Numeric activity code
-  - `json_meta` (string, optional): JSON-encoded metadata object
+  - `activity` (integer, optional): Numeric activity code (client events)
+  - `json_meta` (string, optional): JSON-encoded metadata object (client events)
 
 Responses: `200` Stored, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
@@ -1098,9 +1128,9 @@ Responses: `200` Stored, `400` Bad Request, `401` Requires authentication, `403`
 List all Filters
 
 Parameters:
-- `os` (query, optional): Client OS; switches the response to expanded filters for the caller
+- `os` (query, optional): Client OS; switches the response to expanded filters for the caller. `browser` returns exactly the endpoint filters whose OS list names the browser.
 
-Responses: `200` A JSON array of Filter or ExpandedFilter objects, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+Responses: `304` The caller's list is the one If-None-Match names, `200` A JSON array of Filter or ExpandedFilter objects, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
 ## `POST /api/edge/filters`
 
@@ -1110,11 +1140,11 @@ Request body (JSON):
 - `name` (string, **required**)
 - `description` (string, optional)
 - `enabled` (boolean, optional)
-- `os` (array of string, optional): Must contain at least one OS
+- `os` (array of string, optional): Endpoint filters only, where at least one is required. `browser` applies the filter to the user's browser extension; desktop values (linux, darwin, windows, …) never apply to the browser, and `browser` never applies to a desktop client.
 - `groups` (array of string, **required**): Must contain at least one group ID
 - `type` (string (endpoint | gateway), optional): What the filter governs — an endpoint's traffic (default; the OS condition applies) or an AI gateway's (group-targeted only; endpoints skip it)
-- `guardrails` (array of string, **required**): Must contain at least one guardrail ID
-- `models` (array of string, optional): Gateway filters only. Model ids as provider/model, or provider/* for every model of a provider. Empty means the filter grants no model and its users are refused.
+- `guardrails` (array of string, optional): Guardrail ids applied to the filter's traffic. Optional; a filter without guardrails only grants.
+- `models` (array of string, optional): Gateway filters only, where at least one is required. Model ids as provider/model, or provider/* for every model of a provider.
 - `limits` (array of string, optional): Gateway filters only. Limit ids; each user gets their own counters, the lowest value wins across filters.
 - `mcp` (array of object, optional): Gateway filters only. MCP servers granted, each whole or by tool names
   - `server_id` (string, **required**)
@@ -1159,11 +1189,11 @@ Request body (JSON):
 - `name` (string, **required**)
 - `description` (string, optional)
 - `enabled` (boolean, optional)
-- `os` (array of string, optional): Must contain at least one OS
+- `os` (array of string, optional): Endpoint filters only, where at least one is required. `browser` applies the filter to the user's browser extension; desktop values (linux, darwin, windows, …) never apply to the browser, and `browser` never applies to a desktop client.
 - `groups` (array of string, **required**): Must contain at least one group ID
 - `type` (string (endpoint | gateway), optional): What the filter governs — an endpoint's traffic (default; the OS condition applies) or an AI gateway's (group-targeted only; endpoints skip it)
-- `guardrails` (array of string, **required**): Must contain at least one guardrail ID
-- `models` (array of string, optional): Gateway filters only. Model ids as provider/model, or provider/* for every model of a provider. Empty means the filter grants no model and its users are refused.
+- `guardrails` (array of string, optional): Guardrail ids applied to the filter's traffic. Optional; a filter without guardrails only grants.
+- `models` (array of string, optional): Gateway filters only, where at least one is required. Model ids as provider/model, or provider/* for every model of a provider.
 - `limits` (array of string, optional): Gateway filters only. Limit ids; each user gets their own counters, the lowest value wins across filters.
 - `mcp` (array of object, optional): Gateway filters only. MCP servers granted, each whole or by tool names
   - `server_id` (string, **required**)

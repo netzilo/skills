@@ -285,5 +285,10 @@
     "requires": [
       "client-device"
     ]
+  },
+  "49-browser-extension-aidr.md": {
+    "requires": [
+      "api"
+    ]
   }
 }

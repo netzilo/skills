@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 27734
+chars: 28263
 sections:
 - id: '1'
   title: Rules of engagement
@@ -23,10 +23,10 @@ sections:
   chars: 6960
 - id: '5'
   title: Canonical facts (memorize)
-  chars: 3651
+  chars: 3871
 - id: '6'
   title: Known product gaps to warn about proactively
-  chars: 3413
+  chars: 3722
 - id: '7'
   title: Closing a task
   chars: 329
@@ -334,7 +334,7 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Setup key facts | revoking does not disconnect enrolled peers; auto-groups apply to new peers only; ephemeral = deleted 10 min after offline |
 | `netzilo down`, service stop/restart | all log the device out and reset its keys; an SSO device then needs an interactive sign-in. To re-sync without logging out use `netzilo refresh` (or `mod.refresh`) |
 | Free plan limits (cloud) | 5 users, 100 peers; no posture-check edits, no event streaming; Enterprise needed for Profiles; filters and guardrails carry no plan gate; self-hosted runs unlimited |
-| AI Gateway | binary `netzilo-aigw`, Linux service `netzilo-aigw`, config `/etc/netzilo-aigw/aigw.env` (`AIG_ARGS`, `NZ_GATEWAY_SETUP_KEY`, `NZ_GATEWAY_SERVICE_PAT`), data `/var/lib/netzilo-aigw`; ports 8447 (AI door: on the peer's tunnel address always, public with `--ai-listen`) and 8443 (browser-access proxy, always on); `--workplace-url https://go.netzilo.com` on Cloud; callers send `Authorization: Bearer <token>` (never `x-api-key`); surfaces `<gateway>/v1/…`, `<gateway>/anthropic` (`…/v1/messages`), `<gateway>/mcp/<slug>`; logs `journalctl -u netzilo-aigw` (`27-ai-gateway.md`) |
+| AI Gateway | binary `netzilo-aigw`, Linux service `netzilo-aigw`, config `/etc/netzilo-aigw/aigw.env` (`AIG_ARGS`, `NZ_GATEWAY_SETUP_KEY`, `NZ_GATEWAY_SERVICE_PAT`), data `/var/lib/netzilo-aigw`; ports 8447 (AI door: on the peer's tunnel address always, public with `--ai-listen`) and 8443 (browser-access proxy, always on); `--workplace-url https://go.netzilo.com` on Cloud; callers send `Authorization: Bearer <token>` (never `x-api-key`); surfaces `<gateway>/v1/…`, `<gateway>/anthropic` (`…/v1/messages`), `<gateway>/mcp/<slug>`; sign-in metadata on the gateway's own origin (`<gateway>/.well-known/oauth-authorization-server`, endpoints under `/.netzilo/oauth2/`); Claude Desktop endpoint `<gateway>/anthropic` + **Sign in with your organization**; logs `journalctl -u netzilo-aigw` (`27-ai-gateway.md`) |
 | Support | support@netzilo.com; docs `https://doc.netzilo.com`; public rule corpus `github.com/netzilo/aidr-sigma` |
 
 ---
@@ -381,7 +381,10 @@ It is a tool you may use; it is never evidence about the customer's environment.
 - **MCP sign-in flows live in one management process** (10 minutes in memory): a
   self-hosted server with several management replicas needs session affinity, or a user's
   OAuth sign-in to an MCP server can fail with "the sign-in expired or was not started
-  here" (`46` §4).
+  here" (`46` §4). The same holds for sign-ins at the gateway — MCP connectors and Claude
+  Desktop's device sign-in — and a management restart drops them mid-flight (`46` §6).
+- **Claude Desktop organization sign-in works only with the `<gateway>/anthropic`
+  endpoint**; `/v1` and `/openai` are token-only (`27` §6, `47` §2).
 - **Limits are per user per gateway** — there is no team pool, two gateways count
   separately, and changing a user's grants or limits restarts their counters (`45` §2).
 - **Older documentation pages** may mention `pkgs.netzilo.com`, port 33073,

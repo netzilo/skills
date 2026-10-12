@@ -7,23 +7,23 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14280
+chars: 16284
 sections:
 - id: '1'
   title: Model
-  chars: 2372
+  chars: 2966
 - id: '2'
   title: Field reference (Create New Filter / Edit Filter)
-  chars: 3474
+  chars: 3802
 - id: '3'
   title: API
   chars: 2096
 - id: '4'
   title: Design patterns
-  chars: 1612
+  chars: 1766
 - id: '5'
   title: Diagnosis — "the filter is not applying"
-  chars: 3353
+  chars: 4145
 ---
 # Admin Skill — Edge Filters (binding AI policy to devices and to gateway users)
 
@@ -36,7 +36,7 @@ A filter is the object that makes AI governance happen. It has a **type**:
 
 | Type | Targets | Carries | Enforced by |
 |---|---|---|---|
-| **Endpoint** | devices: groups × operating systems | Agents (process paths to intercept), Guardrails | the Netzilo client on each device (`10-ai-security-aidr.md`) |
+| **Endpoint** | devices: groups × operating systems; with the OS **Browser**, the signed-in user's browser extension | Agents (process paths to intercept), Guardrails | the Netzilo client on each device (`10-ai-security-aidr.md`); the browser extension for OS Browser (`49-browser-extension-aidr.md`) |
 | **Gateway** | users: groups | Models (grants), Limits, MCP servers and bundles (grants), Gateways (addresses users reach), Guardrails | the AI Gateway, per user (`27-ai-gateway.md`) |
 
 Without a matching, enabled filter a device records and enforces nothing, and a gateway
@@ -57,6 +57,12 @@ gateway filter grant (`46`).
   **and** its OS is in the filter's OS list (Windows, Darwin, Linux, Android, iOS;
   compared case-insensitively). Several filters may match; their guardrails are merged
   into one rule set.
+- Endpoint with the OS **Browser** (`browser`): the **browser extension** of every user
+  in the filter's groups gets it (`GET /api/edge/filters?os=browser` with the user's own
+  credentials). The browser is not a peer: it matches by the user's groups, never by a
+  device. A desktop OS value never reaches the extension, and a filter listing only
+  Browser never reaches a desktop client; list both when both should apply
+  (`49-browser-extension-aidr.md` §2).
 - Gateway: a user gets a filter when any of the filter's groups is among the user's
   groups (the user's own group memberships; a caller identified by its peer on the
   gateway's tunnel door adds the peer's groups). Several filters may match; grants are
@@ -65,9 +71,10 @@ gateway filter grant (`46`).
 
 **Agents** (endpoint only): only processes whose executable path matches an entry are
 transparently steered into the client's TLS-inspecting proxy (Windows, macOS). Hooks,
-the SDK and the browser extension do not need Agents entries; the extension matches
-filters whose Agents contain the browser name. Empty = no transparent interception. Linux
-has no per-app steering.
+the SDK and the browser extension do not use Agents: the extension ignores the list
+entirely and is selected by the OS **Browser** instead. Empty = no transparent
+interception. Linux has no per-app steering. A browser executable in Agents makes the
+desktop client claim that browser, and the extension in it stands down (`49` §3).
 
 **Grants** (gateway only):
 - **Models**: `provider/model` or `provider/*` ids, where `provider` is the provider's
@@ -99,7 +106,7 @@ expanded filter has a content version; a gateway fetches only versions it does n
 |---|---|---|---|
 | Targets | Filter Type | **Endpoint**: "Devices in the selected groups. Operating systems and agents apply." | |
 | Targets | Groups * | "Add or select which network groups this filter applies to (required)" | ≥1; each must exist |
-| Targets | Operating Systems * | "Select which OS platforms this filter applies to (required)" | ≥1 ("At least one Operating System must be selected"; API: `os is required and must contain at least one OS`) |
+| Targets | Operating Systems * | "Select which OS platforms this filter applies to (required)" | ≥1 ("At least one Operating System must be selected"; API: `os is required and must contain at least one OS`). Values: Windows, Darwin, Linux, Android, iOS, **Browser** (`browser`). **Browser** targets the browser extension of the groups' users and nothing else; the desktop values never reach the extension and vice versa. Agents are irrelevant for the extension. Confirm the picker's label in the customer's dashboard before quoting it |
 | Targets | Enable Filter | "Use this switch to enable or disable the filter." | default on |
 | Agents | Agents | "Specific agents can be targeted by entering process paths when this filter is active. Wildcards (`*`, `**`) and environment variables (e.g. `%PROGRAMFILES%`, `$HOME`) are supported and expanded on the endpoint." | e.g. `%ProgramFiles%\Google\Chrome\Application\chrome.exe`, `/Applications/Cursor.app/**`, `~/.local/bin/claude`; optional |
 | Guardrails | Guardrails * | "Add or browse guardrails that will be applied through this filter (required)" | **Browse Guardrails** / **New Guardrail** |
@@ -179,7 +186,7 @@ before touching anything.
 |---|---|
 | Visibility first (devices) | endpoint; groups `All`, all OSs; Agents = the AI apps in use; guardrails in report mode |
 | Developers with IDE agents | endpoint; group `developers`; Agents: Cursor, VS Code, Claude Desktop, the terminal shells if CLI agents are steered; guardrails for secrets and PII in block |
-| Finance browser AI use | endpoint; group `finance`; Agents: the browser executables (or rely on the extension); PII redaction + prompt-injection block |
+| Finance browser AI use | endpoint; group `finance`; OS **Browser** (the extension, signed in by each user; add the desktop OSs with the browser executables in Agents only where the desktop client should inspect the browser instead — then the extension stands down); PII redaction + prompt-injection block |
 | Servers/agents enrolled with setup keys | endpoint; group from the setup key's auto-groups; OS Linux (hooks/SDK path) |
 | Everyone may use approved models through the gateway | gateway; group `All`; Models = the approved provider's models; Gateways = the published address; a monthly spend Limit; the baseline guardrails |
 | A team with more | a second gateway filter for its group with the extra models and MCP servers; grants add up, the **lowest** limit still wins, so keep the baseline's limit generous or leave it off the baseline |
@@ -211,8 +218,15 @@ rule bound in the baseline reaches everyone.
    needs hooks, the SDK or the proxy env, `10` §3); CLI agent `netzilo hook verify
    --framework=<x>` → ready; browser: the extension, or the browser executable in Agents;
    SDK agent: enrolled with a setup key whose group is in the filter.
-5. **Evidence:** Activity → Events, category AI Edge, filtered by the user or peer: `ai.*`
-   events name the filter and rule; the peer's behaviour graph (`/api/aidr/…`) proves the
+5. **Browser filter not applying** (the extension, not the client): the user is in one
+   of the filter's groups; the filter's OS list contains **Browser**; the user is signed
+   in to the extension (popup: **Protection: Active**, filters count ≥ 1); the extension
+   has not stood down for the desktop client (popup status "the desktop client governs
+   this browser" — then the client's Agents and inspection decide, `49` §3). Press the
+   popup's Refresh after a change; `49` §10 has the full table.
+6. **Evidence:** Activity → Events, category AI Edge, filtered by the user or peer: `ai.*`
+   events name the filter and rule (source `mitm` from the client, `extension` from the
+   browser); the peer's or the browser's behaviour graph (`/api/aidr/…`) proves the
    engine sees traffic.
 
 ### 5.2 Gateway filter, for a user
@@ -232,7 +246,8 @@ rule bound in the baseline reaches everyone.
 | No events at all from a device | §5.1 steps 1–4 | as above |
 | Events but nothing blocked | guardrails in report mode | change actions |
 | Chrome not intercepted although in Agents | path mismatch (env var casing, install dir); another browser | use `%ProgramFiles%\…` and `%LocalAppData%\…` variants |
-| Works on Windows, not on Linux | Linux lacks per-app steering | hooks/SDK/proxy env |
+| Works on Windows, not on Linux | Linux lacks per-app steering | hooks/SDK/proxy env; for the browser, the extension (OS **Browser**) |
+| Browser filter ignored | OS list has only desktop values; user not in the groups; not signed in to the extension; stood down for the client | §5.1 step 5 |
 | Filter save fails | validation above; a deleted guardrail still referenced | complete the tabs; remove the id |
 | Gateway users refused after the filter was saved | Models empty (Continue skipped nothing, but Browse Models was not used), or the provider/model disabled | grant models |
 | Workplace shows no card though models work | Gateways tab empty | add the address |

@@ -7,6 +7,49 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.1.0 — 2026-10-12
+
+The browser extension became a full AI enforcement point, and Claude Desktop can sign in
+to the AI Gateway with the organization account. Minor version: one runbook added, the
+others corrected and extended; nothing moved.
+
+**New runbook:**
+
+- `49-browser-extension-aidr.md` — the browser extension as an AI enforcement point: the
+  same engine as the client and the gateway, what it governs (ChatGPT signed in or not,
+  claude.ai, Gemini, Perplexity, API calls made from pages, MCP in the page, the tab's
+  network log), endpoint filters with the **Browser** operating system, sign-in and the
+  stand-down rule beside the desktop client, the `fail_mode` managed policy, what users see
+  (redaction tokens, "Netzilo Guardrail" refusals, governed history reloads, the delay on
+  streamed answers), Chrome, Edge, Firefox, Safari and the Enterprise Browser, browser
+  sessions and sources in the behaviour graph, "Session snapshot" entries, upload limits,
+  diagnosis.
+
+**Extended:**
+
+- `27-ai-gateway.md`, `46-ai-gateway-mcp-servers-and-bundles.md`,
+  `47-agentic-access-workplace.md`, `44-published-applications.md` — the gateway (and the
+  reverse proxy for a published gateway) serves the OAuth sign-in metadata and endpoints
+  on its own address; two sign-in flows: MCP connectors (authorization code) and Claude
+  Desktop "Sign in with your organization" (device authorization: the code, the approval
+  page, the `<app> (MCP)` token under Profile Settings → Access Tokens, refresh); the
+  endpoint for Claude Desktop is `<gateway>/anthropic`; every Claude error string with its
+  cause; what the Workplace address must route for a self-hosted reverse proxy.
+- `28-edge-guardrails.md`, `32-detection-rule-authoring.md` — tested PII redaction
+  templates (SSN, card) for prompts and answers, and the patterns that silently miss test
+  data (9xx and 000 prefixes, non-ASCII hyphens) or fail to compile (RE2).
+- `10-ai-security-aidr.md`, `29-edge-filters.md`, `14-data-handling-and-privacy.md`,
+  `30-activity-reports-and-integrations.md`, `35-plain-language.md` — the extension's
+  current behaviour (the older facts about HTTP 403 blocks, the `scanprompt` setting,
+  Agents matching by browser name and "client mode" are gone), browser filters, what the
+  extension collects, browser events and "Session snapshot" entries in Activity, terms.
+- `17-end-user-guide.md`, `39-end-user-self-service.md` — what an employee sees when a
+  policy applies in ChatGPT, Claude or Gemini; signing Claude Desktop in with the
+  organization and the approval page; the self-service rows for both.
+- `00-operator-playbook.md` — canonical facts and known gaps for the gateway sign-in.
+- `33-api-request-schemas.md` regenerated: `POST /api/aidr/browser/observations` is in.
+  `34-event-catalogue.md` regenerated (no new activities).
+
 ## 4.0.0 — 2026-10-10
 
 AI governance gained a second enforcement point, the **Netzilo AI Gateway**, and the

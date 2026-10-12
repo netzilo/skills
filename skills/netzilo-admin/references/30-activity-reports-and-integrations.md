@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 21054
+chars: 22134
 sections:
 - id: '1'
   title: Activity → Events
-  chars: 5097
+  chars: 5949
 - id: '2'
   title: Reports
   chars: 2677
@@ -23,7 +23,7 @@ sections:
   chars: 6603
 - id: '5'
   title: Procedures
-  chars: 1502
+  chars: 1730
 - id: '6'
   title: Diagnosis
   chars: 2546
@@ -67,8 +67,8 @@ Controls:
 
 Row anatomy: category icon with +/×/change badge, initiator (name, e-mail; "System" for
 automatic actions; hover for location when known), timestamp, description, copy raw JSON
-(hover). Special rows: `session.recorded` → play the recording; `aidr.graph` → **View
-session snapshot**; events with a kill chain → **View kill chain**; `ai.insight` → AI
+(hover). Special rows: `session.recorded` → play the recording; `aidr.graph` ("Session
+snapshot") → **View behavior graph**; events with a kill chain → **View kill chain**; `ai.insight` → AI
 answer with citation cards.
 
 Event categories and the most useful codes:
@@ -97,6 +97,17 @@ session and actor fields, and `content` (at most 8 KB, after redaction, with
 `limit`, source `gateway`, surface `llm_request`; a model or provider the user is not
 granted is engine `policy`. Rows written by clients before this release with the retired
 `tool.*` codes render as "UNKNOWN_ACTIVITY"; they are history, not a fault.
+
+**Browser rows.** Events from the browser extension (`49-browser-extension-aidr.md`)
+have `source` `extension`, the **site** as the agent (`chatgpt.com`, `claude.ai`,
+`gemini.google.com`, …), `program` = the site's origin and `session_id` = the tab's
+session; the row reads "`<site>` **in the browser** for `<user>`: …" where a device row
+reads "`<agent>` on `<peer>` for `<user>`". A redacted conversation reload is an
+`ai.redacted` row with the same tab session and program as the original answer. The
+**Session snapshot** row (`aidr.graph`) exists for browsers too: "Session snapshot is
+available for `<program>` in the browser" — one per tab session the first time it shows
+behaviour, with the session id, program, device and source `extension` in the JSON;
+"Session snapshot is available for peer `<peer>`" is the device form.
 
 API: `GET /api/events/paginated?limit=100&offset=0&date_from=<ISO>&date_to=<ISO>&user=<email>&code=<code>&code=<code>&q=<text>` →
 `{events[], pagination{total,limit,offset,has_more,total_pages}}`. Omit `order` when
@@ -288,7 +299,10 @@ and are not present on self-hosted servers.
 - **Investigate an AI incident**: Events → category AI Edge → read the `ai.*` rows for
   the user or peer (the raw JSON names the surface, engine, source, rule and filter) and
   open the `aidr.graph` session snapshot; list the sessions behind them with
-  `GET /api/aidr/sessions?scope=source:<peer-id>`; test candidate rules against that
+  `GET /api/aidr/sessions?scope=source:<peer-id>` — for a browser, the source id of the
+  user's browser from `GET /api/aidr/sources` (`kind: browser`), so
+  `scope=source:<browser-source-id>`; a regular user sees only their own browser
+  sessions there, an admin all (`49` §7); test candidate rules against that
   traffic with **Replay** in the guardrail (`28-edge-guardrails.md` §4); view the kill
   chain on `ai.blocked` rows that have one; then generate an **AI Agent Activity** report
   for the period (device and gateway events) and, when the AI Gateway is involved, an

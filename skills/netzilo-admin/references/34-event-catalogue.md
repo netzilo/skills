@@ -32,7 +32,7 @@ sections:
 ---
 # Event catalogue — what each activity is called
 
-Generated from Netzilo Server's activity table on 2026-10-10 by
+Generated from Netzilo Server's activity table on 2026-10-12 by
 `scripts/gen-event-codes.py`. 159 activities.
 
 Every event the API returns carries all three columns: `activity` (the display

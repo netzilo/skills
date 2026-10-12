@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 18374
+chars: 23752
 sections:
 - id: '1'
   title: MCP server — field reference
@@ -25,17 +25,17 @@ sections:
   title: How a tool call is governed
   chars: 1165
 - id: '6'
-  title: MCP clients that sign in themselves (OAuth 2.1 at the gateway)
-  chars: 2038
+  title: Clients that sign in themselves at the gateway (OAuth 2.1)
+  chars: 6221
 - id: '7'
   title: API
   chars: 1114
 - id: '8'
   title: Diagnosis
-  chars: 2634
+  chars: 3457
 - id: '9'
   title: Limits to state before a customer discovers them
-  chars: 961
+  chars: 1333
 ---
 # Admin Skill — MCP Servers, MCP Bundles and Sign-ins (AI Gateway)
 
@@ -223,36 +223,94 @@ the gateway's MCP tools only when the caller names them in `x-bf-mcp-include-cli
 
 ---
 
-## 6. MCP clients that sign in themselves (OAuth 2.1 at the gateway)
+## 6. Clients that sign in themselves at the gateway (OAuth 2.1)
 
-An MCP client that cannot carry a token of its own (Claude Desktop "custom connector",
-a claude.ai connector) signs in through OAuth 2.1, with management as the authorization
-server and the gateway as the resource:
+A client that cannot carry a token of its own signs in at the gateway, with management as
+the authorization server and the gateway as the resource. Two flows exist; both end in
+the same kind of token (§6.3):
+
+| Flow | Clients | § |
+|---|---|---|
+| **Authorization code** with PKCE | MCP connectors: Claude Desktop "custom connector", a claude.ai connector, IDEs | 6.1 |
+| **Device authorization** (RFC 8628) | Claude Desktop in gateway mode (**Sign in with your organization**) and other clients that show a code instead of taking a redirect | 6.2 |
+
+Both doors of the gateway and a published address in front of it serve the metadata on
+**their own origin**: `GET <gateway>/.well-known/oauth-authorization-server`, and the same
+under `/anthropic` (Claude Desktop appends the well-known path to its endpoint). That
+document is authoritative for what a gateway serves; a current one lists the issuer (the
+gateway's origin) and, under `<gateway>/.netzilo/oauth2/` on that origin, `authorize`,
+`token`, `register`, `revoke`, `device` and a `verify` page. The gateway passes them to
+management: the sign-in and verification pages are redirects to management (the
+Workplace host for a published address, `27` §5.3), the rest are forwarded. The sign-in
+exists only at the root and under `/anthropic`; `/v1` and `/openai` take tokens only.
+
+### 6.1 MCP connectors: authorization code
 
 1. The client calls `<gateway>/mcp/<slug>` without a token → 401 with
    `WWW-Authenticate: Bearer realm="netzilo", resource_metadata="<gateway>/.well-known/oauth-protected-resource", scope="mcp"`.
-2. It reads that metadata and `<gateway>/.well-known/oauth-authorization-server`; the
-   endpoints point at management's `/api/mcp/oauth2/{register,authorize,token,revoke}`
-   (both doors of the gateway and a published application in front of it answer these).
+2. It reads that metadata and `<gateway>/.well-known/oauth-authorization-server` (above).
 3. It registers (RFC 7591; https redirect URIs, or http on localhost; 20 registrations
-   per address per 10 minutes), opens the browser at `/api/mcp/oauth2/authorize` (PKCE
-   S256 required), and the user lands on the dashboard's **consent page**
-   (`/mcp-consent`): "**{client} wants to access your Netzilo account** — This will allow
-   {client} to: Use the AI gateway at {host} as you; Call the MCP servers and models your
-   filters grant you; Keep an access token in your name until you revoke it." **Allow** /
-   **Deny**.
-4. On Allow the client exchanges the code for a token: a **personal access token of the
-   user**, named `<client> (MCP)`, scope `mcp`, valid **1 day**, plus a refresh token valid
-   30 days (one-shot rotation: each refresh mints a new token and deletes the old one).
-5. The user sees and revokes that token under Profile Settings → **Access Tokens**;
-   revoking it ends the refresh grant too.
+   per address per 10 minutes), opens the browser at the `authorize` endpoint (PKCE S256
+   required), and the user lands on the dashboard's **consent page** (`/mcp-consent`):
+   "**{client} wants to access your Netzilo account** — This will allow {client} to: Use
+   the AI gateway at {host} as you; Call the MCP servers and models your filters grant
+   you; Keep an access token in your name until you revoke it." **Allow** / **Deny**.
+4. On Allow the browser is taken back to the client ("Taking you back to {client}"),
+   which exchanges the code for the token (§6.3).
+
+### 6.2 Claude Desktop and device clients: device authorization
+
+No browser redirect back to the app, and no client registration: Claude sends no client
+id, so the flow runs under a shared public client, and the consent page names the
+application from what it says about itself ("Claude"; **Device sign-in** when the app
+does not name itself).
+
+1. In Claude Desktop the endpoint is exactly **`<gateway>/anthropic`** (`47` §2); the
+   user chooses **Sign in with your organization**.
+2. Claude asks the gateway's `device` endpoint for a device code and a user code, shows
+   the user the code — `XXXX-XXXX`, letters only, no vowels — and opens or offers the
+   verification link (`<gateway>/.netzilo/oauth2/verify?code=…`, which lands on the
+   Workplace consent page with the code filled in).
+3. The consent page, signed in as the user, shows the application, the signed-in user
+   and the code under "Make sure this code is the one {client} shows you:". When the
+   address carried no code, the page asks for it first ("Enter the code — Type the code
+   the application shows you to continue."); a wrong one says "That code was not found or
+   has expired. Check it and try again." and lets the user retype.
+4. The user **checks the code matches what Claude shows**, then **Allow** → "Access
+   allowed — {client} signs in on its own within a few seconds. You can return to it
+   now." The page stays; nothing redirects. **Deny** → "Access denied — Nothing was
+   shared. {client} is told that you declined."
+5. Claude polls the `token` endpoint every 5 s and receives the token (§6.3). Until the
+   user answers, polls get `authorization_pending`; polling faster gets `slow_down`; a
+   refusal `access_denied`; a sign-in not approved within 10 minutes `expired_token`.
+   After Allow the token must be collected within 5 minutes, or the approval is lost.
+
+| Claude Desktop shows | Cause | Fix |
+|---|---|---|
+| `gateway SSO discovery failed: 401` | endpoint is `<gateway>/v1`, `<gateway>/openai` or another path: no sign-in is served there | endpoint `<gateway>/anthropic` |
+| `Gateway returned HTTP 405 … /v1/messages` | the bare `<gateway>` address: it serves the sign-in, but the Anthropic API is under `/anthropic` | same |
+| `gateway SSO metadata invalid: token_endpoint: must be same-origin as inferenceGatewayBaseUrl` | gateway (or the reverse proxy in front of a published address) too old: its metadata pointed at management | upgrade it |
+| `gateway SSO: server does not advertise device_authorization_endpoint` | gateway or management too old | upgrade; re-read `<gateway>/anthropic/.well-known/oauth-authorization-server` |
+| `gateway SSO device init failed: HTTP 400` | management too old (it required a client id) | upgrade management |
+| waits after Allow | polls every 5 s; approval not collected within 5 minutes; a management restart or another replica (§9) | a few seconds; else sign in again |
+
+Per address, management allows 30 device sign-in starts per 10 minutes
+(429 `too many sign-ins from this address; try again later`).
+
+### 6.3 The token both flows yield
+
+A **personal access token of the user**, named `<app> (MCP)` ("Claude (MCP)"), scope
+`mcp`, valid **1 day**, plus a refresh token valid **30 days** (one-shot rotation: each
+refresh mints a new token and deletes the old one). The user sees and revokes it under
+Profile Settings → **Access Tokens**; revoking it ends the refresh grant too, and the app
+has to sign in again.
 
 An `mcp`-scoped token can call only what a gateway needs on the user's behalf
 (`GET /api/users`, the user's AI access and published applications); anything else is
 refused (`token scope "mcp" does not allow …`). The gateway honours a revoked token for up
 to a minute (its cache).
 
-What a user pastes into each client is in `47-agentic-access-workplace.md` §3.
+What a user pastes into each client is in `47-agentic-access-workplace.md` §2–3.
 
 ---
 
@@ -293,6 +351,10 @@ reference data, not a list of what is configured.
 | "Sign-in failed" with `the server's authorization endpoints could not be discovered` | no discovery metadata at the server | fill Authorize URL / Token URL (and Client ID) by hand |
 | `the request reached management under an unknown host` | sign-in started against management at an address that is not the dashboard host or `api.<dashboard host>` | use the dashboard's address |
 | `the sign-in expired or was not started here` after the popup | more than 10 minutes, or another management replica | retry; single replica or session affinity |
+| Claude Desktop **Sign in with your organization** fails at once (`discovery failed: 401`, `HTTP 405 … /v1/messages`) | the endpoint in Claude is not `<gateway>/anthropic` | set it exactly (§6.2) |
+| Claude Desktop says the metadata is invalid or lacks `device_authorization_endpoint`, or `device init failed: HTTP 400` | gateway, reverse proxy or management older than the device sign-in | upgrade; `GET <gateway>/anthropic/.well-known/oauth-authorization-server` shows what the gateway serves |
+| Consent page "That code was not found or has expired" | mistyped code, or more than 10 minutes | retype; start again in Claude |
+| Allowed on the consent page, the app never signs in | the token was not collected within 5 minutes; management restarted; another replica | sign in again; single replica or session affinity |
 | `the server refused these values (HTTP 401)` | wrong header values | the user re-enters them |
 | Tool call `Tool execution failed: Blocked by rule: <name>` | a guardrail blocked the result | expected; the event names the rule |
 | Tools tab "The gateway did not list tools for this server." | server unreachable **from the gateway host**, credential rejected, stdio command failed | gateway log `… applied to the upstream as /mcp/<slug>` then the upstream's error at `--ai-upstream-log-level debug` |
@@ -315,8 +377,12 @@ result text.
   the names you type; a typo grants nothing and nothing warns.
 - **Secrets are stored on the server unencrypted at the field level** (masked in the
   API, clear to the gateway's service token, as provider keys are).
-- **Sign-in flows live in one management process** for 10 minutes; several replicas
-  need session affinity.
+- **Sign-in flows live in one management process** for 10 minutes — MCP-server
+  sign-ins, connector sign-ins and device sign-ins alike; several replicas need session
+  affinity, and a management restart drops sign-ins mid-flight.
+- **The device sign-in exists only under `<gateway>/anthropic`**; `/v1` and `/openai`
+  are token-only. A token from a gateway sign-in lasts 1 day (refresh 30 days); per
+  address, 30 device sign-in starts and 20 client registrations per 10 minutes.
 - **Shared OAuth means one identity at the provider for everyone**; audit at the
   provider will show Netzilo's user, not the end user. Per-user OAuth keeps identities
   apart at the cost of every user signing in.
