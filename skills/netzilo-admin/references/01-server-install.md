@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 35166
+chars: 35335
 sections:
 - id: '0'
   title: What gets installed (all paths)
   chars: 5876
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
-  chars: 8918
+  chars: 9087
 - id: '2'
   title: Path B — AWS Marketplace (CloudFormation)
   chars: 4206
@@ -207,6 +207,8 @@ and `NETZILO_KEY_FILE=/path/privkey.pem` lines to the env file (same `printf '%q
 Published applications: add `NETZILO_APPS_DOMAIN=apps.<domain>` (and, with a provided
 certificate that does not cover `*.apps.<domain>`, `NETZILO_APPS_CERT_FILE` /
 `NETZILO_APPS_KEY_FILE`); `44-published-applications.md` §8.
+AI data retention: `NETZILO_AI_RAW_DAYS` (default 90, at least 31), `NETZILO_AI_ROLLUP_DAYS`
+(400) and `NETZILO_AI_OBSERVATION_DAYS` (7); `02-server-operations.md` §20.
 The fullchain must contain leaf + intermediates; the installer validates PEM syntax,
 key/cert match, expiry, chain completeness and (if a system CA bundle exists) trust.
 

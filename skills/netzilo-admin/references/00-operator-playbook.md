@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 30136
+chars: 30639
 sections:
 - id: '1'
   title: Rules of engagement
@@ -17,7 +17,7 @@ sections:
   chars: 2938
 - id: '3'
   title: 'Triage: route the request'
-  chars: 6728
+  chars: 7231
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
@@ -167,6 +167,9 @@ first; go to the device to see what the account cannot.
 | "Guardrails" (write, replay, bind, why a rule did not fire) | `28-edge-guardrails.md` |
 | "Filters" — endpoint (devices) vs gateway (users); "the filter is not applying" | `29-edge-filters.md` |
 | "AI usage / Agentic Activity / tokens and cost per user, model, gateway" | `30-activity-reports-and-integrations.md` §2–3 |
+| "Agentic Activity window: teams, a team's flow, an agent's sessions, a session's trajectory or behavior graph, Refresh; a session with no messages" | `30-activity-reports-and-integrations.md` §3, then `27-ai-gateway.md` §8–§10 |
+| "What does the AI Gateway send to the server; are prompts stored; who can read them" | `14-data-handling-and-privacy.md` §3 and §8, `27-ai-gateway.md` §8.1 |
+| "How long is AI data kept; AI tables growing; the `ai-retention` container" | `02-server-operations.md` §20 |
 | "Write a detection rule for threat X" (Sigma rule or Starlark behaviour script) | `32-detection-rule-authoring.md` (rule-author persona, full field/action/Starlark reference), then `10-ai-security-aidr.md` §8 to deploy and replay it |
 
 Per-configuration deep dives (field-by-field reference, procedures, API, and "why is

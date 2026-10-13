@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 42778
+chars: 45490
 sections:
 - id: '1'
   title: How it works
-  chars: 5295
+  chars: 6187
 - id: '2'
   title: Requirements
-  chars: 1399
+  chars: 1514
 - id: '3'
   title: Install
   chars: 4467
@@ -43,7 +43,7 @@ sections:
   - human-operator
 - id: '8'
   title: Usage telemetry
-  chars: 1330
+  chars: 2641
   requires:
   - api
   executable_on:
@@ -55,7 +55,7 @@ sections:
   chars: 3651
 - id: '10'
   title: Troubleshooting
-  chars: 6109
+  chars: 6503
 - id: '11'
   title: Limits to state before a customer discovers them
   chars: 2265
@@ -136,7 +136,12 @@ gateway filters that target the user's groups (cached for `--ai-policy-refresh`,
    redact, or route to another model), on the answer (block, redact), on each tool call
    the model asks for (block, redact arguments) and on each MCP tool call and result.
 4. **Usage** — one record per model request and per MCP tool call: who, which model,
-   tokens, cost, latency, status. Never the prompt, answer, arguments or results.
+   tokens, cost, latency, status. Usage records carry no prompt, answer, argument or
+   result text.
+5. **Captured conversations** — the messages of each model call (system prompt, prompts,
+   context, thinking, answers, tool calls and results) as the caller sent and received
+   them, after the guardrails, sent separately from usage and shown to administrators in
+   the session's trajectory (§8.1).
 
 **Which API surfaces are governed.** This is the fact customers trip over, so say it
 before they ask:
@@ -166,8 +171,15 @@ fetched at all holds **no** grant and is refused "no model is granted to this us
 the lookup succeeds (retried after 10 s).
 
 **Sessions.** Requests are grouped per user (`guest/<user>`), or per conversation when the
-caller sends `x-bf-session-id`, `x-bf-mcp-session-id`, `Mcp-Session-Id`, or the OpenAI
-`user` field.
+caller sends `x-claude-code-session-id`, `x-bf-session-id`, `x-bf-mcp-session-id`,
+`Mcp-Session-Id`, or the OpenAI `user` field, or continues an earlier answer by its
+response id. Without any of these, a user's calls from one agent form a run that ends
+after 30 minutes of quiet. A session always belongs to the user who made it.
+
+**Which agent.** The agent is the name a Netzilo SDK agent carries in its User-Agent
+(`NetziloAgent/<percent-encoded name>`, added by the embedded client; `10` §5), else the
+client the User-Agent identifies (Claude Code, Claude Desktop, Codex, Cursor, GitHub
+Copilot, the Anthropic and OpenAI SDKs, curl), else the User-Agent's product name.
 
 ---
 
@@ -176,8 +188,10 @@ caller sends `x-bf-session-id`, `x-bf-mcp-session-id`, `Mcp-Session-Id`, or the 
 - A **setup key** (or a PAT) for the gateway's own peer, and a **service token**
   (`--service-pat`): a personal access token of a service user (Team → Agents) of the
   account, role **Admin**. The service token binds callers to that account, loads filters,
-  providers and MCP servers, and ships usage. Without it the gateway refuses every chat
-  request (no filters can be loaded) and cannot identify callers on the tunnel door.
+  providers and MCP servers, and ships usage and captured conversations. Without it the
+  gateway refuses every chat request (no filters can be loaded) and cannot identify callers
+  on the tunnel door. Management refuses usage and conversations (403) from a token
+  without admin rights.
 - The gateway peer must be reachable as a **destination**: a network policy from the
   users' device groups to the gateway peer's group on TCP 8447 for the tunnel door. The
   Default All↔All policy covers it; a hardened account needs an explicit rule.
@@ -516,9 +530,28 @@ server, so a retried batch never double-counts. A batch the server rejects as ma
 dropped: …`; an outage keeps them (`… kept, upload failed: …`). Successful uploads are
 logged at debug level only.
 
-Management keeps raw rows for 90 days and hourly rollups indefinitely; they feed the home
-page's Agentic Activity section and Tokens tile and the **AI Usage** report
+Management keeps them as long as the server's AI data retention says (Netzilo Cloud: raw
+records 90 days, hourly totals 400 days; self-hosted: the `ai-retention` job,
+`02-server-operations.md` §AI data retention). They feed the home page's Agentic Activity
+panel (built hourly) and Tokens tile, the Agentic Activity window (built every 15 minutes;
+**Refresh** builds both at once), and the **AI Usage** report, which reads them live
 (`30-activity-reports-and-integrations.md` §2–3).
+
+### 8.1 Captured conversations
+
+For each model call the gateway also sends the messages the call added to its session —
+system prompt, the user's prompts, the agent's context, thinking, answers, tool calls with
+their arguments and results — as the caller sent and received them **after the
+guardrails**: what a guardrail redacted arrives redacted, and a tool call the guardrails
+held back or refused is not sent at all. A message is cut past 32 KB. A message a session
+already sent is not sent again with the next call.
+
+They go to `POST /api/ai-gateway/content` in batches of at most 2 MB and 1 000 calls, and
+are held **in memory only**, never on disk: up to 64 MB wait during an outage (the oldest
+go first, `gateway ai: content: N call(s) dropped, the buffer is full`), and those waiting
+when the gateway stops are lost. Capture is always on. Management stores each text once,
+shows it only to administrators, in the session's **Trajectory** in the Agentic Activity
+window (`30` §3), and deletes it with the rest of the AI data (`14` §8).
 
 ---
 
@@ -601,7 +634,8 @@ and users are fetched afresh.
 | 429 `too many sign-ins from this address; try again later` | 30 device sign-in starts per address in 10 minutes (a shared egress address counts as one) | wait for the window |
 | Through a published application: 502 `The application did not answer.` | target without `:8447`; gateway down; no policy from the user's device groups to the gateway peer; the proxy still on a stale target (≤10 min on old proxies) | fix the target; `44` §11 |
 | Through a published application: 404 `There is no application at this address.` | application disabled or unpublished; name cache up to 30 s old | enable; wait; `44` §11 |
-| Usage never appears on the dashboard | `gateway ai: usage: … kept, upload failed` (management unreachable or token refused) or `… dropped` (server rejected the batch); the dashboard snapshot is hourly | fix the cause; wait for the next hourly snapshot; the AI Usage report reads the same data |
+| Usage never appears on the dashboard | `gateway ai: usage: … kept, upload failed` (management unreachable or token refused; a 403 means the service token lacks the Admin role) or `… dropped` (server rejected the batch); the panel is built hourly and the window every 15 minutes | fix the cause; click **Refresh** on Agentic Activity; the AI Usage report reads the same data at once |
+| A session shows no messages, or **Content not captured for this call** | the call did not go through the gateway; the gateway restarted or its content buffer overflowed before shipping (`gateway ai: content: …` lines) | nothing to recover for those calls; keep the gateway up and management reachable |
 | Every restart creates a new peer | `gateway: no data dir: …` | make `--data-dir` writable by the service user, or set it |
 | Upstream providers show in the upstream but not the ones defined | the gateway is the only writer: hand-made upstream providers of a type management defines are replaced | define providers in the dashboard only |
 

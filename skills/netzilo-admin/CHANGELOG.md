@@ -7,6 +7,48 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.2.0 — 2026-10-13
+
+The Agentic Activity window, captured conversations through the AI Gateway, and the AI
+data retention job. Minor version: new procedures; several earlier statements about what
+the AI Gateway sends and how long AI data is kept were no longer true.
+
+**What the AI Gateway sends (`27`, `14`, `13`):**
+
+- The gateway now sends each model call's **captured conversation** — prompts, context,
+  thinking, answers, tool calls and results, after the guardrails — to management, apart
+  from usage (`27` §8.1). The privacy answers that said prompts and answers never reach the
+  management server are replaced (`14` §1, §3, §6, §8).
+- Management refuses usage and conversations (403) from a service token without the Admin
+  role (`27` §2, §10; `13`).
+- Sessions: Claude Code's session header, response-id chaining and the 30-minute run; the
+  agent is the name a Netzilo SDK agent carries in its User-Agent (`NetziloAgent/<name>`),
+  else the client (`27` §1).
+- Content log lines and **Content not captured for this call** (`13`, `27` §10).
+
+**Agentic Activity (`30` §3, `08`, `10`, `09`, `00`):**
+
+- Periods are **Last 24 Hours / Last 7 Days / Last 30 Days**.
+- **Refresh** builds the snapshot and the window's views now (one build per account at a
+  time, a build younger than 30 s is kept).
+- The **Agentic Activity window**: Teams (token shading, search), a team's users → agents →
+  models flow, sessions, a session's trajectory (Kill chain lane) and behavior graph.
+- API: `GET /api/ai/activity`, `POST /api/ai/activity/refresh`, `GET /api/ai/sessions`,
+  `…/session`, `…/trajectory`, `…/message`, and `POST /api/ai-gateway/content` (`09` §2).
+
+**AI data retention (`02` §20, `01`, `03`, `14`):**
+
+- Management deletes no AI data on a schedule; the **`ai-retention`** container does,
+  every six hours: raw records, sessions and conversations 90 days (at least 31), hourly
+  totals 400 days (they were kept for ever), other observations 7 days. Set with
+  `NETZILO_AI_RAW_DAYS`, `NETZILO_AI_ROLLUP_DAYS`, `NETZILO_AI_OBSERVATION_DAYS` when the job
+  is created; edit the compose file afterwards. `NZ_AI_USAGE_RETENTION_DAYS` no longer
+  applies.
+- `--upgrade` and `update management` add the job; marketplace servers upgraded by hand do
+  not (`02` §20). Container inventory now eleven (`02` §2).
+
+**SDK (`10` §5):** `agent_name` is required in every language.
+
 ## 4.1.1 — 2026-10-12
 
 Corrections from a check of every runbook against the product code and the rewritten

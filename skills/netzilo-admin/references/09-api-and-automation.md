@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 29132
+chars: 29917
 sections:
 - id: '0'
   title: The server and an admin token come first
@@ -17,7 +17,7 @@ sections:
   chars: 2640
 - id: '2'
   title: Endpoint catalogue
-  chars: 6007
+  chars: 6792
 - id: '3'
   title: Field reference (request bodies)
   chars: 7132
@@ -155,7 +155,8 @@ nz /users | jq '.[] | {id,email,role,is_service_user}'
 | AI Edge — providers, limits | `GET/POST /edge/providers`, `GET/PUT/DELETE /edge/providers/{id}`, `POST /edge/providers/discover` (list a provider's models); `GET/POST /edge/limits`, `GET/PUT/DELETE /edge/limits/{id}`. `45-ai-gateway-providers-and-limits.md` |
 | AI Edge — MCP servers, bundles | `GET/POST /edge/mcp-servers`, `GET/PUT/DELETE /edge/mcp-servers/{id}`, `POST /edge/mcp-servers/{id}/oauth` (admin's shared sign-in), `DELETE /edge/mcp-servers/{id}/credential`; `GET/POST /edge/virtual-mcps`, `GET/PUT/DELETE /edge/virtual-mcps/{id}` (bundles); `GET /edge/mcp-catalog` (reference library, not what is configured). `46-ai-gateway-mcp-servers-and-bundles.md` §7 |
 | AI Edge — filters, events | `GET/POST /edge/filters`, `GET/PUT/DELETE /edge/filters/{id}`, `GET /edge/filters/effective?type=gateway\|endpoint&user=&peer=` (what applies to someone), `GET /edge/filters/{id}/expanded`; `POST /edge/events` (devices, the extension and gateways post verdicts). `29-edge-filters.md` §3. **Gone (404):** `/edge/tools*`, `/edge/discovered-tools*`, `/edge/scanners/catalog` |
-| AI gateway (service token; read by gateways, not for scripts) | `GET /ai-gateway/providers` (credentials in clear), `GET /ai-gateway/mcp`, `GET /ai-gateway/mcp-credentials` (stored sign-ins in clear), `POST /ai-gateway/usage` (`27-ai-gateway.md` §7) |
+| AI gateway (service token of an Admin service user; read by gateways, not for scripts) | `GET /ai-gateway/providers` (credentials in clear), `GET /ai-gateway/mcp`, `GET /ai-gateway/mcp-credentials` (stored sign-ins in clear), `POST /ai-gateway/usage`, `POST /ai-gateway/content` (captured conversations; 403 without admin rights) (`27-ai-gateway.md` §7–§8) |
+| Agentic Activity and AI sessions (gateway traffic) | `GET /ai/activity?window=24h\|7d\|30d&scope=org\|group:<groupId>` (the window's views; admins), `POST /ai/activity/refresh` (builds the dashboard snapshot and the views now; admins; a build younger than 30 s is kept), `GET /ai/sessions?since&until&agent&user&group&model&q&sort&order&limit(≤500)&offset`, `GET /ai/sessions/session?id=`, `GET /ai/sessions/trajectory?id=` (transcript with 300-character previews, verdicts, kill chains), `GET /ai/sessions/message?id=<session>&hash=<message>` (one message's whole text). Admins see every session; any other user only their own. `30-activity-reports-and-integrations.md` §3 |
 | Caller-scoped (any user, own view) | `GET /users/current/ai-access`; `GET /users/current/mcp-connections`, `POST /users/current/mcp-connections/{serverId}/oauth`, `POST /users/current/mcp-connections/complete`, `PUT /users/current/mcp-connections/{serverId}/headers`, `DELETE /users/current/mcp-connections/{serverId}`; `GET /users/{id}/gateway-sessions`; `GET /users/current/published-apps`, `POST /users/current/published-apps/access` |
 | Published applications | `GET/POST /published-apps`, `PUT/DELETE /published-apps/{id}`, `GET /published-apps/check?domain=[&except=]`, `GET /published-apps/exists?domain=` (no token; `{published, version}`). `44-published-applications.md` §4 |
 | AIDR (behaviour graph) | `GET /aidr/sessions`, `GET /aidr/graph`, `GET /aidr/observations`, `GET /aidr/detections`, `GET /aidr/search?q=` — all take `scope=source:<peerId>\|account\|actor:<id>\|session:<id>`, `since`, `until`; `POST /aidr/replay {scope, since, until, rules_yaml, limit}` (rule YAML above 1 MB is rejected). The former `/peers/{id}/aidr-snapshot*` paths answer 404 |

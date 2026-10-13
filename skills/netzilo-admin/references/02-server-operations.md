@@ -6,20 +6,20 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 86237
+chars: 88977
 sections:
 - id: '1'
   title: Know which layout you are on
   chars: 2225
 - id: '2'
   title: Service inventory and health
-  chars: 6009
+  chars: 6237
 - id: '3'
   title: Start / stop / restart
   chars: 1203
 - id: '4'
   title: Upgrading
-  chars: 29356
+  chars: 29457
 - id: '5'
   title: Configuration changes
   chars: 2332
@@ -64,7 +64,10 @@ sections:
   chars: 620
 - id: '19'
   title: Certificate noise that is not a fault
-  chars: 662
+  chars: 663
+- id: '20'
+  title: AI data retention
+  chars: 2410
 ---
 # Netzilo Server — Day-2 Operations Runbook
 
@@ -132,12 +135,13 @@ Treat `$C` as a secrets directory (it is `root`-owned; keep it that way).
 cd "$C" && sudo docker compose ps
 ```
 
-Expected: 10 containers — `caddy`, `coturn`, `dashboard`, `management`, `signal`,
-`zitadel`, `gateway`, `support-worker` (healthy), `postgres` (healthy), `redis` (healthy);
-11 with `reverse-proxy` (published applications, only when an application domain was
-given at install, `44-published-applications.md` §8).
-Nine on a plain-HTTP install and on installs made before the gateway existed (add it with
-`43-clientless-access-gateway.md` §6). Only
+Expected: 11 containers — `caddy`, `coturn`, `dashboard`, `management`, `signal`,
+`zitadel`, `gateway`, `ai-retention`, `support-worker` (healthy), `postgres` (healthy),
+`redis` (healthy); 12 with `reverse-proxy` (published applications, only when an
+application domain was given at install, `44-published-applications.md` §8).
+One fewer on a plain-HTTP install and on installs made before the gateway existed (add it
+with `43-clientless-access-gateway.md` §6); one fewer again on servers installed before the
+AI data retention job existed (§20). Only
 `db` (`postgres`), `redis` and `support-worker` report health — the first two from compose
 healthchecks, the worker from the `HEALTHCHECK` in its image; the others show plain `Up`.
 
@@ -153,6 +157,7 @@ healthchecks, the worker from the `HEALTHCHECK` in its image; the others show pl
 | `redis` | `redis:latest` | **published on host `6379`, no password** | management store cache + Zitadel caches |
 | `gateway` | `ghcr.io/netzilo/net-gateway` | host `8443` (HTTPS proxy); admin `:9090` internal only | clientless access: browsers with only the Netzilo extension reach internal resources through it; each browser session is a guest peer of its user. Serves the server's certificate (Caddy's data volume on Let's Encrypt installs, `certs/` otherwise). Configuration, logs and troubleshooting: `43-clientless-access-gateway.md` |
 | `reverse-proxy` | `ghcr.io/netzilo/net-reverse-proxy` | internal `:8444` (plain HTTP, behind Caddy's `*.<application domain>` site on `443`); admin `:9090` internal only | published applications: users open a private web application at its own address in any browser after signing in at the dashboard; each request through the user's own tunnel (`vp-<n>-RPROXY`). Configuration, logs and troubleshooting: `44-published-applications.md` |
+| `ai-retention` | the `postgres` service's image | no ports | deletes AI data past its retention every six hours (§20) |
 | `support-worker` | `ghcr.io/netzilo/net-support-worker` | internal `:8080`, **no ingress** | AI Assistant agent: management calls it with the shared token, it calls management back at `http://management:80`, and reaches the owner-configured AI provider outbound; stateless, runbooks baked into the image. Configuration, token rotation and troubleshooting: `42-ai-assistant-self-hosted.md` |
 
 Redis on marketplace deploys is shielded by the cloud security group/NSG (6379 is not
@@ -539,7 +544,7 @@ When they are available, the commands are:
 | Command | What it does |
 |---|---|
 | `… \| sudo bash -s -- --upgrade` (or `update all`) | upgrades the whole server: backup and database dump, the configuration newer releases add, every Netzilo image, one service at a time |
-| `… \| sudo bash -s -- update <component>` | moves one component to the latest image, after a backup; nothing else is touched |
+| `… \| sudo bash -s -- update <component>` | moves one component to the latest image, after a backup; nothing else is touched — except that `update management` also adds the AI data retention job when the server lacks it (§20) |
 | `… \| sudo bash -s -- install <component>` | adds a component the server lacks, or replaces a broken one with a fresh container and definition; its data volume and settings are kept |
 | `… \| sudo bash -s -- --reinstall` | the only command that erases the server; asks you to type `ERASE` |
 
@@ -1565,3 +1570,39 @@ separately and works. Do not treat these entries as a certificate incident, and 
 start deleting certificate state because of them. They matter only if the customer
 genuinely needs a wildcard certificate, which requires supplying one rather than having
 it issued automatically.
+
+## 20. AI data retention
+
+Management deletes no AI data on a schedule. The **`ai-retention`** container does: ten
+minutes after it starts and then every six hours it runs `ai-retention.sql` (in the compose
+folder) against management's database, deleting in small committed batches that never hold
+up the server. Every server installed or upgraded with a current installer has it; a
+server installed earlier gets it from `--upgrade` or `update management` (§4). On Netzilo
+Cloud the same job runs for every account.
+
+| Setting | Default | What goes when older |
+|---|---|---|
+| raw days | `90` (at least `31`: records may arrive up to 30 days late) | each AI Gateway model request and tool call, the sessions with their captured conversations (a message's text a day later), and the behaviour observations of AI Gateway sessions |
+| rollup days | `400` (at least the raw days) | the hourly totals behind the AI Usage report and Agentic Activity |
+| observation days | `7` (at least `1`) | every other behaviour observation (devices, browsers) |
+
+**Setting them.** `NETZILO_AI_RAW_DAYS`, `NETZILO_AI_ROLLUP_DAYS` and
+`NETZILO_AI_OBSERVATION_DAYS` apply when the job is created — at install, or by the upgrade
+that adds it; the installer refuses values below the limits before changing anything.
+Later upgrades keep the job's numbers. To change them afterwards, edit `-v raw_days=`,
+`-v rollup_days=` and `-v observation_days=` in the `ai-retention` service of
+`docker-compose.yml`, then `sudo docker compose up -d ai-retention` in the compose folder.
+`ai-retention.sql` is rewritten by every upgrade; do not edit it.
+
+**Checking it.** `sudo docker logs ai-retention`: each run ends with
+`ai-retention: run finished`, preceded by one `NOTICE: <table>: N removed` line per table,
+or with `ai-retention: RUN FAILED (psql exit status N); the next run is in 6 hours`. A
+table whose rows were locked by the server prints `(the rest waits for the next run)` and
+is finished on the next run. The database password is never on the command line: the job
+keeps it in a file on a private in-memory volume.
+
+**Marketplace images.** Images built from this release on include the job. A marketplace
+server upgraded by hand (image digests edited in `/opt/netzilo/run/docker-compose.yml`,
+§12) does **not** get it and keeps all AI data; check with `docker compose ps` and escalate
+(`12-escalation-package.md`) if it is missing.
+

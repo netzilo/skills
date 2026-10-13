@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 23484
+chars: 26051
 sections:
 - id: '1'
   title: Activity → Events
@@ -17,7 +17,7 @@ sections:
   chars: 3073
 - id: '3'
   title: Dashboard home
-  chars: 1708
+  chars: 4275
 - id: '4'
   title: Integrations
   chars: 7135
@@ -149,8 +149,9 @@ active in the last 7 days) and **Tokens** (tokens through the AI Gateway per day
 is no Security Score tile any more; the per-peer score is still on the Peers page
 (`24-peers-and-setup-keys.md` §2).
 
-**Agentic Activity**: a window selector (**Last 24 Hours** | **Last Week** | **Last
-Month**) and three tabs:
+**Agentic Activity**: a period selector (**Last 24 Hours** | **Last 7 Days** | **Last 30
+Days**), three tabs, and two buttons at the top right — **Refresh** (circular arrows) and
+**View** (opens the Agentic Activity window, below):
 
 | Tab | Cards | Chart | Top lists |
 |---|---|---|---|
@@ -167,14 +168,46 @@ any gateway usage exists the section shows "Getting Started with AI Edge" with t
 
 Everything above is a **snapshot computed hourly** by the stat job, not a live query: a
 request made a minute ago is not on the home page yet, while the AI Usage report (§2)
-reads the live data.
+reads the live data. **Refresh** builds the snapshot and the window's views now: the
+server builds an account once at a time and keeps a build younger than 30 seconds, so
+admins refreshing together get one build. On a busy account it takes tens of seconds.
+
+**The Agentic Activity window** (admins only; built from AI Gateway traffic, every 15
+minutes or on **Refresh**) goes from the company down to one agent session. The title
+names the level; the back arrow or **Escape** goes up one; **Escape** on the first page
+closes it. Levels:
+
+1. **First page** — the same tabs as the panel, then **Teams**: a tile per group whose
+   members used the gateway in the period (**All** = everyone; a user in no group is under
+   All only). A tile shows the name, active agents, people and service users, and token
+   bars over the period; a left bar shades from gray to blue by the team's tokens against
+   the busiest team (legend **Tokens Low → High**). Busiest first; **Search teams** filters
+   by name; hovering shows sessions, tokens, cost and violations (blocked + redacted +
+   detected). A group's membership is what the user had when each request was made.
+2. **A team** — a flow **Users → Agents → Models · by provider**, band width = tokens;
+   **Users**, **Agents**, **Models** and the period narrow it.
+3. **Sessions** of a user, agent or model — newest first: start, agent, user, models, turns
+   with model and tool calls, tokens and cost, violations; a kill-chain badge opens the
+   session on its graph; **Search** by name, agent or model.
+4. **A session** — **Trajectory**: a timeline (lanes Input, Model, Tools, and Kill chain
+   when there is one; scale Duration / Turns / Calls) and every message by turn — system
+   prompt, prompts, context, thinking, answers, tool calls and results — with guardrail
+   verdicts and kill-chain steps marked; long texts show a preview, the whole on click.
+   **Behavior Graph**: the user, agent, models, tools and device with the steps between
+   them; **Kill chains** marks a chain, **Filters** hides node and edge types.
+
+The messages are the gateway's captured conversations (`27-ai-gateway.md` §8.1): only
+traffic through the AI Gateway, after the guardrails. A call whose content did not reach
+the server shows **Content not captured for this call**.
 
 Below it, the **Devices** panel: OS Distribution and the Security Score Distribution
 radar.
 
 API: `GET /api/stats` returns the saved snapshot — `null` before the job has run once —
 with the fields `total_users`, `total_devices`, `total_agents`, `total_tokens`, `date`,
-plus the 7 daily rows behind the tiles.
+plus the 7 daily rows behind the tiles. The window reads `GET /api/ai/activity` and the
+`/api/ai/sessions…` endpoints, and **Refresh** is `POST /api/ai/activity/refresh`
+(`09-api-and-automation.md` §2).
 
 ---
 

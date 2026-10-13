@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 35409
+chars: 35967
 sections:
 - id: '1'
   title: Architecture in one page
   chars: 3812
 - id: '2'
   title: Rollout runbook
-  chars: 3375
+  chars: 3408
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
   chars: 3501
@@ -23,7 +23,7 @@ sections:
   chars: 2869
 - id: '5'
   title: SDK for custom agents
-  chars: 4078
+  chars: 4400
 - id: '6'
   title: Browser extension and Enterprise Browser
   chars: 4726
@@ -38,7 +38,7 @@ sections:
   chars: 5565
 - id: '10'
   title: Reporting and evidence
-  chars: 952
+  chars: 1155
 - id: '11'
   title: Constraints to disclose early
   chars: 2919
@@ -141,7 +141,8 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 6. **Verify:** `GET /api/edge/filters/effective?type=gateway&user=<id>` lists it;
    `curl <gateway>/v1/models -H "Authorization: Bearer <user token>"` lists the models;
    the Workplace shows the card **Online**; a chat completion appears in Dashboard →
-   Agentic Activity after the hourly snapshot and in the AI Usage report at once.
+   Agentic Activity after the hourly snapshot (or at once with **Refresh**) and in the AI
+   Usage report at once.
 7. **Tell users** (`47` §6).
 
 ---
@@ -237,7 +238,11 @@ const safeSearch = wrapTool("web_search", searchFn);
 
 Config keys / env: `server` (`NETZILO_SERVER`, default `https://srv.netzilo.com`;
 `management_url` is a legacy alias), `setup_key` (`NETZILO_SETUP_KEY`) or `pat`
-(`NETZILO_PAT`), `agent_name` (`NETZILO_AGENT_NAME`), `enable_advanced_governance`
+(`NETZILO_PAT`), `agent_name` (`NETZILO_AGENT_NAME`, **required**: Python raises
+`ValueError`, TypeScript throws and the C/Go entry point returns 2 when it is missing or
+blank; there is no hostname fallback — it names the peer and the agent in events,
+sessions and AI Gateway records, the embedded client adding `NetziloAgent/<name>` to the
+agent's LLM requests' User-Agent), `enable_advanced_governance`
 (`NETZILO_ADVANCED`; `govern()` turns it on unless `NETZILO_ADVANCED=0`), `socks5_port`
 (auto-picked), `log_level`, `log_file`, `config_path` (`~/.netzilo-sdk/config.json`).
 Use a **setup key** whose auto-group is your agents' group so the right endpoint filter
@@ -436,9 +441,10 @@ Log prefixes to search for on a device: `MITM:`, `Filters applied`, `Rules updat
 
 ## 10. Reporting and evidence
 
-- Dashboard → **Agentic Activity** (Last 24 Hours | Last Week | Last Month; Overview /
+- Dashboard → **Agentic Activity** (Last 24 Hours | Last 7 Days | Last 30 Days; Overview /
   Agents / MCP tabs; Top Teams, Guardrails, Agents, Models, Servers, Tools), recomputed
-  hourly (`30` §3).
+  hourly or on **Refresh**; its window drills from teams to a single AI Gateway session's
+  trajectory and behavior graph, with kill chains marked (`30` §3).
 - Activity → Events filtered by category *AI Edge*: each `ai.*` event carries the agent,
   surface, model or tool, verdict, rule and filter, source (`mitm`, `hook`, `extension`,
   `gateway`), and the kill chain where a script built one.
@@ -446,7 +452,8 @@ Log prefixes to search for on a device: `MITM:`, `Filters applied`, `Rules updat
   user, and per setup-key peer under **Agents**) and **AI Usage** (gateway requests,
   tokens, cost, latency, MCP calls; by model, user, provider, gateway, server, tool).
 - API: `GET /api/events/paginated?code=ai.blocked&…`, `GET /api/aidr/…`,
-  `GET /api/stats`, `POST /api/reports {report_type: ai_activity|ai_usage}`.
+  `GET /api/stats`, `GET /api/ai/activity`, `GET /api/ai/sessions…`,
+  `POST /api/reports {report_type: ai_activity|ai_usage}` (`09` §2).
 - Stream everything to S3/Min.io for SIEM (Integrations → Event Streaming).
 
 ---
