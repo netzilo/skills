@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 30639
+chars: 30821
 sections:
 - id: '1'
   title: Rules of engagement
@@ -23,7 +23,7 @@ sections:
   chars: 6960
 - id: '5'
   title: Canonical facts (memorize)
-  chars: 4753
+  chars: 4935
 - id: '6'
   title: Known product gaps to warn about proactively
   chars: 4647
@@ -337,7 +337,7 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Setup key facts | revoking does not disconnect enrolled peers; auto-groups apply to new peers only; ephemeral = deleted 10 min after offline |
 | `netzilo down`, service stop/restart | all log the device out and reset its keys; an SSO device then needs an interactive sign-in. To re-sync without logging out use `netzilo refresh` (or `mod.refresh`) |
 | Free plan limits (cloud) | 5 users, 100 peers; no posture-check edits, no event streaming; Enterprise needed for Profiles; filters and guardrails carry no plan gate; self-hosted runs unlimited |
-| AI Gateway | binary `netzilo-aigw`, Linux service `netzilo-aigw`, config `/etc/netzilo-aigw/aigw.env` (`AIG_ARGS`, `NZ_GATEWAY_SETUP_KEY`, `NZ_GATEWAY_SERVICE_PAT`), data `/var/lib/netzilo-aigw`; ports 8447 (AI door: on the peer's tunnel address always, public with `--ai-listen`) and 8443 (browser-access proxy, always on); `--workplace-url https://go.netzilo.com` on Cloud; callers send `Authorization: Bearer <token>` (never `x-api-key`); surfaces `<gateway>/v1/…`, `<gateway>/anthropic` (`…/v1/messages`), `<gateway>/mcp/<slug>`; model grants and guardrails on chat completions, the Responses API and the Anthropic surface, streamed answers included (held about 1 KB, so redactable); embeddings and text completions counted, not inspected; policy refusals HTTP 400 `type: netzilo_policy` (403 on gateways before October 2026); sign-in metadata on the gateway's own origin (`<gateway>/.well-known/oauth-authorization-server`, endpoints under `/.netzilo/oauth2/`); Claude Desktop endpoint `<gateway>/anthropic` + **Sign in with your organization**; logs `journalctl -u netzilo-aigw` (`27-ai-gateway.md`) |
+| AI Gateway | binary `netzilo-aigw`, installed and started as the service `netzilo-aigw` by `sudo netzilo-aigw up <run flags>` (systemd, launchd or a Windows service; `status` / `down` / `uninstall`), settings `/var/lib/netzilo-gateway/netzilo-aigw.json` (root only), data `/var/lib/netzilo-gateway` (`/var/lib/netzilo-aigw` for gateways moved from the earlier `aigw.env` unit); ports 8447 (AI door: on the peer's tunnel address always, public with `--ai-listen`) and 8443 (browser-access proxy, always on); `--workplace-url https://go.netzilo.com` on Cloud; callers send `Authorization: Bearer <token>` (never `x-api-key`); surfaces `<gateway>/v1/…`, `<gateway>/anthropic` (`…/v1/messages`), `<gateway>/mcp/<slug>`; model grants and guardrails on chat completions, the Responses API and the Anthropic surface, streamed answers included (held about 1 KB, so redactable); embeddings and text completions counted, not inspected; policy refusals HTTP 400 `type: netzilo_policy` (403 on gateways before October 2026); sign-in metadata on the gateway's own origin (`<gateway>/.well-known/oauth-authorization-server`, endpoints under `/.netzilo/oauth2/`); Claude Desktop endpoint `<gateway>/anthropic` + **Sign in with your organization**; logs `journalctl -u netzilo-aigw` (`27-ai-gateway.md`) |
 | Edge filters | endpoint: ≥1 group and ≥1 OS (`Browser` = the browser extension); gateway: ≥1 group and ≥1 model grant; guardrails optional on both, but without one nothing is judged (`29` §1) |
 | Provider keys, MCP credentials | stored as plain JSON in the management database (no field-level encryption), masked in the API and dashboard, pulled in clear by every gateway's service token (`14` §8, `45` §5) |
 | Support | support@netzilo.com; docs `https://doc.netzilo.com` (for agents: index `https://doc.netzilo.com/llms.txt`, full text `https://doc.netzilo.com/llms-full.txt`); public rule corpus `github.com/netzilo/aidr-sigma` |

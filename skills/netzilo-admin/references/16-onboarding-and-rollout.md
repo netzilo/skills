@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12368
+chars: 12441
 sections:
 - id: '0'
   title: What the admin sees first
@@ -38,7 +38,7 @@ sections:
   chars: 1185
 - id: phase-7c-the-ai-gateway
   title: Phase 7c — The AI Gateway
-  chars: 2802
+  chars: 2875
 - id: phase-8-roll-out-to-everyone
   title: Phase 8 — Roll out to everyone
   chars: 639
@@ -223,11 +223,12 @@ with no models refuses everyone, and a filter without a gateway address shows no
 the Workplace.
 
 1. **Install the gateway** on a Linux host (`curl -fsSL
-   https://pkg.netzilo.com/download/linux/install_aig.sh | sh`), fill
-   `/etc/netzilo-aigw/aigw.env` with the management URL, `--workplace-url
-   https://go.netzilo.com` on Cloud, a setup key for the gateway's own peer and a
-   service token of an admin Agent, then `systemctl enable --now netzilo-aigw`
-   (`27-ai-gateway.md` §3). Confirm the peer appears under Endpoint → Peers.
+   https://pkg.netzilo.com/download/linux/install_aig.sh | sh`), then start it as a
+   service: `sudo netzilo-aigw up --management-url <url> --workplace-url
+   https://go.netzilo.com` (on Cloud) `--setup-key <key> --service-pat <token>
+   --ai-listen :8447`, with a setup key for the gateway's own peer and a service token
+   of an admin Agent (`27-ai-gateway.md` §3). `up` waits until it is connected; confirm
+   the peer appears under Endpoint → Peers.
 2. **Add a provider** under Edge → Providers with its key, refresh the model list and
    enable the models you intend to grant (`45-ai-gateway-providers-and-limits.md` §1).
 3. **Add a limit** — a monthly spend cap is the usual first one; it applies per user,

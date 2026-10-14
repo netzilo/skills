@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 68352
+chars: 68611
 sections:
 - id: '1'
   title: How it works
@@ -40,7 +40,7 @@ sections:
   chars: 1514
 - id: '9'
   title: Configuration reference
-  chars: 3007
+  chars: 3266
 - id: '10'
   title: Operating it
   chars: 7860
@@ -752,7 +752,10 @@ ingress's public IP on another port where the cloud load balancer supports it.
 All settings are command-line options of `gateway run`; three can come from the
 environment instead. Compose passes them as the service's `command:`, Kubernetes as the
 container's `args`. Change them there and recreate the container
-(`sudo docker compose up -d --no-deps gateway`).
+(`sudo docker compose up -d --no-deps gateway`). Outside a container the binary runs
+itself as a service: `sudo gateway up <run options>` saves the options, installs and
+starts the `netzilo-gateway` service and waits until it is connected; `status`, `down`
+and `uninstall` as for the AI Gateway (`27` §3.1).
 
 | Option | Default | Meaning |
 |---|---|---|

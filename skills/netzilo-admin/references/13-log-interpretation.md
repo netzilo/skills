@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 69153
+chars: 69235
 sections:
 - id: '1'
   title: Method
@@ -23,7 +23,7 @@ sections:
   chars: 40043
 - id: '5'
   title: The management log
-  chars: 18938
+  chars: 19020
 - id: '6'
   title: Correlating client and server
   chars: 1548
@@ -581,7 +581,8 @@ The AI Gateway is a separate binary on a host of the customer's, never part of
 management: it is the same binary as the clientless-access gateway (§5.7) with the
 LLM/MCP upstream built in, so its log mixes three prefixes with the lines of its own
 peer engine. On Linux read it with `journalctl -u netzilo-aigw` (the binary logs to
-stdout; `--log-file <path>` for a file). The full line table, health endpoints and the
+stdout; `--log-file <path>` for a file); on macOS and Windows the service writes
+`netzilo-aigw.log` in its data directory. The full line table, health endpoints and the
 troubleshooting table are `references/27-ai-gateway.md` §9–§10; `27` §6 explains what a
 refused caller saw.
 

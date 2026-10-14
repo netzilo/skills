@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 46524
+chars: 48672
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1514
 - id: '3'
   title: Install
-  chars: 4467
+  chars: 6060
 - id: '4'
   title: '`netzilo-aigw run` — flag reference'
   chars: 4368
@@ -52,10 +52,10 @@ sections:
   - human-operator
 - id: '9'
   title: Operating it
-  chars: 3651
+  chars: 3702
 - id: '10'
   title: Troubleshooting
-  chars: 6503
+  chars: 7007
 - id: '11'
   title: Limits to state before a customer discovers them
   chars: 2265
@@ -220,81 +220,78 @@ available to the account; if a page shows an upgrade prompt, `31-plans-limits-an
 
 ### 3.1 Linux and macOS
 
+Install, then start it as a service — the same two steps as a peer (`curl … | sh`, then
+`netzilo up`):
+
 ```
 curl -fsSL https://pkg.netzilo.com/download/linux/install_aig.sh | sh
+sudo netzilo-aigw up --management-url https://srv.netzilo.com \
+  --setup-key <SETUP-KEY> --service-pat <SERVICE-TOKEN> --ai-listen :8447
 ```
 
-(the same script is published at `…/download/macos/install_aig.sh`). It downloads
+(the same script is published at `…/download/macos/install_aig.sh`). The script downloads
 `https://pkg.netzilo.com/download/aigateway/<os>/<arch>/netzilo-aigw` into
 `/usr/local/bin`, runs it once with `--version` and stops if the binary does not run on
 the machine ("the downloaded binary does not run on this machine"), and on macOS removes
-the quarantine attribute. Linux is amd64 only ("Linux builds are amd64 only for now").
+the quarantine attribute. Linux downloads are amd64 only ("Linux builds are amd64 only
+for now").
+
+**One step:** flags after `sh -s --` (or `NZ_GATEWAY_SETUP_KEY`, `NZ_GATEWAY_PAT`,
+`NZ_GATEWAY_SERVICE_PAT` in the environment) make the script run `netzilo-aigw up` with
+them: `curl -fsSL …/install_aig.sh | sh -s -- --management-url … --setup-key … --service-pat … --ai-listen :8447`.
+Without them it prints the `up` command to run.
 
 Environment overrides for the script: `AIG_INSTALL_DIR` (default `/usr/local/bin`),
 `AIG_BASE_URL` (default `https://pkg.netzilo.com/download/aigateway`), `AIG_SOURCE` (a
-local binary to install instead of downloading), `AIG_NO_SERVICE=1` (Linux: no systemd
-unit).
+local binary to install instead of downloading; any architecture), `AIG_NO_SERVICE=1`
+(install the binary only).
 
-**Linux service.** With systemd and root (or sudo) the script writes:
+**The service commands** (also in the plain `gateway` binary, as service `netzilo-gateway`):
 
-- `/etc/systemd/system/netzilo-aigw.service` — runs
-  `/usr/local/bin/netzilo-aigw run --data-dir /var/lib/netzilo-aigw $AIG_ARGS` as root,
-  `Restart=always`, `RestartSec=5`. The unit is written but **not enabled**.
-- `/etc/netzilo-aigw/aigw.env` (mode 0600, created once, never overwritten by a later
-  install):
+| Command | Does | Exit |
+|---|---|---|
+| `sudo netzilo-aigw up [run flags]` | saves the flags (merged over the saved ones) to `/var/lib/netzilo-gateway/netzilo-aigw.json` (mode 0600; macOS `/Library/Application Support/Netzilo/gateway/`, Windows `%ProgramData%\Netzilo\gateway\`), installs or rewrites the service (systemd unit `netzilo-aigw.service`, `Restart=always`, `RestartSec=5`, enabled; launchd daemon with `RunAtLoad`/`KeepAlive`; Windows service restarting on failure), starts it, and waits up to `--wait` (90 s) for `/readyz` on the admin address, printing `mode`, `peer`, `sessions` | 0 connected; non-zero with the reason and the log command |
+| `netzilo-aigw status` | service state plus `/readyz` | 0 ready, 1 running not connected, 3 stopped, 4 not installed |
+| `sudo netzilo-aigw down` | stops it (starts again at boot) | |
+| `sudo netzilo-aigw uninstall` | stops and removes the service; settings and the peer key stay, so a later `up` returns the same gateway | |
 
-  ```
-  AIG_ARGS=--management-url https://srv.netzilo.com --workplace-url https://go.netzilo.com --listen :8443 --insecure-plain-http --ai-listen :8447 --ai-insecure-plain-http
-  #NZ_GATEWAY_SETUP_KEY=
-  #NZ_GATEWAY_PAT=
-  #NZ_GATEWAY_SERVICE_PAT=
-  ```
+The service runs `netzilo-aigw run --config <settings file>`; a flag on that command line
+wins over the file. Without `--data-dir` the gateway keeps its state in the default data
+directory (`/var/lib/netzilo-gateway`), the same one a foreground `sudo netzilo-aigw run`
+uses, so moving from a foreground run to the service keeps the peer. `up` without root
+refuses: "up needs root: sudo netzilo-aigw up …". `--management-url` is required on the
+first `up` ("--management-url is required").
 
-  All flags go on the one `AIG_ARGS` line (one flag per line is not supported); the
-  secrets go in the three variables or into `AIG_ARGS` as `--setup-key` /
-  `--service-pat`. The defaults serve plain HTTP on both listeners (§5.1); a
-  self-hosted server replaces the two URLs with its own.
+**Change a setting:** `sudo netzilo-aigw up --<flag> <value>` (e.g. `--service-pat <new>`);
+a bare `sudo netzilo-aigw up` restarts with what is saved. Logs: Linux
+`journalctl -u netzilo-aigw`, macOS and Windows `netzilo-aigw.log` in the data directory.
 
-Then:
+**Earlier installs** (scripts before October 2026 wrote `/etc/systemd/system/netzilo-aigw.service`
+reading `/etc/netzilo-aigw/aigw.env`, and never enabled it): the next `up`, or re-running
+the script, replaces that unit, takes `AIG_ARGS` and the `NZ_GATEWAY_*` secrets from
+`aigw.env` (flags given now win) and keeps `/var/lib/netzilo-aigw` as the data directory
+when it holds state, so the gateway stays the same peer; it prints "Replaced the earlier
+netzilo-aigw unit…". `aigw.env` is left in place, unused.
 
-```
-sudo editor /etc/netzilo-aigw/aigw.env        # URLs, NZ_GATEWAY_SETUP_KEY, NZ_GATEWAY_SERVICE_PAT
-sudo systemctl enable --now netzilo-aigw
-sudo systemctl status netzilo-aigw --no-pager
-sudo journalctl -u netzilo-aigw -f
-```
-
-Re-running the install script upgrades the binary in place: an active `netzilo-aigw`
-service is stopped and started again around the copy.
-
-**Running it by hand first** (the script prints this): use the service's data directory
-so a later switch to the service keeps the same gateway peer:
-
-```
-sudo netzilo-aigw run \
-  --data-dir /var/lib/netzilo-aigw \
-  --management-url https://srv.netzilo.com \
-  --workplace-url https://go.netzilo.com \
-  --setup-key <SETUP-KEY> --service-pat <SERVICE-TOKEN> \
-  --listen :8443 --insecure-plain-http \
-  --ai-listen :8447 --ai-insecure-plain-http
-```
-
-A foreground run ends with the SSH session; the service does not. Never run both at
-once against the same data directory.
+A foreground `sudo netzilo-aigw run …` (testing) ends with the SSH session; the service
+does not. Never run both at once against the same data directory.
 
 ### 3.2 Windows
 
+In an administrator PowerShell:
+
 ```
 irm https://pkg.netzilo.com/download/windows/install_aig.ps1 | iex
+netzilo-aigw up --management-url https://srv.netzilo.com --setup-key <SETUP-KEY> --service-pat <SERVICE-TOKEN> --ai-listen :8447
 ```
 
-Installs `netzilo-aigw.exe` into `%ProgramFiles%\Netzilo AI Gateway` (as administrator)
-or `%LOCALAPPDATA%\Programs\Netzilo AI Gateway`, and adds that folder to the PATH
-(`AIG_NO_PATH=1` to skip). **No Windows service is created**, by the script or by the
-binary; a persistent install needs a service wrapper or a scheduled task the admin
-provides. If a service named `netzilo-aigw` already exists and is running, the script
-stops and restarts it around the upgrade.
+Installs `netzilo-aigw.exe` into `%ProgramFiles%\Netzilo AI Gateway` and adds it to the
+machine PATH (`AIG_NO_PATH=1` to skip). `up` installs the `netzilo-aigw` Windows service
+(restart on failure), as on Linux. One step: set `$env:AIG_UP_ARGS` to the `up` flags (and/or
+the `NZ_GATEWAY_*` secrets) before the `irm … | iex`. Without administrator rights the
+script installs into `%LOCALAPPDATA%\Programs\Netzilo AI Gateway` only and says the
+service needs an administrator PowerShell. An upgrade stops the service (`down`), replaces
+the binary and runs `up`.
 
 ### 3.3 Container
 
@@ -315,8 +312,10 @@ docker run -d --name netzilo-aigw --restart unless-stopped \
 
 ### 3.4 Upgrades
 
-Re-run the install script (Linux/macOS/Windows) or pull a newer image tag. The data
-directory carries the peer key, so the gateway returns as the same peer. The version a
+Re-run the install script (Linux/macOS/Windows) or pull a newer image tag. A gateway
+service already set up (`status` exit 0, 1 or 3) is restarted on the new binary with its
+saved settings (`up`). The data directory carries the peer key, so the gateway returns as
+the same peer. The version a
 server publishes is at `https://pkg.netzilo.com/download/aigateway/version.txt`
 (`<version> <tag> <UTC time>`); `netzilo-aigw --version` prints the installed one.
 
@@ -611,8 +610,8 @@ with the same `--name` are two peers with one name; tell them apart by id.
 
 ### 9.4 Rotating the service token
 
-Create a new token for the service user, put it in `aigw.env`, restart the service, then
-revoke the old token. A restart keeps what was applied to the upstream (providers, keys,
+Create a new token for the service user, run `sudo netzilo-aigw up --service-pat <new>`
+(it saves the token and restarts the service), then revoke the old token. A restart keeps what was applied to the upstream (providers, keys,
 each user's virtual key, in `ai-applied.json`), so users' spend counters survive; filters
 and users are fetched afresh.
 
@@ -622,7 +621,9 @@ and users are fetched afresh.
 
 | Symptom | Check | Fix |
 |---|---|---|
-| Service exits at once, `a service PAT is required…` / `ai mode needs a peer of its own` / `give either a setup key or a PAT` | `aigw.env` | supply `--service-pat` and exactly one of `--setup-key`/`--pat` |
+| Service exits at once, `a service PAT is required…` / `ai mode needs a peer of its own` / `give either a setup key or a PAT` | the saved settings (`netzilo-aigw.json`) | `sudo netzilo-aigw up --service-pat <token> --setup-key <key>` (exactly one of `--setup-key`/`--pat`) |
+| `up` ends "running but not connected after 1m30s: <reason>" | the gateway started but `/readyz` never answered 200 (management unreachable, a refused setup key or token) | read the log line it prints (`journalctl -u netzilo-aigw -n 50`), fix the flag with `up --<flag> …` |
+| Gateway gone after the SSH session ends | it was started with `run` in the foreground | `sudo netzilo-aigw up` (same flags) installs and starts the service |
 | `management-url: not an absolute URL` | the flag | scheme and host only, no path |
 | Exits after `aigw: the agent gateway did not become healthy in 15s` | `--ai-data-dir` writable? disk? `--ai-upstream-log-level debug` for the upstream's own error | fix the data directory; escalate with the log if it repeats |
 | Workplace card shows the gateway **offline** although `curl` works | the browser's call is refused for its origin: `--workplace-url` missing or wrong (Cloud: `https://go.netzilo.com`) | set `--workplace-url`, restart; the card recovers at its next probe (30 s) |

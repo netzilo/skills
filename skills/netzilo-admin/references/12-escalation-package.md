@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 43127
+chars: 43279
 sections:
 - id: '1'
   title: Escalate only when the answer needs the source code
@@ -30,13 +30,13 @@ sections:
   chars: 2071
 - id: '4'
   title: Collect
-  chars: 9792
+  chars: 9875
 - id: '5'
   title: Correlation keys — include these explicitly
   chars: 1239
 - id: '6'
   title: Remove credentials before anything leaves the machine
-  chars: 3134
+  chars: 3203
 - id: '7'
   title: Do not anonymize by default — decide deliberately
   chars: 1129
@@ -399,7 +399,8 @@ there is no gateway of ours to collect from — the customer runs it):
 ```bash
 netzilo-aigw --version                                  > server/aigw-version.txt
 journalctl -u netzilo-aigw --since -1h --no-pager       > server/aigw.log
-grep -E 'AIG_ARGS' /etc/netzilo-aigw/aigw.env | sed -E 's/(--service-pat|--pat|--setup-key)[= ][^ ]+/\1 REDACTED/g' > server/aigw-args.txt
+netzilo-aigw status                                     > server/aigw-status.txt
+sudo sed -E 's/("(service-pat|pat|setup-key)": )"[^"]*"/\1"REDACTED"/' /var/lib/netzilo-gateway/netzilo-aigw.json > server/aigw-settings.txt
 ```
 
 Record the `run` flags **without the secrets** (`--service-pat`, `--pat`, `--setup-key`
@@ -440,7 +441,7 @@ exact client log line that produced it.
 | `token.dat`, `pat.dat` — session and API credentials | inside the Windows debug bundle |
 | `usservice*.json` — non-admin mode configuration, contains a private key | inside the Windows debug bundle |
 | `mcp.db` (and `mcpjungle.db`), **if present** — MCP OAuth tokens left by a client from before this release; no current client creates them | inside the Windows debug bundle of a host that ran an older client |
-| `/etc/netzilo-aigw/aigw.env` and the `NZ_GATEWAY_*` variables — the AI Gateway's service token and peer credential | the gateway host — never collect the file; §4.5 says what to copy out of it |
+| `/var/lib/netzilo-gateway/netzilo-aigw.json` (and `/etc/netzilo-aigw/aigw.env` on older installs) and the `NZ_GATEWAY_*` variables — the AI Gateway's service token and peer credential | the gateway host — never collect the file; §4.5 says what to copy out of it |
 | `<workspace>.json` — per-workspace peer configurations, each with its own private key | `%PROGRAMDATA%\Netzilo\`, inside the Windows debug bundle |
 | `management.json`, `zitadel.env`, `dashboard.env`, `.env`, `turnserver.conf` | server configuration directory — never collect them at all |
 | `CREDENTIALS`, `netzilo-state.env` | server state directory — never collect |

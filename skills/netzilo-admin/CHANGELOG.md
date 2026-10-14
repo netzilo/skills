@@ -40,6 +40,16 @@ procedures; several statements about scripts and sessions were no longer true.
 - The Trajectory shows a tool call refused before the agent got it as its own row, with
   the rule and its reason (`27` §8.1, `30` §3).
 
+**AI Gateway runs as a service (`27` §3, `00`, `12`, `13`, `16`, `43`):**
+
+- `sudo netzilo-aigw up <run flags>` installs the gateway as a service (systemd, launchd,
+  Windows service), starts it and waits until it is connected; `status` (exit 0/1/3/4),
+  `down`, `uninstall`. Settings are saved root-only in `netzilo-aigw.json`; `up --<flag>`
+  changes one, a bare `up` restarts. The install script takes the `up` flags (`sh -s --`)
+  for one step and restarts a configured gateway on upgrade. The earlier
+  `/etc/netzilo-aigw/aigw.env` unit (written, never enabled) is replaced on the next `up`
+  and keeps its peer. Before this, a gateway started with `run` stopped with the SSH session.
+
 **Sessions for custom agents (`27` §1, `10`):**
 
 - Without a session ID, calls that share an agent, system prompt and first message are
