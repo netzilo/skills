@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 45490
+chars: 46524
 sections:
 - id: '1'
   title: How it works
-  chars: 6187
+  chars: 6791
 - id: '2'
   title: Requirements
   chars: 1514
@@ -25,7 +25,7 @@ sections:
   chars: 4294
 - id: '6'
   title: How a caller authenticates, and what it gets back
-  chars: 5966
+  chars: 6191
   requires:
   - api
   executable_on:
@@ -43,7 +43,7 @@ sections:
   - human-operator
 - id: '8'
   title: Usage telemetry
-  chars: 2641
+  chars: 2846
   requires:
   - api
   executable_on:
@@ -135,6 +135,10 @@ gateway filters that target the user's groups (cached for `--ai-policy-refresh`,
 3. **Guardrails** — the rules bound by the user's filters run on the prompt (block,
    redact, or route to another model), on the answer (block, redact), on each tool call
    the model asks for (block, redact arguments) and on each MCP tool call and result.
+   A rule on a requested tool call sees the agent's name (`agent_name`) and, for a
+   scripted judge, the conversation's first prompt and system prompt (`meta["task"]`,
+   `meta["instructions"]`), so it can ask System One or an LLM whether the call serves
+   the task (`32`, two-tier judging).
 4. **Usage** — one record per model request and per MCP tool call: who, which model,
    tokens, cost, latency, status. Usage records carry no prompt, answer, argument or
    result text.
@@ -170,11 +174,15 @@ allow, not a refusal. The one exception admins meet: a user whose filters could 
 fetched at all holds **no** grant and is refused "no model is granted to this user" until
 the lookup succeeds (retried after 10 s).
 
-**Sessions.** Requests are grouped per user (`guest/<user>`), or per conversation when the
-caller sends `x-claude-code-session-id`, `x-bf-session-id`, `x-bf-mcp-session-id`,
-`Mcp-Session-Id`, or the OpenAI `user` field, or continues an earlier answer by its
-response id. Without any of these, a user's calls from one agent form a run that ends
-after 30 minutes of quiet. A session always belongs to the user who made it.
+**Sessions.** Requests are grouped per conversation when the caller sends
+`x-claude-code-session-id`, `x-bf-session-id`, `x-bf-mcp-session-id`, `Mcp-Session-Id`, or
+the OpenAI `user` field, or continues an earlier answer by its response id. Without any of
+these (a model API call from a custom agent), calls that share the agent, system prompt and
+first message are one conversation, and a call with nothing answered in it yet starts a new
+session, so two runs of the same task are two sessions. Exact sessions: the agent sends its
+own ID per task in `x-bf-session-id`. A call with no conversation at all joins the user's run
+with that agent, which ends after 30 minutes of quiet. A session always belongs to the user
+who made it.
 
 **Which agent.** The agent is the name a Netzilo SDK agent carries in its User-Agent
 (`NetziloAgent/<percent-encoded name>`, added by the embedded client; `10` §5), else the
@@ -480,7 +488,7 @@ and can revoke it there; the app then has to sign in again.
 | 405 `Method Not Allowed` on `POST /v1/messages` | — | the Anthropic Messages API is served under `/anthropic`; the caller's base address lacks it (Claude Desktop endpoint, `ANTHROPIC_BASE_URL`) → `<gateway>/anthropic` |
 | 502 `the AI gateway upstream is not reachable` | same shape | the built-in upstream is down; the process will have logged why |
 | 400, `type: netzilo_policy`, message `no model is granted to this user` / `none of this user's filters grants a model` / `model <m> is not granted to this user` / `model <provider>/<m> is not granted to this user` | the error envelope of the API surface called | no gateway filter grants the user that model (`29` §2.2); also what a user gets while their filters cannot be fetched |
-| 400 `type: netzilo_policy`, a guardrail's reason (default `blocked by Netzilo policy`) | same; a block in the middle of a streamed answer ends the stream with this error | a guardrail blocked the prompt, the answer, a requested tool call, an MCP tool call or an MCP result; the event names the rule. Policy refusals are 400, not 401/403, so that clients do not read them as a credential failure; gateways before October 2026 answered 403 |
+| 400 `type: netzilo_policy`, a guardrail's reason (default `blocked by Netzilo policy`) | same; a block in the middle of a streamed answer ends the stream with this error | a guardrail blocked the prompt, the answer, a requested tool call, an MCP tool call or an MCP result; the event names the rule. A scripted (`execute`) rule's message is the `reason` its script returned — for a judge rule, the judge's own explanation — and a script that failed under `on_error: block` reads `execute script failed (rule <id>): <error>`. Policy refusals are 400, not 401/403, so that clients do not read them as a credential failure; gateways before October 2026 answered 403 |
 | 429 / 402 | the upstream's governance error (`budget_exceeded`, `rate_limited`, `token_limited`, `request_limited`) | a limit from the user's filters is exhausted for its window; recorded with status `limited` |
 | MCP tool answer `Connect <server> in your Workplace before using its tools: <workplace>/workplace?connect=<server>#gateways` | tool result text | the server needs the user's own sign-in or header values and the user has not connected it (`46` §4) |
 
@@ -544,7 +552,9 @@ system prompt, the user's prompts, the agent's context, thinking, answers, tool 
 their arguments and results — as the caller sent and received them **after the
 guardrails**: what a guardrail redacted arrives redacted, and a tool call the guardrails
 held back or refused is not sent at all. A message is cut past 32 KB. A message a session
-already sent is not sent again with the next call.
+already sent is not sent again with the next call. A refused tool call still appears in the
+Trajectory, from its verdict: a row with the tool's name, **Blocked**, the rule and the
+reason the rule gave, without the arguments the conversation never carried.
 
 They go to `POST /api/ai-gateway/content` in batches of at most 2 MB and 1 000 calls, and
 are held **in memory only**, never on disk: up to 64 MB wait during an outage (the oldest

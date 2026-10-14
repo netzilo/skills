@@ -7,6 +7,47 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.3.0 — 2026-10-14
+
+LLM and System One judge rules, exact AI Gateway sessions for custom agents, and what a
+blocked agent and an investigator now see. Minor version: new rule capabilities and
+procedures; several statements about scripts and sessions were no longer true.
+
+**Judge rules (`32`, `30` §4a, `10`, `28`, `SKILL.md`):**
+
+- New builtin `system_one(state, questions, model="")`: typed questions to the account's
+  System One (TypeSafe) provider; returns `{answers, model, error}` and never raises for a
+  service failure (`32`, builtins table).
+- `llm_call(..., model="")`: a rule may name the judge model (`model-id`,
+  `provider-name/model-id`, `provider-id/model-id`) — any model an enabled text provider
+  lists, approved for Threat Analysis or not; an unusable model is an `error`, never a
+  fallback. Results carry `model` (`32`; `30` §4a).
+- New `json` module in scripts (`json.encode`, `json.decode`, `json.indent`).
+- Two-tier judging pattern: System One first, `llm_call` only when it is unsure (`32`).
+- Replay runs `scan_prompt`, `llm_call` and `system_one` as real, paid calls, `model=`
+  honoured (`32`, Replay).
+- API: `POST /api/ai/systemone`; `model` on `POST /api/ai/scanprompt` (`33`).
+- Starlark traps that break judge scripts: reassigning `result` at top level, adjacent
+  string literals, `%.2f`; a guardrail is saved without checking its script, and a parse
+  error shows only at run time (`32`, `28` §8, `13` §4).
+
+**Rules at the AI Gateway (`27` §1, §8, `32`):**
+
+- A rule on a requested tool call sees the agent's name (`agent_name`, which was empty
+  for gateway tool calls) and the conversation's first prompt and system prompt
+  (`meta["task"]`, `meta["instructions"]`, 8 KB each).
+- A scripted rule's block tells the caller the script's `reason` (it said `rule <id>`).
+- The Trajectory shows a tool call refused before the agent got it as its own row, with
+  the rule and its reason (`27` §8.1, `30` §3).
+
+**Sessions for custom agents (`27` §1, `10`):**
+
+- Without a session ID, calls that share an agent, system prompt and first message are
+  one conversation, and a call with nothing answered yet starts a new session: two runs
+  of the same task are two sessions (they were merged, however far apart).
+- Exact sessions: the agent sends its own ID per task in `x-bf-session-id`. The SDK does
+  not set one for the process.
+
 ## 4.2.0 — 2026-10-13
 
 The Agentic Activity window, captured conversations through the AI Gateway, and the AI

@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 35967
+chars: 36407
 sections:
 - id: '1'
   title: Architecture in one page
   chars: 3812
 - id: '2'
   title: Rollout runbook
-  chars: 3408
+  chars: 3590
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
   chars: 3501
@@ -23,7 +23,7 @@ sections:
   chars: 2869
 - id: '5'
   title: SDK for custom agents
-  chars: 4400
+  chars: 4658
 - id: '6'
   title: Browser extension and Enterprise Browser
   chars: 4726
@@ -102,8 +102,10 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 2. **(Optional) AI provider for the dashboard's own AI features** — guardrail generation
    (✦), prompt-injection AI judge, smart search, the assistant: Integrations →
    Artificial Intelligence → add a provider and approve a model for **Threat Analysis**
-   (`30` §4a). Without it `POST /edge/guardrails/generate` answers 428. This is not the
-   gateway's provider list (`45`).
+   (`30` §4a). Without it `POST /edge/guardrails/generate` answers 428. Judge rules
+   (LLM-as-judge) use the same providers: `llm_call()` on the Threat Analysis model or a
+   model the rule names, and `system_one()` on a **System One** provider (`32`). This is
+   not the gateway's provider list (`45`).
 3. **Guardrails:** Edge → Guardrails → Add Guardrail; start from the public library
    (`github.com/netzilo/aidr-sigma`) in report mode (`28` §6).
 4. **Create an endpoint Filter** (Edge → Filters → Add Filter → Filter Type Endpoint):
@@ -247,6 +249,9 @@ agent's LLM requests' User-Agent), `enable_advanced_governance`
 (auto-picked), `log_level`, `log_file`, `config_path` (`~/.netzilo-sdk/config.json`).
 Use a **setup key** whose auto-group is your agents' group so the right endpoint filter
 applies. `set_agent_pid(pid)` names the real workload when a supervisor starts the SDK.
+An agent that calls its models through the AI Gateway should send its own ID per task in
+`x-bf-session-id`, so each task is one session (`27` §1, Sessions); the SDK does not set one,
+because one ID per process would merge every task of a long-running agent.
 
 **Breaking change in 5.0.0:** the `mcp_gateway_port` option and function (Python) and
 `mcpGatewayPort` (TypeScript) are gone; passing them fails (`TypeError` /

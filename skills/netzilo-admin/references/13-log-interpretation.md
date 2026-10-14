@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 68646
+chars: 69153
 sections:
 - id: '1'
   title: Method
@@ -20,7 +20,7 @@ sections:
   chars: 1677
 - id: '4'
   title: The client log
-  chars: 39536
+  chars: 40043
 - id: '5'
   title: The management log
   chars: 18938
@@ -353,6 +353,7 @@ Peer lines are keyed by the **WireGuard public key** of the other peer (full, or
 | `redaction SUPPRESSED on SigV4-signed request …` | a redact action was not applied to a request carrying an AWS SigV4 signature (a rewritten body would no longer match it); the request went on unmodified |
 | `[evaluate] hook request missing caller_pid — AIDR graph edge will not be created …` | a coding-agent hook call arrived without the calling process id; it is evaluated as usual, but the behaviour graph gets no process edge for it |
 | `[scanner] Scan [tool_output] blocked=false triggered=N loaded=N version=mgmt-sync-N time=N.Nms` | one evaluation; `blocked=true` would be a block. **Verify the exact wording on the client at hand before relying on it**; it has changed between releases |
+| `Execute script for rule <id> error: rule:<id>:<line>:<col>: <error>` (WARN; client and gateway) | a scripted (`execute`) guardrail failed — a Starlark parse error (`got string literal, want ')'`, `if statement not within a function`, `cannot reassign global result`) or a runtime error. The rule took its `on_error` verdict (default `allow`; with `block` the caller saw `execute script failed (rule <id>): …`). Saving a guardrail does not check its script: fix it in the guardrail and Replay it (`32`) |
 | `MITM BYPASS pipe closed: client=… upstream=<ip:port> client→upstream=N bytes upstream→client=N bytes duration=…` | a flow that was passed through without inspection (excluded domain, non-HTTP, or not an intercepted app) — informational |
 | `[aidr] ingest queue full, dropping event` | back-pressure in the behaviour-graph ingester; events are being lost. Bursts of thousands during heavy AI traffic. Cosmetic for connectivity; matters if session snapshots look incomplete |
 | `enrichment slots saturated (N), skipping URL enrichment for <url>` | metadata enrichment skipped under load; cosmetic |

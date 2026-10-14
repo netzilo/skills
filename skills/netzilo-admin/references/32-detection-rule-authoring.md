@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 189955
+chars: 195453
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
@@ -56,13 +56,13 @@ sections:
   chars: 5449
 - id: detection-what-to-look-for
   title: Detection — What to Look For
-  chars: 9559
+  chars: 9693
 - id: metadata-filtering-moving-when-into-detection
   title: Metadata Filtering — Moving `when:` into Detection
   chars: 790
 - id: actions-what-to-do
   title: Actions — What to Do
-  chars: 51248
+  chars: 56473
 - id: sessions-and-the-observation-log
   title: Sessions and the Observation Log
   chars: 9668
@@ -101,19 +101,19 @@ sections:
   chars: 1573
 - id: runtime-environment-what-is-available
   title: Runtime Environment — What Is Available
-  chars: 1065
+  chars: 1125
 - id: meta-dict-field-availability
   title: '`meta` Dict — Field Availability'
   chars: 803
 - id: action-scan-ai-classifier-behavior
   title: '`action: scan` — AI Classifier Behavior'
-  chars: 823
+  chars: 886
 - id: action-execute-starlark-scripts
   title: '`action: execute` — Starlark Scripts'
   chars: 413
 - id: writing-rules-that-behave-consistently-in-both
   title: Writing Rules That Behave Consistently in Both Environments
-  chars: 8929
+  chars: 8945
 ---
 # Authoring Detection Rules — The AI Threat Response Engineer Role
 
@@ -864,7 +864,7 @@ These are the fields available in detection conditions. They are populated autom
 | `message.content` | Concatenated LLM message texts | |
 | `system_prompt` | LLM system message | |
 | `source` | How content was loaded — **semantic events only** (`skill_acquired`, `external_message`, …). It does **not** exist on `tool_call`, `llm_request` or HTTP contexts: the engine only creates it by parsing a classifier payload. Pairing `source:` with `event_type: tool_call` in one selection makes that selection false forever, because selections are AND. To scope a rule to a framework or MCP server, use `server:` (e.g. `server: openclaw`). | `http`, `mcp`, `llm` |
-| `agent_name` | Program path of the nearest agent session in the caller's lineage (on the gateway: the client name) | `/usr/bin/cursor` |
+| `agent_name` | Program path of the nearest agent session in the caller's lineage (on the gateway: the agent's name — the `NetziloAgent/<name>` it sends, else the client, e.g. `Claude Code` — on prompts, answers and tool calls alike) | `/usr/bin/cursor`, `DevOps Agent` |
 
 For semantic events (`skill_acquired`, `external_message`, etc.), `content` is a `key=value\n` payload. The engine also flattens each pair into its own field, so `skill|contains: '…'`, `host: 'evil.com'`, `platform: 'slack'` and `format: '…'` work directly — you do not have to match against the packed `content` string, though `content|contains: "host=evil.com"` also works.
 
@@ -1376,16 +1376,22 @@ if event_ts > 0 and s0_ts > 0 and (event_ts - s0_ts) > LOOK_BACK_NS:
 
 #### Starlark is not Python — four differences that break scripts
 
-A script that fails to **parse** produces no error anywhere the rule author will see;
-it takes the `on_error` verdict, which defaults to `allow`. These four have all
-shipped in this corpus:
+A guardrail is saved without parsing its script, and a script that fails to **parse**
+shows no error in the dashboard: it takes the `on_error` verdict, which defaults to
+`allow`. With `on_error: block` every matching call is refused with
+`execute script failed (rule <id>): <error>`, and the host logs
+`Execute script for rule <id> error: …` — run the rule once (Replay, or a test call)
+after every edit. These have all shipped in this corpus or in judge rules:
 
 | Python | Starlark | Symptom |
 |---|---|---|
 | `any(x for y in z)` | `any([x for y in z])` | **Parse error.** Starlark has list comprehensions but no bare generator expressions. |
 | `30_000_000_000` | `30000000000` | **Parse error.** No underscore digit separators — it reads as `30` followed by the identifier `_000_000_000`. |
 | `for c in s: ord(c)` | `for c in s.elem_ords():` | `.elems()` yields one-character **strings**; only `.elem_ords()` / `.codepoint_ords()` yield ints. `int ^ str` is a runtime error. |
-| top-level `for` / `if` | put everything in `def run():` | Starlark forbids `for` at module level. |
+| top-level `for` / `if` | put everything in `def run():` | **Error** — `for` and `if` must be inside a function (*"if statement not within a function"*). |
+| `result = "allow"` … `result = {...}` at top level | assign `result` once: `result = run()` | **Error** — a global is assigned once (*"cannot reassign global result"*). |
+| `("a " "b")` | `("a " + "b")` | **Parse error** (*"got string literal, want ')'"*). No implicit concatenation of adjacent literals. |
+| `"%.2f" % x` | `"%s" % x`, `"%d" % x` | **Error** (*"unknown conversion %."*) — `%` takes no precision; format a float with `%s`. |
 
 Verified against the engine's interpreter — these are **rejected**: `while` loops
 (*"this Starlark dialect does not support while loops"*), f-strings, `try`/`except`,
@@ -1437,7 +1443,7 @@ Any other value (or no assignment) → **allow**.
 | Key | Type | Purpose |
 |---|---|---|
 | `"action"` | string | Required — `"block"`, `"report"`, `"redact"`, `"redirect"`, `"inject"`, `"replace"` |
-| `"reason"` | string | Human-readable explanation written to the audit log |
+| `"reason"` | string | Human-readable explanation written to the audit log; on a `block` it is also what the caller is told (the agent sees it as the refusal, e.g. Claude Code's "API Error: …") |
 | `"chain"` | chain | Kill chain produced by `new_chain()` — **always include this for behavioral detections** |
 
 ```python
@@ -1537,14 +1543,16 @@ result = run()
 | `re.replace` | `re.replace(pattern, s, repl)` | `str` | Replace all matches |
 | `re.split` | `re.split(pattern, s, n=-1)` | `list[str]` | Split by pattern |
 | `re.compile` | `re.compile(pattern)` | Regexp | Returns object with `.match()`, `.find()`, `.find_all()`, `.replace()`, `.split()`, `.pattern` |
+| `json.encode` / `json.decode` / `json.indent` | `json.encode(x)`, `json.decode(s)`, `json.indent(s, prefix="", indent="\t")` | `str` / value / `str` | The standard Starlark `json` module. Use it to decode tool arguments (`json.decode(meta["content"])` — `content` is a JSON string for tool calls) and to encode state for `llm_call`. `json.decode` raises on invalid JSON. |
 | `http` | `http(method, url, body="", headers={}, timeout_ms=10000)` | `dict` | HTTP request; returns `{status, body, error}` |
 | `webhook` | `webhook(url, payload)` | `dict` | JSON-encodes payload, POSTs to url; returns `{status, body, error}` |
 | `meta` | — (read-only dict) | — | Request metadata injected before execution; see [`meta` keys](#meta-keys) |
 | `subject` | — (read-only dict) | — | Who acted: `session`, `owner`, `program`, `source`, `device`, and `actor` = `{id, kind, name, email, groups}` (`groups` is a list of group names). Same data as the `meta` subject keys, structured. See [The `subject` dict](#the-subject-dict). |
 | `new_chain` | `new_chain(root=None)` | `chain` | Creates a kill-chain collector rooted at a session (default: the triggering session). Raises an error when there is no root (a periodic run with no argument). See **Kill chain builtins** below. |
 | `step` | `step(edge, stage_id="", stage_desc="", activity=None)` | `dict` | Annotates an edge dict with a stage label and description for inclusion in a kill chain. Pass `activity` (an entry from `fs_activity()`) for FILE edges to name the exact file and its timestamp. |
-| `scan_prompt` | `scan_prompt(text, scan_type="", identifier="")` | `dict` | Runs the built-in ML prompt-injection classifier on `text`. Returns `{"allowed": bool, "label": str, "confidence": float, "reason": str, "error": str}`. Fast, no AI model required. On a classifier error it returns `allowed=True` with `label="error"` and the error text — check `error`. Undefined on a host with no scan service: a script that calls it takes `on_error`. |
-| `llm_call` | `llm_call(text, instruction, scan_type="", identifier="")` | `dict` | Sends `text` to the AI judge (the model approved for Threat Analysis under Integrations → Artificial Intelligence) with a custom `instruction`. Same return shape as `scan_prompt`. `instruction` is **required** and must be non-empty — raises an error otherwise (use `scan_prompt` for the ML classifier). On an error it returns `allowed=True`, `label="error"`. |
+| `scan_prompt` | `scan_prompt(text, scan_type="", identifier="")` | `dict` | Runs the built-in ML prompt-injection classifier on `text`. Returns `{"allowed": bool, "label": str, "confidence": float, "reason": str, "error": str, "model": str}` (`model` is empty for the classifier). Fast, no AI model required. On a classifier error it returns `allowed=True` with `label="error"` and the error text — check `error`. Undefined on a host with no scan service: a script that calls it takes `on_error`. |
+| `llm_call` | `llm_call(text, instruction, scan_type="", identifier="", model="")` | `dict` | Sends `text` to the AI judge with a custom `instruction`. Same return shape as `scan_prompt`; `model` names the provider and model that answered (`"OpenAI/gpt-5"`). Without `model` the judge is the model approved for Threat Analysis under Integrations → Artificial Intelligence. With `model` it is that model, written `"model-id"`, `"provider-name/model-id"` or `"provider-id/model-id"`; it may be any model an enabled text provider of the account lists, approved for Threat Analysis or not (never a System One model). A model the account cannot use returns `allowed=True`, `label="error"` and an `error` that names the model and says why — the call never falls back to another model. `instruction` is **required** and must be non-empty — raises an error otherwise (use `scan_prompt` for the ML classifier). On any error it returns `allowed=True`, `label="error"`. A management server older than the `model` argument ignores it and answers on the Threat Analysis model. |
+| `system_one` | `system_one(state, questions, model="")` | `dict` | Asks the account's **System One** model (TypeSafe; Integrations → Artificial Intelligence, protocol `typesafe-systemone`) typed questions about `state`. `state` is any JSON-serializable value (a string or a dict). `questions` is a dict of question objects exactly as the System One API takes them, e.g. `{"in_scope": {"type": "noul", "instructions": "..."}}` (`noul` = probability 0..1 that the statement holds; `choice` with `criteria`; `score`). Returns `{"answers": {name: answer}, "model": str, "error": str}` — each answer is the object System One wrote, e.g. `{"type": "noul", "noul": 0.93}`. `model` (argument) picks a model listed by an enabled System One provider (`"jev-preview"`, `"TypeSafe/jev-preview"`); empty = the highest-priority System One provider's first model. **Never raises for a service failure**: no System One provider, an unknown model, a timeout or an endpoint error returns `{"answers": {}, "model": "", "error": "..."}` — check `error` before reading `answers`. Raises only for invalid arguments (`questions` not a non-empty dict of dicts, `state` is `None`). Cost and latency: one paid round trip through management to TypeSafe per call, billed to the account's System One key, which never leaves management; all questions in one call are answered together, so ask everything you need in one call. Answers are numbers, not text — cheaper and faster than `llm_call`, and the right first pass. Bounded like `llm_call`. Undefined on a host with no scan service, exactly like `llm_call`; a management server or endpoint client older than `system_one` returns an `error`. |
 | `store_set` | `store_set(key, value)` | `True` | Persist a JSON-serializable `value` under `key` in this rule's private store. **Raises an error** (`quota exceeded`) if the write would exceed the rule's 1 MB cap — call `store_usage()` first to avoid it. See **Rule Store** below. |
 | `store_get` | `store_get(key)` | `value \| None` | Read a value previously stored by **this rule**. `None` if absent. Large integers are preserved exactly. |
 | `store_delete` | `store_delete(key)` | `True` | Remove one key (frees its quota). |
@@ -1553,6 +1561,38 @@ result = run()
 | `store_usage` | `store_usage()` | `dict` | `{"bytes": used, "limit": 1048576, "free": remaining}` — check before a large `store_set`. |
 | `set_integrity_level` | `set_integrity_level(level)` | `None` | Set the agent/host **integrity level** (an int, ordered worst→best): `0`=breached, `1`=low, `2`=medium (**default**), `3`=high. Raises an error if out of range. The level is published in the agent's posture metadata; self-posture's **device-integrity check treats `0` (breached) exactly like a debugger being attached** (fails the check). Levels `1`/`2`/`3` are informational for now (sent and stored, no posture action). In SDK/embedded mode this is the *only* integrity signal evaluated (no host probing). |
 | `get_integrity_level` | `get_integrity_level()` | `int` | Returns the agent's current integrity level (`0`=breached … `3`=high; `2`/medium by default). |
+
+In `tool_call` events from the AI Gateway, `meta["task"]` is the conversation's first user prompt and `meta["instructions"]` is its system prompt, each capped at 8 KB — the context a judge needs to decide whether a tool call serves the task.
+
+##### Two-tier judging: System One first, `llm_call` second
+
+System One answers in numbers; ask it first, and spend an `llm_call` only when it is unsure:
+
+```yaml
+action: execute
+on_error: allow
+script: |
+  def run():
+      args = json.decode(meta.get("content", "") or "{}")
+      state = {"task": meta.get("task", ""), "tool": meta["tool_name"], "arguments": args}
+      s1 = system_one(state, {
+          "off_task": {"type": "noul", "instructions": "Does the tool call do something the `task` did not ask for, such as reading credentials or sending data to an unrelated host?"},
+      })
+      if s1["error"]:
+          return "allow"  # the fast pass failed: on a strict rule, fall through to llm_call instead
+      p = s1["answers"]["off_task"]["noul"]
+      if p < 0.2:
+          return "allow"
+      if p > 0.9:
+          return {"action": "block", "reason": "off-task tool call (System One %s, %s)" % (p, s1["model"])}
+      j = llm_call(json.encode(state), "Is this tool call outside the user's task? Answer allowed=false if it is.", model="OpenAI/gpt-5")
+      if j["error"]:
+          return "report"
+      if not j["allowed"]:
+          return {"action": "block", "reason": "%s (second opinion by %s)" % (j["reason"], j["model"])}
+      return "allow"
+  result = run()
+```
 
 **Removed builtins and keys.** `proc_instance()`, `proc_lineage()`, `query_events()`, the `netzilo` dict and `meta["caller_pid"]` belonged to the process-keyed engine and no longer exist. A script that calls one fails at that line and takes its `on_error` verdict — silently `allow` by default. See [Migrating from the process-keyed engine](#migrating-from-the-process-keyed-engine).
 
@@ -1709,7 +1749,7 @@ This produces a chain like:
 | `port` | `connects` context | Destination port as a string, e.g. `"80"`, `"443"` |
 | `protocol` | `connects` context | Transport protocol: `"tcp"` or `"udp"` |
 | `header_<name>` | HTTP contexts | Individual request header value, key lowercased (e.g. `meta["header_authorization"]`, `meta["header_x-tenant-id"]`). Synthetic keys: `header_authorization-jwt` (decoded JWT payload) and `header_authorization-basic` (decoded Basic credentials) are also injected when present. |
-| `agent_name` | all | Program path of the nearest agent session in the caller's lineage (display only — use `session` for attribution). Empty string if unknown. |
+| `agent_name` | all | Program path of the nearest agent session in the caller's lineage; on the AI Gateway, the agent's name (`NetziloAgent/<name>`, else the client). Display and scoping only — use `session` for attribution. Empty string if unknown. |
 | `callid` | event-triggered runs | The **reporting-call id** of the event that triggered this rule run (see **Call ID** below). Empty for `periodic` rules. `events(callid=meta["callid"])` returns exactly the triggering event once it is logged. |
 
 #### The `subject` dict
@@ -3776,7 +3816,7 @@ The response lists every observation a rule fired on — `source`, `seq`, `ts`, 
 | `search()` / `search_in()` | ✅ | ⚠️ | Bodies stay on the host — replay has no indexed content |
 | `re` module, `store_*`, integrity builtins | ✅ | ✅ | |
 | `http()` / `webhook()` | ✅ | ✅ | Real calls — a replayed webhook rule really posts |
-| `scan_prompt()` / `llm_call()` | ✅ | ✅ | Real calls — see the cost note below |
+| `scan_prompt()` / `llm_call()` / `system_one()` | ✅ | ✅ | Real calls on the account's models, `model=` honoured — see the cost note below |
 | `meta` | ✅ full | ⚠️ | No `content` for LLM, tool, HTTP and skill observations; no `header_*` |
 | `subject` | ✅ | ✅ | From the stored subject |
 
@@ -3800,9 +3840,9 @@ A verdict reached on an observation whose content stayed on the host is marked *
 | No `prompt` (built-in ML classifier) | Classifier service | Same — on empty content in replay the result is meaningless; treat it as partial |
 | `prompt` set (AI judge) | The model approved for Threat Analysis | Same model, real calls |
 | The scan call fails (no model approved for Threat Analysis, service unreachable, timeout) | Follows `on_error` | Same |
-| The host has no scan service at all | The `scan` rule does not fire (logged as `no scan service configured`); `scan_prompt`/`llm_call` are undefined and a script calling them takes `on_error` | — |
+| The host has no scan service at all | The `scan` rule does not fire (logged as `no scan service configured`); `scan_prompt`/`llm_call`/`system_one` are undefined and a script calling them takes `on_error` | — |
 
-**Cost warning:** replay calls the real AI judge for `action: scan` rules and for `llm_call()`. A broad scan rule over a large scope makes many paid calls.
+**Cost warning:** replay calls the real AI judge for `action: scan` rules and for `llm_call()`, and the real System One model for `system_one()`. A broad scan rule over a large scope makes many paid calls.
 
 ## `action: execute` — Starlark Scripts
 
@@ -3823,7 +3863,7 @@ A verdict reached on an observation whose content stayed on the host is marked *
 - `header_*` checks — never match
 - `fs_activity()` on a path outside the uploaded sample
 - `search()` / `search_in()`
-- `http()`, `webhook()`, `scan`, `llm_call()` — real side effects and real cost
+- `http()`, `webhook()`, `scan`, `llm_call()`, `system_one()` — real side effects and real cost
 
 **Recommendation:** use replay for behaviour (lineage, ordering, counts, identities) and fixtures for exact content and timing. If a rule fires in a fixture but not in replay, check: (1) does it depend on body content? (2) on headers? (3) on a file path outside the sample? (4) is the observation older than 7 days or newer than the last upload?
 

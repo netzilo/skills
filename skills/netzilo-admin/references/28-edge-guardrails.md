@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 15561
+chars: 16220
 sections:
 - id: '1'
   title: Model
@@ -17,7 +17,7 @@ sections:
   chars: 1418
 - id: '3'
   title: Minimal rule template
-  chars: 3482
+  chars: 3580
 - id: '4'
   title: Testing with Replay
   chars: 1072
@@ -32,7 +32,7 @@ sections:
   chars: 2734
 - id: '8'
   title: Limits to state before a customer discovers them
-  chars: 1320
+  chars: 1881
 ---
 # Admin Skill — Edge Guardrails (detection rules)
 
@@ -139,7 +139,8 @@ Actions: `block`, `allow`, `report`, `redact` (`replace` default `[REDACTED]`,
 `keep_first`, `keep_last`), `scan` (the built-in prompt classifier when `prompt:` is
 empty; an AI judge with the given instruction otherwise; `on_timeout`, `on_error`),
 `blockmodel`, `allowmodel`, `replacemodel`, `redirect`, `inject`, `replace`, `execute`
-(Starlark; `script`, `on_timeout`, `on_error`). Default action when omitted: high or
+(Starlark; `script`, `on_timeout`, `on_error` — an `execute` rule can also judge with
+an LLM or System One, `llm_call()` / `system_one()`, `32`). Default action when omitted: high or
 critical → block, else report. `on_error`/`on_timeout` take `block|allow|report` and
 **default to allow (fail-open)**; `on_error: block` makes a scan or script rule
 fail-closed. Field modifiers: `|contains`, `|startswith`, `|endswith`, `|re`, `|all`,
@@ -284,6 +285,16 @@ conditions. Prove every exception with Replay and a live pilot.
 and tool-call rules reach the OpenAI chat, Responses and Anthropic Messages surfaces,
 streamed or not (a streamed answer is held about 1 KB behind the model so it can be
 redacted); embeddings and text completions are counted, not scanned.
+
+**A script is not checked when the guardrail is saved.** The editor validates the YAML,
+not the Starlark in `script:`; a script that fails to parse loads and takes its
+`on_error` verdict at run time (`32`, Starlark is not Python). Replay the rule after every
+script edit.
+
+**Judge rules cost a model call per match.** Each `llm_call()` and `system_one()` is a
+paid round trip through management, run synchronously on the matched call: scope the
+detection tightly (an agent, a tool, a context) and let a cheap check or System One
+decide before an `llm_call()`.
 
 **Performance is not instrumented for customers.** No overhead figure and no per-rule
 timing are exposed. When AI tools feel slow, narrow the rules and move expensive ones to

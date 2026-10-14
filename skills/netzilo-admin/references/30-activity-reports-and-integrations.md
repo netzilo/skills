@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 26051
+chars: 26779
 sections:
 - id: '1'
   title: Activity → Events
@@ -17,10 +17,10 @@ sections:
   chars: 3073
 - id: '3'
   title: Dashboard home
-  chars: 4275
+  chars: 4474
 - id: '4'
   title: Integrations
-  chars: 7135
+  chars: 7664
 - id: '5'
   title: Procedures
   chars: 1730
@@ -193,6 +193,9 @@ closes it. Levels:
    when there is one; scale Duration / Turns / Calls) and every message by turn — system
    prompt, prompts, context, thinking, answers, tool calls and results — with guardrail
    verdicts and kill-chain steps marked; long texts show a preview, the whole on click.
+   A tool call refused before the agent got it has a row of its own (the tool, **Blocked**)
+   whose **Verdict** names the rule and the reason it gave — for a judge rule, the judge's
+   explanation.
    **Behavior Graph**: the user, agent, models, tools and device with the steps between
    them; **Kill chains** marks a chain, **Filters** hides node and edge types.
 
@@ -249,15 +252,21 @@ API key, a **Priority** (lower wins when several providers can serve the same
 feature), and a list of **models**.
 
 A **System One (TypeSafe)** provider (`typesafe-systemone`) answers typed questions
-and never generates text. Only AIDR detection rules call it
-(`32-detection-rule-authoring.md`); it is approved for no feature, so its models step
-has nothing to tick and its card reads "Called by AIDR rules".
+and never generates text. Only AIDR detection rules call it, through the `system_one()`
+builtin (`32-detection-rule-authoring.md`); it is approved for no feature, so its models
+step has nothing to tick and its card reads "Called by AIDR rules". A rule may name one
+of its models (`model="jev-preview"`); otherwise the highest-priority System One
+provider's first model answers. The key stays in management: hosts reach it through
+management (`POST /api/ai/systemone`), and every call is a paid round trip.
 
 **Approval is per feature.** There are three: **Assistant** (`assistant`) is
 the admin chat panel; **Log Analysis** (`log-analysis`) covers AI Smart Search
 and log analysis; **Threat Analysis** (`threat-analysis`) covers guardrail
 generation (`28-edge-guardrails.md`) and the AI judge that `scan` rules with a
-`prompt` call (`32-detection-rule-authoring.md`). Each is approved at
+`prompt` and the `llm_call()` builtin call (`32-detection-rule-authoring.md`). A rule's
+`llm_call(..., model=...)` may name any model an enabled text provider lists, approved
+for Threat Analysis or not; a model the account cannot use is an error, never a
+fallback to another model. Each is approved at
 provider level, and any model may override that for itself. In the dashboard
 a fetched catalogue starts with **nothing approved** — the admin ticks models
 in, singly or with the column checkbox — so "I added the provider but the

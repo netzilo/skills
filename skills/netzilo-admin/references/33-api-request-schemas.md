@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 101971
+chars: 102670
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -59,7 +59,10 @@ sections:
   chars: 317
 - id: post-api-ai-scanprompt
   title: '`POST /api/ai/scanprompt`'
-  chars: 412
+  chars: 653
+- id: post-api-ai-systemone
+  title: '`POST /api/ai/systemone`'
+  chars: 458
 - id: post-api-aidr-browser-observations
   title: '`POST /api/aidr/browser/observations`'
   chars: 1072
@@ -600,7 +603,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-10-12 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-10-14 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -855,8 +858,20 @@ Scan a prompt
 Request body (JSON):
 - `prompt` (string, **required**)
 - `instruction` (string, optional): Optional AI rule instruction; empty means built-in jailbreak detection
+- `model` (string, optional): Optional model an AI scan asks for, as `model-id`, `provider-name/model-id` or `provider-id/model-id`; empty means the model approved for Threat Analysis. A model the account cannot use answers `label` `error`.
 
 Responses: `200` Scan result, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `422` Validation failed, `500` Internal Server Error
+
+## `POST /api/ai/systemone`
+
+Ask System One
+
+Request body (JSON):
+- `state` (?, **required**): Any JSON value the questions are about
+- `questions` (object, **required**): Typed questions, as the System One API takes them
+- `model` (string, optional): Optional System One model; empty means the account's
+
+Responses: `200` Answers, or the reason there are none, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
 
 ## `POST /api/aidr/browser/observations`
 

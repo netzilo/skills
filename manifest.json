@@ -1,12 +1,12 @@
 {
   "repository": "https://github.com/netzilo/skills",
-  "updated": "2026-10-13",
+  "updated": "2026-10-14",
   "raw_base": "https://raw.githubusercontent.com/netzilo/skills/main",
   "skills": [
     {
       "name": "netzilo-admin",
-      "version": "4.2.0",
-      "released": "2026-10-13",
+      "version": "4.3.0",
+      "released": "2026-10-14",
       "path": "skills/netzilo-admin",
       "summary": "Operate Netzilo end to end: server install and day-2 operations, identity and SSO, client deployment, network policy, AI security (AIDR) on devices and through the Netzilo AI Gateway (model grants, limits, MCP servers and bundles, guardrails, Agentic Access, AI usage), detection-rule authoring, REST API automation, connectivity diagnosis, Windows hosts, the secure Workspace, Windows and macOS installer command lines for the client and the Enterprise Browser, device tools that diagnose and repair a peer from the agent, bounded remediation workflows, the AI Assistant on self-hosted servers, published applications through the Netzilo reverse proxy, and support escalation.",
       "version_url": "https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/VERSION",
