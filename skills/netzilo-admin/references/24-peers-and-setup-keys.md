@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16167
+chars: 16584
 sections:
 - id: '1'
   title: Peer lifecycle
-  chars: 2395
+  chars: 2460
 - id: '2'
   title: Peers page — field and action reference
-  chars: 3555
+  chars: 3907
 - id: '3'
   title: Setup keys — reference
   chars: 2099
@@ -52,7 +52,7 @@ key design, and diagnosis of enrolment and peer-state problems.
 | Login expiration (SSO peers) | after the account's expiration period the peer needs re-login (**Login required** badge) | Settings → Authentication; per-peer toggle |
 | Inactivity expiration (SSO peers) | idle peers are expired after the configured period | Settings → Authentication |
 | Ephemeral (setup-key option) | peer is deleted 10 minutes after going offline | key setting |
-| Reverse-proxy tunnel (published applications) | one peer per user, **public address and operating system**, named `vp-<n>-RPROXY`, platform *browser*, always ephemeral, and kept: the same peer reconnects after the idle stop or a restart. Reports the user's public IP, the operating system the browser signed in from, every browser it has served (*Chrome 154.0.0.0, Firefox 156.0*), the reverse proxy's version, and the Netzilo Gateway posture item. Not a browser's gateway session (absent from `gateway-sessions` and the Workplace's Private access status); no device tools | `44-published-applications.md` §10.3 |
+| Reverse-proxy tunnel (published applications) | one peer per **user** (any address, system, browser or API client), named `vp-<n>-RPROXY`, platform *browser*, always ephemeral, and kept: the same peer reconnects after the idle stop or a restart. Reports the latest browser's public IP and operating system, every browser it has served (*Chrome 154.0.0.0, Firefox 156.0*), its sessions (application, source IP, client, OS; live within 15 minutes), the reverse proxy's version, and the Netzilo Gateway posture item. Not a browser's gateway session (absent from `gateway-sessions` and the Workplace's Private access status); no device tools | `44-published-applications.md` §10.3 |
 | Browser session (clientless access) | a gateway registers one peer per user per browser, named `vp-<n>-PROXY`, platform *browser*, showing the browser's OS, the extension version and the browser's public IP; always ephemeral. Only that exact name with the browser platform is treated this way; any other device, whatever its name, is an ordinary peer. Two gateways can each have a `vp-1-PROXY`: tell them apart by peer id | `43-clientless-access-gateway.md` §10.3 |
 | Deletion | peer removed; device must re-enrol | Delete / bulk delete; deleting a user deletes their peers |
 
@@ -63,13 +63,15 @@ Peer IPs come from `100.64.0.0/10`; the DNS label derives from the name.
 ## 2. Peers page — field and action reference
 
 List columns: **Name** (green/gray dot = online/offline, owner e-mail; exit-node
-indicator), **Security Score** (A–F), **Address** (DNS label + IP, copyable; hover: public
+indicator), **Address** (DNS label + IP, copyable; hover: public
 IP, domain, region), **Groups** (click → "Assigned Groups" modal), **Last seen**, **OS**,
 **Version** ("Update available" tooltip when behind the latest release), status badges
 (**Approval required** + **Approve**; **Expiration disabled**; red **Login required** —
 "This peer is offline and needs to be re-authenticated because its login has expired."),
 actions ⋮. Filters: All / Online / Offline, **Pending Approvals**, group selector,
-search "by name, IP, owner or group".
+search "by name, IP, owner or group". A reverse-proxy peer (`vp-<n>-RPROXY`) with live sessions shows
+**N sessions** under Last seen; hovering it or the name lists those sessions (application,
+source IP, client, OS) — `44-published-applications.md` §10.3.
 
 Row actions: View Details; Enable/Disable **Login Expiration** (disabled for setup-key
 peers: "Login expiration is disabled for all peers added with an setup-key."); Enable/
@@ -89,7 +91,9 @@ sessions observed on the device, with **View Graph**; admins only, hidden while 
 has none), information card (Device ID, Netzilo IP, Public IP, Domain Name, AD
 Domain Name, Hostname, Region, Operating System, **Browser** (gateway sessions only, e.g.
 `Edge 154.0.0.0`), Security Score with eleven posture indicators, Last seen, Agent Version,
-UI Version), and **Network Routes** for this peer
+UI Version), **Sessions** (reverse-proxy peers only: every application, source IP, client
+and OS the user's tunnel served, first and last seen, live ones with a green dot), and
+**Network Routes** for this peer
 (Add Exit Node, Add Route → New Network Route / Existing Network).
 
 Security Score indicators (tooltips): Firewall, Antivirus (active and up to date), Disk

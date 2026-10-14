@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 102670
+chars: 102824
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -77,7 +77,7 @@ sections:
   chars: 785
 - id: post-api-aidr-replay
   title: '`POST /api/aidr/replay`'
-  chars: 664
+  chars: 720
 - id: get-api-aidr-search
   title: '`GET /api/aidr/search`'
   chars: 696
@@ -150,12 +150,6 @@ sections:
 - id: post-api-edge-guardrails
   title: '`POST /api/edge/guardrails`'
   chars: 621
-- id: get-api-edge-guardrails-generate
-  title: '`GET /api/edge/guardrails/generate`'
-  chars: 284
-- id: post-api-edge-guardrails-generate
-  title: '`POST /api/edge/guardrails/generate`'
-  chars: 401
 - id: get-api-edge-guardrails-guardrailid
   title: '`GET /api/edge/guardrails/{guardrailId}`'
   chars: 278
@@ -314,10 +308,10 @@ sections:
   chars: 311
 - id: get-api-peers
   title: '`GET /api/peers`'
-  chars: 348
+  chars: 224
 - id: get-api-peers-stream
   title: '`GET /api/peers-stream`'
-  chars: 354
+  chars: 230
 - id: post-api-peers-bulk-delete
   title: '`POST /api/peers/bulk-delete`'
   chars: 348
@@ -476,19 +470,19 @@ sections:
   chars: 233
 - id: get-api-support-sessions
   title: '`GET /api/support/sessions`'
-  chars: 324
+  chars: 499
 - id: post-api-support-sessions
   title: '`POST /api/support/sessions`'
-  chars: 225
+  chars: 413
 - id: get-api-support-sessions-sessionid
   title: '`GET /api/support/sessions/{sessionId}`'
-  chars: 295
+  chars: 509
 - id: delete-api-support-sessions-sessionid
   title: '`DELETE /api/support/sessions/{sessionId}`'
   chars: 282
 - id: post-api-support-sessions-sessionid-messages
   title: '`POST /api/support/sessions/{sessionId}/messages`'
-  chars: 735
+  chars: 1189
 - id: get-api-templates
   title: '`GET /api/templates`'
   chars: 217
@@ -936,16 +930,17 @@ Responses: `200` Observations, `400` Bad Request, `401` Requires authentication,
 
 ## `POST /api/aidr/replay`
 
-Replay rules over stored observations
+Replay guardrails over recorded sessions
 
 Request body (JSON):
-- `scope` (string, optional): `account`, `source:<id>`, `actor:<id>` or `session:<id>`; empty means the account
-- `since` (string, optional): Start of the window, RFC 3339 or unix nanoseconds
-- `until` (string, optional): End of the window, RFC 3339 or unix nanoseconds
-- `rules_yaml` (string, **required**): The rules to evaluate, YAML documents separated by `---`
-- `limit` (integer, optional): Observations replayed, newest first; 0 means 2000
+- `sessions` (array of string, **required**): Session node ids (session://…), as GET /api/ai/sessions returns them
+- `guardrails` (array of object, **required**)
+  - `id` (string, optional)
+  - `name` (string, optional)
+  - `rule_yaml` (string, optional)
+- `max_steps` (integer, optional): Observations replayed per session, from its start, up to 5000; 0 or omitted is 5000
 
-Responses: `200` Replay result, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+Responses: `200` What the guardrails would have done, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `429` Too many replays are running for this account, `500` Internal Server Error
 
 ## `GET /api/aidr/search`
 
@@ -1259,22 +1254,6 @@ Request body (JSON):
 - `enabled` (boolean, optional)
 
 Responses: `200` The created Guardrail, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
-
-## `GET /api/edge/guardrails/generate`
-
-Check AI rule generation availability
-
-Responses: `200` Generation is available, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `428` Generation is not available, `500` Internal Server Error
-
-## `POST /api/edge/guardrails/generate`
-
-Generate a guardrail rule with AI
-
-Request body (JSON):
-- `prompt` (string, **required**)
-- `current_yaml` (string, optional)
-
-Responses: `200` text/event-stream of generation frames, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `428` Precondition required, `500` Internal Server Error
 
 ## `GET /api/edge/guardrails/{guardrailId}`
 
@@ -1873,17 +1852,11 @@ Responses: `200` MFA settings, `400` Bad Request, `401` Requires authentication,
 
 List all Peers
 
-Parameters:
-- `has_aidr_graph` (query, optional): When true, only peers that have at least one AIDR graph run are returned
-
 Responses: `200` A JSON Array of Peers, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
 ## `GET /api/peers-stream`
 
 Stream all Peers
-
-Parameters:
-- `has_aidr_graph` (query, optional): When true, only peers that have at least one AIDR graph run are returned
 
 Responses: `200` text/event-stream of peer list frames, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
@@ -2483,12 +2456,16 @@ List support sessions
 
 Parameters:
 - `limit` (query, optional): Maximum number of sessions; 0 or omitted means no limit
+- `kind` (query, optional): Only the sessions of this kind; guardrail_authoring for the guardrail editor's conversations, empty for ordinary ones. Omitted lists every session
 
 Responses: `200` A JSON array of sessions, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
 ## `POST /api/support/sessions`
 
 Create a support session
+
+Request body (JSON):
+- `kind` (string ( | guardrail_authoring), optional): Empty for an ordinary conversation, or guardrail_authoring for one held from the guardrail editor (admins only)
 
 Responses: `200` The created session, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
@@ -2498,6 +2475,8 @@ Retrieve a support session with its messages
 
 Parameters:
 - `sessionId` (path, required)
+- `limit` (query, optional): Return only the newest messages, at most this many (up to 200); omitted returns the whole conversation
+- `before` (query, optional): With limit, only messages with an id below this one
 
 Responses: `200` Session detail, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
@@ -2520,8 +2499,12 @@ Parameters:
 Request body (JSON):
 - `text` (string, **required**): Non-blank, at most 32000 characters
 - `model` (string, optional): The "<providerId>:<modelId>" reference chosen in the chat, from GET /api/ai/models?use=assistant. Omit to keep the session's current model, which falls back to the account default. Validated on every turn: a model that is no longer approved is refused.
+- `editor` (object, optional): The guardrail open in the editor, sent with a message to a guardrail authoring session only (422 elsewhere) and never stored in the conversation. The agent writes the rule into the editor; the admin saves it.
+  - `guardrail_id` (string, optional): Empty while the guardrail has not been saved
+  - `name` (string, optional)
+  - `yaml` (string, **required**): The rule as the editor holds it; at most 256 KiB
 
-Responses: `200` text/event-stream of agent events, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `422` Validation failed, `500` Internal Server Error
+Responses: `200` text/event-stream of agent events, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `412` Precondition failed, `422` Validation failed, `500` Internal Server Error
 
 ## `GET /api/templates`
 

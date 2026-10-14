@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14312
+chars: 14367
 sections:
 - id: '1'
   title: Providers
@@ -41,8 +41,9 @@ grants and limits per request.
 
 **Not the same thing as Integrations → Artificial Intelligence.** That page
 (`30-activity-reports-and-integrations.md` §4a, `/api/ai/providers`) holds the AI
-provider management itself uses for the dashboard assistant, log analysis and
-threat analysis (guardrail generation, prompt scanning). Edge → Providers are what
+provider management itself uses for the dashboard assistant (including the guardrail
+editor's AI panel), log analysis and threat analysis (the AI judge of guardrail rules,
+prompt scanning). Edge → Providers are what
 users' agents talk to through the gateway. The two lists are independent; a key
 entered in one is not known to the other.
 

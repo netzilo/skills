@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 36407
+chars: 36742
 sections:
 - id: '1'
   title: Architecture in one page
   chars: 3812
 - id: '2'
   title: Rollout runbook
-  chars: 3590
+  chars: 3650
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
-  chars: 3501
+  chars: 3506
 - id: '4'
   title: Coding-agent hooks (`netzilo hook`)
   chars: 2869
@@ -32,10 +32,10 @@ sections:
   chars: 1292
 - id: '8'
   title: Writing and testing rules (Guardrails)
-  chars: 1685
+  chars: 1886
 - id: '9'
   title: Troubleshooting
-  chars: 5565
+  chars: 5634
 - id: '10'
   title: Reporting and evidence
   chars: 1155
@@ -99,10 +99,11 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 
 1. **Prerequisites:** Netzilo client installed and connected on the devices
    (`05-client-install-and-deploy.md`); devices in a group (e.g. `ai-users`).
-2. **(Optional) AI provider for the dashboard's own AI features** — guardrail generation
-   (✦), prompt-injection AI judge, smart search, the assistant: Integrations →
-   Artificial Intelligence → add a provider and approve a model for **Threat Analysis**
-   (`30` §4a). Without it `POST /edge/guardrails/generate` answers 428. Judge rules
+2. **(Optional) AI provider for the dashboard's own AI features** — the AI judge of
+   rules, smart search, the assistant (which also writes rules in the guardrail
+   dialog): Integrations → Artificial Intelligence → add a provider and approve a model
+   for **Threat Analysis** (the judge) and **Assistant** (the chat panel and the
+   guardrail editor's AI panel, `28` §2.1) (`30` §4a). Judge rules
    (LLM-as-judge) use the same providers: `llm_call()` on the Threat Analysis model or a
    model the rule names, and `system_one()` on a **System One** provider (`32`). This is
    not the gateway's provider list (`45`).
@@ -169,7 +170,7 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 
 To inspect what the engine recorded for a device: `GET /api/aidr/sessions?scope=source:<peerId>`,
 `/api/aidr/graph`, `/api/aidr/observations`, `/api/aidr/detections`, `/api/aidr/search?q=`
-(admin; `since`/`until`); a guardrail's **Replay** reads the same observations (`28` §4).
+(admin; `since`/`until`); the **View** window on a peer's page shows the same graph (`28` §4).
 
 ---
 
@@ -380,20 +381,22 @@ For authoring beyond the basics (multi-event Starlark scripts over the behaviour
 false-positive discipline, the complete field, modifier, action and builtin reference),
 load `32-detection-rule-authoring.md` — it is the dedicated rule-author skill.
 `28-edge-guardrails.md` covers what an administrator needs to deploy, test and
-troubleshoot rules: the dialog, the minimal template and its vocabulary, Replay, the
-lifecycle, the limits (no version history, no per-group exemption inside a rule, which
+troubleshoot rules: the dialog, the minimal template and its vocabulary, testing in
+report mode, the lifecycle, the limits (no version history, no per-group exemption inside a rule, which
 surfaces the gateway scans).
 
-Format is Sigma with Netzilo extensions (the AI rule generator and the public corpus
+Format is Sigma with Netzilo extensions (the AI Assistant and the public corpus
 `github.com/netzilo/aidr-sigma` use it; the older `match/except` syntax in some docs is
 legacy). Evaluation order: most severe `level` first, then rule `id`; the most severe
 matching rule decides and is named as the blocker; after a block only `redact` and
 `execute` rules still run; an `allow` rule is not an exemption; position has no effect.
 
 Authoring in the dashboard: Edge → Guardrails → **Add Guardrail** → YAML editor (name and
-description sync from `title`/`description`); ✦ streams an AI-generated rule from a prose
-description when a model is approved for Threat Analysis. **Replay** tests the rule
-against a peer's recorded observations.
+description sync from `title`/`description`); the AI panel beside the editor is the AI
+Assistant (shown when a model is approved for Assistant): it writes the whole rule into
+the editor from a prose description, in guardrail authoring threads the admin starts or continues,
+and the admin reviews and saves (`28` §2.1). Test a new rule in report mode on a pilot
+device or user before it blocks (`28` §4).
 
 Lint locally: clone `https://github.com/netzilo/aidr-sigma`,
 `pip install pyyaml && python3 tools/rulelint.py <dir>`.
@@ -414,9 +417,9 @@ per rule whether a scan failure should block (`on_error: block`).
 | `MITM: CA trust install failed` / cancelled dialog | | manual trust commands in `07-client-troubleshooting.md` §9 |
 | Hook installed but nothing happens | `netzilo hook verify`; daemon running? device filtered? | start the client; check the filter; `NETZILO_HOOK_POLICY=block` to fail closed while testing |
 | Hook blocks everything when the client is down | `NETZILO_HOOK_POLICY=block` set | expected fail-closed; start the client |
-| Rule never fires | wrong `logsource.category`; content not where expected; a more severe rule already blocks the same events; a gateway filter with an endpoint-only context | Replay to see the real payload; `28` §7 |
+| Rule never fires | wrong `logsource.category`; content not where expected; a more severe rule already blocks the same events; a gateway filter with an endpoint-only context | reproduce it in report mode and read the event and host log; `28` §4, §7 |
 | Too many false positives | | tighten the regex, add `excl` + `condition: sel and not excl`, switch to `report` |
-| ✦ generation returns 428 / 422 | no model approved for Threat Analysis / provider not approved | Integrations → Artificial Intelligence |
+| No AI panel in the guardrail dialog | no model approved for Assistant, or not an admin | Integrations → Artificial Intelligence → approve a model for Assistant (`28` §2.1) |
 | Browser extension stands down ("the desktop client governs this browser") with the client installed | by design on Windows/macOS when the browser executable is in the filter's Agents and the AI hosts are within the client's inspection; events then come with source `mitm` | nothing, unless the client does not inspect the AI sites: then remove the browser from Agents so the extension governs it (`49` §3, §10) |
 | Browser extension **Protection: Inactive** / no browser events | not signed in from the popup; no enabled endpoint filter with OS **Browser** for the user's groups; a failed guardrail | `49` §10; the popup's Debug tab names the cause |
 | Bedrock traffic visible but not redacted | SigV4-signed requests cannot be rewritten by the daemon | use SDK embedded mode, or Bedrock's OpenAI-compatible bearer endpoint, or route through the AI Gateway |

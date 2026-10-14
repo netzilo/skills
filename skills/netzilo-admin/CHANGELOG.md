@@ -7,6 +7,98 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.4.0 — 2026-10-14
+
+The AI Assistant writes guardrails in the guardrail dialog, rule Replay is rebuilt on
+recorded sessions, tags have a standard form, and the sessions of reverse-proxy peers.
+Minor version: the guardrail generator and the old snapshot Replay the skill described
+are gone.
+
+**Replay and tags (`28` §4.1 and §5, `32` "Tagging", `33`):**
+
+- Replay is rebuilt on recorded sessions: ▶ on a guardrail's row or in the guardrail
+  window; up to 3 guardrails over up to 3 sessions in the dashboard; `POST
+  /api/aidr/replay` (JSON or event stream) with no count limit but bounded work; each
+  session replayed alone in time order; per-guardrail verdicts, matched text, steps
+  without recorded content; how an agent keeps runs small.
+- Replay has no effects beyond the judge: a script's `http()` and `webhook()` are
+  refused, so nothing is called from the server and no notification is sent again.
+  `max_steps` above 5,000 counts as 5,000; at most 500 hits per session are reported
+  (`more_hits` counts the rest); script output and reason are cut at 4,000 characters;
+  periodic rules run on 30-second ticks of session time, a quiet gap at its first and
+  last tick only; a run in which no guardrail's rule loads is refused with `422` (event
+  stream: `error`); service users can replay saved guardrails too.
+- Tags have a standard form: at least one ATT&CK tactic tag from the fixed list (the
+  dashboard's Category column shows only these, two then "+N"), lowercase ids in a
+  fixed order.
+
+**Writing guardrails with the AI Assistant (`28` §2, §2.1, §5, §6, §7; `10`, `30` §4a,
+`09`, `42`, `08`, `14`, `45`, `SKILL.md`):**
+
+- Removed: `GET/POST /api/edge/guardrails/generate` (and the `/api/edge/scanners/generate`
+  alias) and the "Generate with AI" panel that streamed YAML from the model approved for
+  **Threat Analysis**.
+- The dialog's AI panel (✦ toggles it; open by default) is the **AI Assistant**: shown to
+  admins when a model is approved for **Assistant**, answering with the Assistant model
+  from the composer's picker.
+- Guardrail threads: the panel opens on a clean thread, **+** starts another and history
+  continues or deletes earlier ones (sessions of kind `guardrail_authoring`: `POST
+  /api/support/sessions {"kind":…}`, `GET /api/support/sessions?kind=…`); compacted with
+  one record per guardrail; tagged **Guardrail Authoring** in the header assistant's
+  history. The dialog is a window that can be dragged, resized and maximised.
+- Grids list newest first: Guardrails, Filters, Limits, Providers, MCP servers and
+  bundles, Published Applications, Access Control policies, Posture Checks, Profiles and
+  Reports open in creation order, latest on top, until a column is sorted.
+- Each message carries the editor's content (`editor` on `POST
+  /api/support/sessions/{id}/messages`, at most 256 KiB, `422` outside that conversation,
+  `403` for a non-admin), for that turn only. The agent writes the whole rule with
+  `write_rule` (SSE `rule_delta`, `rule`); the editor is read-only while it answers;
+  **Undo** puts back the previous content; the admin saves, and an agent write to
+  `/api/edge/guardrails` there is refused. A second turn in the same conversation gets
+  `409`; the answer holds the conversation for 90 seconds past its last sign of life, so
+  a server restart frees it within about a minute and a half.
+- While the assistant answers, the dialog's fields, **Save** and **Replay** are locked
+  and **Esc** stops the answer instead of closing the window; an answer that breaks off
+  mid-rule puts back the last rule written in full.
+- `GET /api/support/sessions/{id}` pages with `limit` and `before` (`has_more`); session
+  objects carry `kind` and `model`; `POST /api/support/sessions` takes an optional
+  `{"kind"}` and `GET /api/support/sessions` a `kind` filter (`28` §5, `33`).
+- **Threat Analysis** now covers only the AI judge of rules (`scan` with a prompt,
+  `llm_call()`, prompt scanning); **Assistant** covers the chat panel and the guardrail
+  editor. Troubleshooting rows: AI panel missing → no model approved for Assistant; the
+  409 busy message.
+- On a self-hosted server the panel needs the support worker, like the chat (`42` §1).
+
+**Snapshot Replay removed (`28` §2, §2.1, §4, §6, §7, §8; `32`; `10`, `09`, `00`, `12`,
+`13`, `27`, `30`, `31`, `33`, `SKILL.md`, `README.md`):**
+
+- Removed: the old Replay over behaviour-graph snapshots — its request shape of `POST
+  /api/aidr/replay` (the endpoint now takes sessions and guardrails, above),
+  `has_aidr_graph` on `GET /api/peers`, the old Replay window, and the **Run guardrails**
+  dropdown and Replay Results / Output tabs of the behaviour-graph **View** window, which
+  keeps the graph, keyword search and Search Results.
+- `28` §4 is now **Testing a rule**: lint, report mode on a one-device or one-user filter,
+  reproduce, read the **AI detected** event and the host log. Lifecycle, diagnosis rows,
+  exemption checks and the proof of an account rule use report mode instead of Replay.
+- `32`: the "Replay vs Live Evaluation" reference is gone. `file_read`, `file_write`,
+  `file_create`, `file_delete` and `file_rename` have no producer: file activity reaches
+  the behaviour graph (`fs_activity()`) but no host evaluates rules in those contexts.
+- The same changes are in `aidr-sigma`'s `Agent.md`, which `32` follows.
+
+**Reverse-proxy peers (`44` §1, §10.3; `24` §1, §2; `43` §10):**
+
+- One `vp-<n>-RPROXY` peer per **user**, from any address, system, browser or API client
+  (it was one per user, address and system, up to 16). It reports the latest browser's
+  address and OS, so location and OS posture are judged on that; an API client does not
+  change them, and the frozen "macOS 10.15.7" of Safari or Firefox does not replace the
+  version Chrome reported. Older per-address tunnels fold into the most recently used.
+- **Sessions:** the peer lists every application, source IP, client and OS its tunnel
+  served, first and last seen (kept with the user's identity, at most 50, dropped after
+  30 days unseen); live within 15 minutes, with a green dot on the peer's page, **N
+  sessions** under Last seen in the Peers list (which drops its Security Score column;
+  the score stays on each peer's page) and a hover list on the name; `sessions`
+  on the peer in the API.
+
 ## 4.3.0 — 2026-10-14
 
 LLM and System One judge rules, exact AI Gateway sessions for custom agents, and what a

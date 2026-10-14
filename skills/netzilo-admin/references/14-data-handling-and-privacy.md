@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 23268
+chars: 23290
 sections:
 - id: '1'
   title: The short answer
@@ -25,7 +25,7 @@ sections:
   chars: 858
 - id: '6'
   title: Answers to the questions reviewers actually ask
-  chars: 3617
+  chars: 3639
 - id: '7'
   title: Preparing for a security review
   chars: 1174
@@ -186,7 +186,7 @@ it has stopped.
 |---|---|
 | Can Netzilo staff read our traffic? | Not peer network traffic: it is end-to-end encrypted and the control plane holds no tunnel keys. On Cloud, Netzilo hosts the account's data — device metadata, activity and AI events including triggering content, assistant sessions (§8). |
 | Can our own admins read employee traffic? | Not network traffic. Admins can see AI security events including triggering content, the conversations of AI agents that went through the AI Gateway (after the guardrails), session recordings where enabled, all activity events, and every AI assistant session in the account as a read-only audit log (§8). |
-| Is anything sent to a third party? | Self-hosted sends Netzilo the usage counts in §5 (nothing if disabled), and an escalation only when an admin approves it (§8). Every AI feature of management itself — the assistant, smart search, guardrail generation, the AI judge inside a scanning rule — calls the AI provider the account configured under Integrations → Artificial Intelligence, with the account's own credentials; what it sends that provider is described in §8. The **AI Gateway** is the other third-party path: users' prompts and MCP tool calls go from the customer's gateway host to the upstream providers and MCP servers the admin configured under Edge → Providers and Edge → MCP, with the keys and sign-ins stored for them; management receives usage facts and the captured conversations (§3, §8). |
+| Is anything sent to a third party? | Self-hosted sends Netzilo the usage counts in §5 (nothing if disabled), and an escalation only when an admin approves it (§8). Every AI feature of management itself — the assistant (including the guardrail editor's AI panel), smart search, the AI judge inside a scanning rule — calls the AI provider the account configured under Integrations → Artificial Intelligence, with the account's own credentials; what it sends that provider is described in §8. The **AI Gateway** is the other third-party path: users' prompts and MCP tool calls go from the customer's gateway host to the upstream providers and MCP servers the admin configured under Edge → Providers and Edge → MCP, with the keys and sign-ins stored for them; management receives usage facts and the captured conversations (§3, §8). |
 | Where is data stored? | Self-hosted: on the customer's server, in their database and volumes. Cloud: in Netzilo's hosted environment. |
 | How long is it kept? | Activity events are retained until deleted; there is no automatic retention limit and no configurable retention period. Account statistics are pruned after ninety days. AI data (AI Gateway usage, sessions and captured conversations, behaviour observations) is deleted by the AI data retention job: 90 days for records and conversations, 400 days for hourly totals, 7 days for device and browser observations by default (`02-server-operations.md` §20). Plan database growth accordingly. Per-feature retention is in §8. |
 | Can we export or delete a person's data? | Deleting a user removes the user, their devices (peers) and their access tokens, and records a deletion event. It does **not** delete their activity history: events they initiated or that name them stay in the audit trail. Do not promise otherwise. Activity can be exported from the dashboard a page at a time or through the API. |

@@ -7,37 +7,39 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16220
+chars: 25977
 sections:
 - id: '1'
   title: Model
-  chars: 2001
+  chars: 2141
 - id: '2'
   title: Field reference (Add / Edit Guardrail)
-  chars: 1418
+  chars: 5270
 - id: '3'
   title: Minimal rule template
   chars: 3580
 - id: '4'
-  title: Testing with Replay
-  chars: 1072
+  title: Testing a rule
+  chars: 4314
 - id: '5'
   title: API
-  chars: 858
+  chars: 2443
 - id: '6'
   title: Lifecycle procedure
-  chars: 803
+  chars: 885
 - id: '7'
   title: Diagnosis
-  chars: 2734
+  chars: 3414
 - id: '8'
   title: Limits to state before a customer discovers them
-  chars: 1881
+  chars: 1968
 ---
 # Admin Skill — Edge Guardrails (detection rules)
 
 **Dashboard:** Edge → **Guardrails** (`/ai-edge/guardrails`). **API:**
-`/api/edge/guardrails`, `/api/edge/guardrails/generate`, `/api/aidr/replay`. The older
+`/api/edge/guardrails`; the dialog's AI panel is the AI Assistant
+(`/api/support/sessions?kind=guardrail_authoring`, `/api/support/sessions/{id}/messages`,
+§2.1). The older
 name **scanners** is kept as an alias: `/api/edge/scanners…` answers the same handlers,
 and a filter body accepts `scanners` as an alias of `guardrails`; the activity codes for
 the object are `guardrail.created|updated|deleted`.
@@ -57,7 +59,7 @@ administrator's view: lifecycle, the dialog, testing, diagnosis.
 
 **Public rule library:** `https://github.com/netzilo/aidr-sigma` — rules under
 `ai_agent/`, the format specification (`Agent.md`), a linter (`tools/rulelint.py`).
-Start there: find a close match, paste it into **Add Guardrail**, adjust, Replay.
+Start there: find a close match, paste it into **Add Guardrail**, adjust, test (§4).
 
 ---
 
@@ -71,8 +73,10 @@ Start there: find a close match, paste it into **Add Guardrail**, adjust, Replay
   that way (prompt-injection, secret redaction, PII, path traversal, SSH-key
   exfiltration, system enumeration) are in the public library.
 - Table columns are derived from the YAML: **Level** (`level`/`severity`: Critical,
-  High, Medium, Low), **Category** (from `tags`: `attack.initial-access` → "Initial
-  Access"; technique ids are dropped), **Used by** (the filters that bind it).
+  High, Medium, Low), **Category** (the ATT&CK tactic tags only: `attack.initial-access` →
+  "Initial Access"; technique, ATLAS and OWASP ids are not categories; two are
+  shown, the rest as "+N" with the list on hover — tag every rule as `32`
+  "Tagging" says), **Used by** (the filters that bind it).
 - Evaluation: all rules bound to the device (every matching endpoint filter) or to the
   user (every matching gateway filter) are evaluated per event, most severe `level`
   first, then by rule `id`; the most severe matching rule decides and is the one named
@@ -92,20 +96,69 @@ Start there: find a close match, paste it into **Add Guardrail**, adjust, Replay
 
 ## 2. Field reference (Add / Edit Guardrail)
 
-Tabs **Guardrail** and **Name & Description**; header icons **Replay** (▶), **Generate
-with AI** (✦, shown when a model is approved for Threat Analysis), maximise, close.
+The dialog is a window: drag it by its title bar, resize it from any edge or corner,
+maximise it, or double-click the title bar for the default size; it reopens where it was
+left. Tabs **Guardrail** and **Name & Description**; title bar icons: the
+**AI panel** toggle (✦, tooltip "Write with the AI Assistant" / "Hide AI panel"; shown to
+admins when a model is approved for **Assistant**), maximise, close.
 
 | Element | UI text | Notes |
 |---|---|---|
 | YAML Rule Definition | "Define the guardrail rule in YAML format. Name and description sync automatically." | editor; `title:` ↔ Guardrail Name, `description:` ↔ Description; parse problems shown as "YAML Parse Warning: …" |
 | Enable Guardrail | "Use this switch to enable or disable the guardrail." | a disabled guardrail is dropped from every filter's expanded rules on the next sync |
 | Guardrail Name / Description | "…This will automatically sync with the YAML rule." | both required; name uniqueness is **not** enforced |
-| Generate with AI | "Describe what to detect… (Enter to send)" | streams YAML into the editor; without an approved model: "No AI model is approved for Threat Analysis. Add a provider under Integrations → Artificial Intelligence and approve a model for Threat Analysis." |
+| AI panel (right of the editor, open by default) | "Describe what you want to detect and the assistant writes the rule into the editor"; suggestions "Detect prompt injection attempts", "Redact social security numbers and credit card numbers" | the AI Assistant chat, writing into the editor (§2.1); absent when no model is approved for Assistant or the user is not an admin |
+| Undo (above the editor) | "Undo" | after the assistant wrote the rule: puts back what the editor held before that write; disappears when you edit by hand |
 
 Saved fields: `severity` (from `level`/`severity`, default high), `context_type` (from
 `context`/`logsource.category`, default `all`), `rule_yaml`, `name`, `description`,
 `enabled`. The YAML is not validated by the server; a rule that does not parse fails on
 the device (`Failed rules: [<id>]`) or at the gateway (`N failed` in its policy line).
+
+### 2.1 Writing a rule with the AI Assistant
+
+The dialog's AI panel is the **AI Assistant** (`42-ai-assistant-self-hosted.md`), not a
+separate generator.
+
+- **Who and which model.** Shown to owners and admins when a model is approved for
+  **Assistant** under Integrations → Artificial Intelligence — the same condition as
+  the header's AI Assistant button (`GET /api/ai/capabilities` →
+  `capabilities.assistant`). It answers with the Assistant model picked in the
+  composer's model picker. **Threat Analysis** plays no part here: it is the AI judge of
+  rules at run time (`scan` with a `prompt`, `llm_call()`, `30` §4a).
+- **Threads.** The panel opens on a clean thread. **+** starts another; the history
+  button lists the admin's earlier guardrail threads to continue or delete. A thread is a
+  support session of kind `guardrail_authoring` (`POST /api/support/sessions
+  {"kind":"guardrail_authoring"}`, admins only; created when its first message is sent),
+  titled by its first message. One thread can cover several guardrails, so "do the same
+  for responses" works across rules; a long thread is compacted like any assistant
+  conversation, keeping one record per guardrail. **Load earlier messages** pages back
+  through it. The threads also appear in the header AI Assistant's history, tagged
+  **Guardrail Authoring**; the header assistant does not resume them on its own.
+- **It works on what the editor holds now.** Every message from the dialog carries the
+  editor's current content (`editor: {guardrail_id, name, yaml}` on
+  `POST /api/support/sessions/{id}/messages`; accepted only on a guardrail authoring
+  thread — otherwise `422` "editor context belongs to a guardrail authoring session" —
+  and only from an owner or admin — otherwise `403` "only admins can author
+  guardrails"; over 256 KiB, `422` "the rule in the editor is too large"). It
+  goes with that turn only and is never stored in the conversation, so hand edits between
+  messages are what the assistant sees next.
+- **It writes, the admin saves.** The assistant writes the **complete** rule with its
+  `write_rule` tool: the rule replaces the editor content and streams in as it is
+  written. While the assistant answers, the editor, the name, description and enable
+  fields, **Save** and **Replay** are locked; **Esc** stops the answer instead of
+  closing the window. If the answer breaks off in the middle of a rule (the model's
+  output limit, an error, the turn's time limit), the editor goes back to the last rule
+  written in full, or to what it held before the message. **Undo** above the editor
+  puts back what was there before the last write. The assistant never saves: in
+  this conversation an API write to `/api/edge/guardrails` (or `/api/edge/scanners`) by
+  the assistant is refused. Review the rule, save it, and test it in report mode (§4).
+- **One answer at a time.** A message sent while the assistant is still answering in the
+  same conversation — a second tab or window with the dialog open — gets `409` and the
+  panel says "The assistant is still answering in this conversation in another window.
+  Send again once it has finished." The answer holds the conversation for 90 seconds
+  past its last sign of life, renewed while it runs: if the server restarts mid-answer,
+  the conversation is free again within about a minute and a half.
 
 ---
 
@@ -192,26 +245,70 @@ rule". Read the host's rule load after every save (§7, first row).
 
 ---
 
-## 4. Testing with Replay
+## 4. Testing a rule
 
-Replay evaluates a rule against a device's **recorded behaviour graph** without deploying
-it.
+A rule is tested live, on a small scope, before it blocks anything:
 
-1. Open the guardrail → ▶ **Replay** ("Test rule "{name}" against a peer's behavior
-   graph").
-2. **Select a peer…** (only peers with AI data; "No peers with AIDR data" means nothing
-   was recorded yet), optionally **Search observations…**, then **Play**.
-3. Tabs **Search Results | Replay Results | Output**; the summary counts blocked,
-   detected, allowed, errors and observations. Iterate on the YAML until the intended
-   observations (and only those) fire.
+1. **Lint it.** `python3 tools/rulelint.py <dir>` from the public library
+   (`aidr-sigma`) catches a category no host produces, a field the engine never fills,
+   a removed builtin and a `|re` pattern RE2 cannot compile; a rule contributed to the
+   library also ships with its fixtures (`32-detection-rule-authoring.md`, "Fixtures").
+2. **Report mode on a small filter.** Save the rule with `action: report` and bind it in
+   a filter for one test device or one test user: an endpoint filter for device
+   traffic, a gateway filter for traffic through the AI Gateway.
+3. **Reproduce** the traffic the rule must catch and the closest legitimate traffic, on
+   that device or through the gateway as that user.
+4. **Read the result.** An **AI detected** event (Activity, category AI Edge) names the
+   rule and carries the matched excerpt and the content; the legitimate traffic must
+   produce none. A scripted rule that failed logs `Execute script for rule <id> error: …`
+   on the device or the gateway (`13` §4). What the engine recorded is in the peer's
+   behaviour graph (the **View** window from the peer page or an activity entry: graph,
+   keyword search, Search Results) and in
+   `GET /api/aidr/sessions|graph|observations|detections|search?q=&scope=…`.
+5. Iterate until the intended traffic, and only that, fires; then change the action
+   (§6).
 
-API: `POST /api/aidr/replay {"scope":"source:<peerId>","since":…,"until":…,"rules_yaml":"…","limit":…}`
-(admin or service user; 1 MB of YAML; 90 s). Observations and sessions:
-`GET /api/aidr/sessions|graph|observations|detections|search?q=&scope=…`.
+### 4.1 Replay over recorded sessions
 
-Replay runs the rule over recorded observations with the endpoint's contexts; it does
-not exercise the gateway. Test a gateway-bound rule with a real request through the
-gateway and read the **AI blocked / AI detected** event.
+Before step 2, a rule can be replayed over sessions that already happened: what would it
+have done, step by step? **Replay** (▶) opens from a guardrail's row in the Guardrails
+list (that saved guardrail) and from the guardrail window's title bar (the draft in the
+editor). Pick up to **3 guardrails** and up to **3 recorded sessions** (search by user,
+agent or model; filter by user, agent and period), then **Replay**. Each session is
+replayed alone, in the order it happened, so a rule's script sees the session as it was
+at that step. Each guardrail is evaluated on its own; on a step the most severe action
+wins. Results show, per session, the steps a guardrail would have acted on, with the
+guardrail, its action and reason, the matched text in the step's content, and how many
+steps had no recorded content.
+
+Facts to state:
+
+- **Content.** Prompts, answers and tool arguments and results come from what the
+  session's source captured (the AI Gateway captures them, as the guardrails left them).
+  A step blocked live never reached the caller, so its content was not captured and
+  replay cannot re-evaluate it; such steps are counted as "without recorded content".
+- **Cost.** Script rules that call `system_one()` or `llm_call()` and `action: scan`
+  rules make real model calls at real cost, one per step they run on. A judge rule over
+  a 100-step session can take more than a minute.
+- **No other effects.** In a replay a script's `http()` and `webhook()` calls are
+  refused (their result carries the error "replay: scripts make no network calls"):
+  nothing is called from the server and a rule's notifications are not sent again. A
+  rule whose verdict depends on such a call behaves as its error path. The AI judge is
+  real (above).
+- **Periodic rules** run every 30 seconds of session time, on the session as it stood
+  then; across a quiet gap they run at the gap's first and last tick only.
+- **Limits are the caller's job.** The dashboard allows 3 × 3; the API (§5) has no count
+  limit. Bounded instead: up to 5,000 steps per session (`max_steps`; a larger value is
+  treated as 5,000), 500 reported hits per session (the rest counted in `more_hits`),
+  4,000 characters of script output and reason per match, 5 minutes per run (sessions
+  not reached come back with an error), 2 runs at a time per account (`429`). A run in
+  which no guardrail has a rule that loads is refused (`422`).
+
+**When you (an agent) replay:** confirm with the admin which sessions and guardrails;
+start with one to three sessions that contain the behaviour in question and the one to
+three guardrails being judged; never replay "all sessions" or a whole period; split a
+larger question into several small runs and read each before the next; say before
+running when a judge rule is involved, since it costs model calls.
 
 ---
 
@@ -219,12 +316,22 @@ gateway and read the **AI blocked / AI detected** event.
 
 ```
 GET/POST /api/edge/guardrails ; GET/PUT/DELETE /api/edge/guardrails/{id}
-GET /api/edge/guardrails/generate  → {"enabled":bool,"providers":[…]}  (428 when no model is approved for Threat Analysis)
-POST /api/edge/guardrails/generate {"prompt":"…","current_yaml":"…"}  (event stream; 428 no provider, 422 provider not approved)
+POST /api/aidr/replay {"sessions":["session://…"],"guardrails":[{"id":"…"},{"name":"Draft","rule_yaml":"…"}],"max_steps":0}
+     → {guardrails:[{id,name,rules,failed_rules,error}], sessions:[{id,found,steps,partial,truncated,duration_ms,hits:[{ts,kind,target,request_id,call_id,turn,action,content,partial,matches:[{guardrail,rule_id,rule_name,action,reason,matched,chain,output,error}]}],more_hits,error}], summary}
+     (admins and service users, saved guardrails included; with Accept: text/event-stream: "guardrails", one "session" each as it finishes, "done" {summary}, or "error" {message}; 422 when no guardrail has a rule that loads; session ids from GET /api/ai/sessions; keep runs small, §4.1)
+GET  /api/support/sessions?kind=guardrail_authoring   → the caller's guardrail threads, newest activity first (kind= lists ordinary ones; no kind lists all)
+POST /api/support/sessions {"kind":"guardrail_authoring"}   → a new thread {id, title, kind, model, created_at, updated_at} (admins only; unknown kind 422)
+GET  /api/support/sessions/{id}?limit=40&before=<message id>   → the newest <limit> messages (before that id); has_more when older ones remain (a limit above 200 is capped at 200, a non-positive one is 422; before without limit = a page of 200; neither = the whole conversation)
+POST /api/support/sessions/{id}/messages {"text":"…","model":"…","editor":{"guardrail_id":"…","name":"…","yaml":"…"}}
+     (event stream; the agent's write arrives as rule_delta {text, reset} while it is written and rule {yaml} when complete; 409 while another turn runs in that conversation)
 ```
-Body: `{"name":"…","description":"…","severity":"high","context":["tool_input"],"rule_yaml":"…","enabled":true}`
+Guardrail body: `{"name":"…","description":"…","severity":"high","context":["tool_input"],"rule_yaml":"…","enabled":true}`
 — `severity` one of `low|medium|high|critical` (case-insensitive), `context` a list of
 which only the first value is stored. Every `PUT` replaces the whole object: `GET` first.
+
+The earlier rule generator (`GET/POST /api/edge/guardrails/generate`, alias
+`/api/edge/scanners/generate`), which streamed YAML from the model approved for Threat
+Analysis, has been removed; the AI Assistant writes rules instead (§2.1).
 
 Deleting a guardrail does **not** check filters: the filters that bound it drop it
 silently at expansion, and the next save of such a filter fails with
@@ -234,8 +341,9 @@ silently at expansion, and the next save of such a filter fails with
 
 ## 6. Lifecycle procedure
 
-1. **Draft** in report mode (`action: report`), or generate with AI and review.
-2. **Replay** against several peers' observations (different agents, users).
+1. **Draft** in report mode (`action: report`), by hand or with the AI Assistant in the
+   dialog (§2.1), and review what it wrote before saving.
+2. **Test** on one device or user in report mode (§4), with the agents and users it targets.
 3. **Deploy** by binding the guardrail in a filter for a pilot group — an endpoint
    filter for devices, a gateway filter for gateway users — run 1–2 weeks; review **AI
    detected** events (Activity, category AI Edge) and the **AI Agent Activity** report.
@@ -251,11 +359,13 @@ silently at expansion, and the next save of such a filter fails with
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Rule saved, never fires | not bound (Used by = No Filters); the filter does not match the device or user; wrong `logsource.category` for where the content is; bound in a gateway filter but needs an endpoint-only context (process, file, connect); a more severe rule already blocks the same events, so a lower-severity `report` rule is skipped | bind it; check filter targets and type; Replay to see the real context and payload |
+| Rule saved, never fires | not bound (Used by = No Filters); the filter does not match the device or user; wrong `logsource.category` for where the content is; bound in a gateway filter but needs an endpoint-only context (process, file, connect); a more severe rule already blocks the same events, so a lower-severity `report` rule is skipped | bind it; check filter targets and type; reproduce the traffic in report mode and read the device or gateway log (§4) |
 | Fires far too often | broad `contains`; no exclusions | tighten; `excl` selection + `condition: sel and not excl`; report mode |
-| Redaction not visible | redaction applies to matched content only; a match longer than about 1 KB in a streamed answer has its start released before the rule sees all of it; a Cursor streamed request is blocked instead of redacted | Replay shows the redaction; check the event's content |
-| ✦ button missing / generate returns 428 | no model approved for Threat Analysis | Integrations → Artificial Intelligence → approve one |
-| Replay: "No peers with AIDR data" | no device has produced observations yet | generate traffic on a filtered device |
+| Redaction not visible | redaction applies to matched content only; a match longer than about 1 KB in a streamed answer has its start released before the rule sees all of it; a Cursor streamed request is blocked instead of redacted | check the event's content |
+| AI panel and ✦ button missing from the guardrail dialog | no model approved for **Assistant** (the header's AI Assistant button is missing too), or the user is not an owner or admin | Integrations → Artificial Intelligence → approve a model for Assistant; a Threat Analysis approval does not enable it |
+| AI panel: "The assistant is still answering in this conversation in another window" (`409`) | that thread is answering a message sent from another tab or window | wait for that answer, or close the other dialog, then send again |
+| The assistant wrote a rule, but the guardrail did not change | the assistant never saves; the rule is only in the editor | review it, **Save**; **Undo** puts back the previous content |
+| Editor does not accept typing; Save and Replay greyed out | the assistant is answering; the editor and the dialog's fields are locked until it finishes | wait for the answer, or press **Esc** to stop it |
 | Blocked call but another rule named in the event | the named rule is the most severe match across all filters (equal severity: lowest rule `id`) | correct the `level` values or narrow the other rule; reordering has no effect |
 | `scan` rules slow down the agent | classifier or AI-judge latency (15 s timeout on devices and gateways) | narrow the `detection` first; `on_timeout: report` |
 | Device log `Failed rules: [<id>, …]` / gateway log `… N rule(s) loaded, N failed` | those rules do not parse | open each, fix the YAML, save |
@@ -279,7 +389,7 @@ version control.
 and an `allow` rule exempts nobody. To exempt a population, give them a filter that does
 not bind the rule, and make sure no other filter matching them (a baseline `All` filter,
 for example) binds it. To exempt specific traffic for everyone, narrow the rule's own
-conditions. Prove every exception with Replay and a live pilot.
+conditions. Prove every exception on a pilot group in report mode (§4).
 
 **The gateway does not inspect every surface** (`27-ai-gateway.md` §1): prompt, answer
 and tool-call rules reach the OpenAI chat, Responses and Anthropic Messages surfaces,
@@ -288,8 +398,9 @@ redacted); embeddings and text completions are counted, not scanned.
 
 **A script is not checked when the guardrail is saved.** The editor validates the YAML,
 not the Starlark in `script:`; a script that fails to parse loads and takes its
-`on_error` verdict at run time (`32`, Starlark is not Python). Replay the rule after every
-script edit.
+`on_error` verdict at run time (`32`, Starlark is not Python). After every script edit,
+run the rule once on a pilot and read the host's log for `Execute script for rule <id>
+error`.
 
 **Judge rules cost a model call per match.** Each `llm_call()` and `system_one()` is a
 paid round trip through management, run synchronously on the matched call: scope the

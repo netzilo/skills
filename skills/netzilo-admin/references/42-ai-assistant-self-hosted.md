@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 30109
+chars: 30617
 sections:
 - id: '1'
   title: What it is made of
-  chars: 2020
+  chars: 2528
 - id: '2'
   title: Before you start
   chars: 1364
@@ -70,6 +70,13 @@ How a turn flows:
    does: API reads as the caller, device tools, the API description, and live step
    updates for the audit log. It calls the AI provider directly.
 4. The answer streams back through Management to the browser.
+
+The AI panel of the Add / Edit Guardrail dialog is this same assistant
+(`28-edge-guardrails.md` §2.1), so on a self-hosted server it needs the worker too: the
+panel appears once a model is approved for Assistant, and without a working worker its
+messages fail the way the chat's do. Its turns carry the editor's content; the worker
+offers them one more tool, `write_rule`, whose rule streams back as `rule_delta` and
+`rule` events, and Management runs one turn at a time per conversation (`409` otherwise).
 
 The worker has **no ingress**. Nothing outside the server network ever calls it, and
 Management is its only client. It never holds an administrator credential of its own: every

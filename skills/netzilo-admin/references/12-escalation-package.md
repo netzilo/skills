@@ -7,11 +7,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 43279
+chars: 43342
 sections:
 - id: '1'
   title: Escalate only when the answer needs the source code
-  chars: 2566
+  chars: 2629
   requires: []
   executable_on:
   - dashboard-assistant
@@ -140,7 +140,7 @@ Escalate when, after working the relevant runbook to its end, you have one of th
 | **State machine stuck** | peer shows `Connected` with a WireGuard handshake older than an hour and never recovers; route present in `routes list` but never installed in the routing table |
 | **Migration or persistence failure** | `auto migrate` error that a documented rollback does not fix; data present in the API but absent in the dashboard |
 | **Documented procedure does not work** | a runbook command fails on a supported platform in a way its error table does not cover |
-| **Detection engine disagrees with its own rule** | Replay shows a rule matching a snapshot, the same traffic live produces no verdict, and the filter binding is confirmed correct |
+| **Detection engine disagrees with its own rule** | a rule whose conditions plainly match the traffic (the content an event shows for the call) produces no verdict live, `rulelint` reports no error, and the filter binding is confirmed correct |
 
 Do **not** escalate — these are solvable, and the runbook says how:
 

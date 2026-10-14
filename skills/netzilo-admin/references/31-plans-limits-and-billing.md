@@ -5,14 +5,14 @@ requires:
 - dashboard-ui
 executable_on:
 - human-operator
-chars: 8810
+chars: 8685
 sections:
 - id: '1'
   title: The three plans
   chars: 852
 - id: '2'
   title: Every hard limit, and the exact message
-  chars: 2854
+  chars: 2729
 - id: '3'
   title: What has no limit
   chars: 341
@@ -77,7 +77,6 @@ of ten seats even if the account has fewer users. Both facts are shown at checko
 | Setup key lifetime | all | `expiresIn should be between 1 day and 365 days` | Choose 1 to 365 days |
 | Peer login expiration | all | `peer login expiration can't be larger than 180 days` or smaller than one hour | Choose between one hour and 180 days |
 | Tenant logo | all | `file too large. Maximum size is 500KB`, HTTP 400 | Use a smaller PNG, JPG or SVG |
-| Guardrail replay payload | all | Rule YAML above 1 MB is rejected by `POST /api/aidr/replay` | Replay a smaller rule set |
 | Event batch from a device | all | `too many events: maximum allowed is 1024` | Not admin-actionable; devices batch automatically |
 
 **A limit is the cause only when its exact message is present.** A refused invite, a

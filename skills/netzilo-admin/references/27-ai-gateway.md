@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 48672
+chars: 48705
 sections:
 - id: '1'
   title: How it works
@@ -55,7 +55,7 @@ sections:
   chars: 3702
 - id: '10'
   title: Troubleshooting
-  chars: 7007
+  chars: 7040
 - id: '11'
   title: Limits to state before a customer discovers them
   chars: 2265
@@ -632,7 +632,7 @@ and users are fetched afresh.
 | 400 `model X is not granted to this user` | the filter grants other models/providers | grant the model (or `provider/*`), or tell the user which models `GET /v1/models` lists for them |
 | Every request refused (400 `no model is granted…`) for everyone after a policy change | the filters failed to load (`N failed` in the policy line is about guardrails; a fetch failure shows as `gateway ai: cannot …`) | management reachable from the host? service token still valid (401 in the log)? |
 | 429 / 402 before any real use | a limit's window and counters | `45` §3; counters restart when grants or limits change |
-| Guardrail does not fire for a user | the request went to `/v1/embeddings`, `/v1/completions` or another surface guardrails do not inspect (§1); or the rule is not bound by one of the user's gateway filters; or it needs an endpoint-only context (process, file) | check which path the client calls; `GET /api/edge/filters/effective?type=gateway&user=<id>`; Replay the rule (`28` §4) |
+| Guardrail does not fire for a user | the request went to `/v1/embeddings`, `/v1/completions` or another surface guardrails do not inspect (§1); or the rule is not bound by one of the user's gateway filters; or it needs an endpoint-only context (process, file) | check which path the client calls; `GET /api/edge/filters/effective?type=gateway&user=<id>`; test the rule in report mode through the gateway (`28` §4) |
 | MCP tool answers `Connect <server> in your Workplace…` | the user has no sign-in/header values for that server | `46` §4 and `47` §3 |
 | `Tool execution failed: Blocked by rule: <name>` | a guardrail on the tool result or arguments | expected; the event names the rule |
 | Claude Desktop: `gateway SSO discovery failed: 401` | the endpoint in Claude is `<gateway>/v1`, `<gateway>/openai` or another path: no sign-in is served there (the bare `<gateway>` signs in but then fails with 405 on `/v1/messages`) | set the endpoint to exactly `<gateway>/anthropic` |

@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 66291
+chars: 67214
 sections:
 - id: '1'
   title: How it works
-  chars: 4644
+  chars: 4614
 - id: '2'
   title: Requirements and support
   chars: 2320
@@ -49,7 +49,7 @@ sections:
   chars: 2880
 - id: '10'
   title: Operating it
-  chars: 7347
+  chars: 8300
 - id: '11'
   title: Troubleshooting
   chars: 12631
@@ -129,8 +129,8 @@ customers skip those. Logs and health are §10; symptoms are §11.
    is seen at the next sign-in, not at a re-check.
    The next navigation goes through the Workplace again, silently when the Workplace
    session is still alive.
-8. The user's tunnel is **one per user, public address and operating system**, shared
-   by all of that user's browsers and API clients there on that system. It stops after
+8. The user's tunnel is **one per user**, shared by all of that user's browsers and
+   API clients, from any address or system. It stops after
    60 minutes without traffic and is started again on the next request, as the same peer
    (§10.3). A second application
    opened from the same browser needs no new sign-in prompt: the Workplace already has
@@ -720,17 +720,17 @@ on-demand issuance and its errors; on Kubernetes the Certificate resource's stat
 
 ### 10.3 Reverse-proxy peers in the Peers list
 
-- One peer per **user, public address and operating system** (name and version), named
-  `vp-<n>-RPROXY`, platform *browser*, ephemeral (management deletes it once offline for
-  a while). All of that user's browsers and API clients at that address on that system
-  share it. The same user from home and from the office is two peers, each judged by its
-  own location; a Mac and a Windows laptop behind one address are two peers, each judged
-  by its own operating system.
+- One peer per **user**, named `vp-<n>-RPROXY`, platform *browser*, ephemeral
+  (management deletes it once offline for a while). All of that user's browsers and API
+  clients share it, from any address and system. It reports the address and operating
+  system of the latest browser it served, so location and OS posture are judged on
+  that; an API client does not change them, and Safari's or Firefox's fixed
+  "macOS 10.15.7" does not replace the real version Chrome reported.
 - **The peer comes back.** Its key and name are kept on the reverse proxy's data volume
-  per user, address and system: after the idle stop or a restart the same
+  per user: after the idle stop or a restart the same
   `vp-<n>-RPROXY` reconnects instead of a new number appearing. Unused for 30 days, the
-  identity is dropped (at most 16 are kept per user, and a user has at most 16 tunnels
-  at once: a 17th address or system is refused until one idles out); management's
+  identity is dropped (tunnels from before the one-per-user change are folded into the
+  most recently used, which stays the user's peer); management's
   ephemeral cleanup
   removes the peer meanwhile and it registers again under the same name on the next use.
 - **What it reports:** the user's public IP as its connection address (so **Country &
@@ -743,6 +743,18 @@ on-demand issuance and its errors; on Kubernetes the Certificate resource's stat
   browser's client hints where it sends them (Chrome, Edge), else from the User-Agent,
   which Firefox and Safari freeze at macOS `10.15` and Windows `10.0`: a minimum-version
   rule above those blocks such browsers.
+- **Sessions: where the tunnel was used.** The peer also reports one entry per published
+  application (name and address), source IP, client (browser and version; for an API
+  client the program its User-Agent names, or the agent a Netzilo SDK agent names) and
+  operating system, with when it was first and last seen. The entries are kept with the
+  user's identity, so they survive the idle stop and a restart; at most 50 are kept and
+  one unseen for 30 days is dropped. An entry seen in the last 15 minutes is **live**.
+  The peer's page lists them under **Sessions**, newest first, live ones on top with a
+  green dot; in the Peers list, **N sessions** under **Last seen** counts the live ones,
+  and hovering it or the peer's name lists them. The API carries them as `sessions` on
+  the peer (`app`, `host`, `source_ip`, `browser`, `browser_version`, `os`, `os_version`,
+  `first_seen`, `last_seen`); other peers have none. Last-seen times move in steps of
+  about 5 minutes.
 - **What it is not:** it passes no Endpoint or Advanced endpoint check. Write the policy
   that reaches the application's network for the user's group without those, or with
   location, network-range and operating-system checks only.

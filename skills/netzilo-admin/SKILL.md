@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR) on devices, in the browser through the Netzilo browser extension (ChatGPT, Claude, Gemini and other web AI apps, browser filters, the behaviour graph of browser sessions) and through the Netzilo AI Gateway (providers, model grants, limits, MCP servers and bundles, guardrails, gateway filters, Agentic Access, Claude Desktop organization sign-in, AI usage), detection-rule authoring, clientless access and published applications, the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server, the Netzilo client, the browser extension or the Netzilo AI Gateway, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance, guardrails, MCP, LLM gateways, AI in the browser or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 4.3.0
+  version: 4.4.0
   released: "2026-10-14"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 4.3.0, released 2026-10-14.** Confirm it is current before
+**This copy is version 4.4.0, released 2026-10-14.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -163,7 +163,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **4.3.0** above.
+Compare its `version:` with **4.4.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -437,7 +437,7 @@ is instructions for the admin rather than work you performed.
 | Edge → Providers and Edge → Limits: add a provider and its keys, the model catalogue, model grants by provider, token/request/spend limits per user, how the gateway applies them | `references/45-ai-gateway-providers-and-limits.md` | API |
 | Edge → MCP (MCP Servers and MCP Bundles tabs): add a server (HTTP, SSE, stdio), its authentication (none, headers, per-user headers, shared OAuth, per-user OAuth), bundles, users' sign-ins and statuses, Claude Desktop and other MCP clients over OAuth | `references/46-ai-gateway-mcp-servers-and-bundles.md` | API |
 | Workplace → **Agentic Access**: what a user sees, the Connect dialogs and snippets (Claude Code, Cursor, Codex, VS Code, Claude Desktop, SDKs, curl), the gateway access token, Claude Desktop "Sign in with your organization" (endpoint `<gateway>/anthropic`, the code and the approval page, its error strings), and "my agent cannot use the gateway" | `references/47-agentic-access-workplace.md` — §5 diagnosis | API |
-| Edge → Guardrails (detection rules): create, enable, contexts, generate with AI, replay against real sessions | `references/28-edge-guardrails.md` | API |
+| Edge → Guardrails (detection rules): create, enable, contexts, write a rule with the AI Assistant in the dialog (Guardrail Authoring), test it in report mode | `references/28-edge-guardrails.md` | API |
 | Edge → Filters: endpoint filters (groups, OS, agents, guardrails) and gateway filters (models, limits, MCP, gateways, guardrails); effective filters per device or user | `references/29-edge-filters.md` | API |
 | Activity → Events/Reports (incl. AI Agent Activity and AI Usage), the Dashboard home (Agentic Activity), Integrations | `references/30-activity-reports-and-integrations.md` | API |
 | Integrations → Artificial Intelligence: connect an AI provider, approve models per feature, pick the assistant's model | `references/30-activity-reports-and-integrations.md` §4a | API |
@@ -447,7 +447,7 @@ is instructions for the admin rather than work you performed.
 | Build a request body for any API write (required fields, enums, parameters) | `references/33-api-request-schemas.md` — generated from the server's OpenAPI; live copy at `GET /api/support/openapi.yml` | API |
 | Govern AI agents: choose devices (client, hooks, SDK, browser extension) or the AI Gateway, roll out, what each enforcement point sees, troubleshoot | `references/10-ai-security-aidr.md` | API |
 | The **browser extension** as an AI enforcement point: what it governs (ChatGPT, Claude, Gemini and other web AI apps, API calls from pages, MCP in the page, the tab's network log), endpoint filters with the Browser operating system, sign-in and the stand-down rule next to the desktop client, `fail_mode`, what users see (redaction tokens, "Netzilo Guardrail" refusals, delayed streamed answers), Chrome/Edge/Firefox/Safari/Enterprise Browser, browser sessions and "Session snapshot" entries, upload limits, "the extension is not governing" | `references/49-browser-extension-aidr.md` | API |
-| Write or test a detection rule (Sigma/Starlark): sessions and lineage, `requires:` capabilities, kill chains, evaluation order, replay | `references/32-detection-rule-authoring.md`, then `references/28-edge-guardrails.md` to deliver it | API |
+| Write or test a detection rule (Sigma/Starlark): sessions and lineage, `requires:` capabilities, kill chains, evaluation order, fixtures | `references/32-detection-rule-authoring.md`, then `references/28-edge-guardrails.md` to deliver it | API |
 | Judge an agent's actions with an LLM or System One (LLM-as-judge, agent drift, `llm_call`, `system_one`, `model=`) | `references/32-detection-rule-authoring.md` (builtins table, two-tier judging), then `references/30-activity-reports-and-integrations.md` §4a for the providers |
 
 Cloud customers skip the server-install and identity-provider-console files; everything

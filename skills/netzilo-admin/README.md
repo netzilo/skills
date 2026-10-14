@@ -69,11 +69,11 @@ the product, and a table routing every task to the right file in `references/`.
 | `25-users-groups-and-account-settings.md` | roles, users/agents, groups and membership sources, every account setting, tenant tab, diagnosis |
 | `26-profiles-secure-workplace.md` | Enterprise Workspace, Enterprise Browser, Disposable Browser, Browser Extension domain settings, recording, exceptions, diagnosis |
 | `27-ai-gateway.md` | the Netzilo AI Gateway (`netzilo-aigw`): requirements, install on Linux/macOS/Windows/containers, every flag, plain HTTP vs TLS, exposure (tunnel, public, published application), authentication and every refusal, what it pulls from management, usage telemetry, logs, troubleshooting |
-| `28-edge-guardrails.md` | Edge → Guardrails: the model, every field, contexts, AI generation, Replay against real sessions, lifecycle, diagnosis |
+| `28-edge-guardrails.md` | Edge → Guardrails: the model, every field, contexts, writing rules with the AI Assistant in the dialog, testing in report mode, lifecycle, diagnosis |
 | `29-edge-filters.md` | endpoint filters (groups, OS, agents, guardrails) and gateway filters (models, limits, MCP, gateways, guardrails), effective filters, design patterns, diagnosis for a device and for a gateway user |
 | `30-activity-reports-and-integrations.md` | events and codes by category, AI Smart Search, CSV/API export, reports (incl. AI Agent Activity and AI Usage), the dashboard home and Agentic Activity, integrations (S3/Min.io, TURN, Artificial Intelligence) |
 | `31-plans-limits-and-billing.md` | every plan gate and hard limit with its exact message, downgrade blockers, what happens when a subscription lapses, and how plans are set on self-hosted |
-| `32-detection-rule-authoring.md` | writing and testing detection rules for the AI security engine: the rule format, `requires:` capabilities, every field and action, sessions and the observation log, the behaviour graph, the scripting reference, evaluation order, replay, fixtures, migration from the process-keyed engine, and worked rules |
+| `32-detection-rule-authoring.md` | writing and testing detection rules for the AI security engine: the rule format, `requires:` capabilities, every field and action, sessions and the observation log, the behaviour graph, the scripting reference, evaluation order, fixtures, migration from the process-keyed engine, and worked rules |
 | `33-api-request-schemas.md` | every REST request body and parameter, generated from the server's OpenAPI description |
 | `34-event-catalogue.md` | every activity code with its display name and category |
 | `35-plain-language.md` | what to call pages, objects and events when talking to an admin, and the AI Edge terms |

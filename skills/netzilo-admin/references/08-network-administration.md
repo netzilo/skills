@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 24313
+chars: 24300
 sections:
 - id: '1'
   title: Peers (Endpoint → Peers, `/peers`)
-  chars: 2938
+  chars: 2916
 - id: '2'
   title: Setup keys (Endpoint → Setup Keys, `/setup-keys`)
   chars: 975
@@ -32,7 +32,7 @@ sections:
   chars: 3696
 - id: '8'
   title: Activity, reports, integrations
-  chars: 5239
+  chars: 5248
 - id: '9'
   title: Multi-tenant / self-service (cloud and MSP servers)
   chars: 807
@@ -61,7 +61,7 @@ Mental model:
 
 ## 1. Peers (Endpoint → Peers, `/peers`)
 
-List columns: Name (green dot = online, owner e-mail), Security Score (A–F), Address
+List columns: Name (green dot = online, owner e-mail), Address
 (DNS label + IP, copyable), Groups, Last seen, OS, Version ("Update available" tooltip),
 status badges (**Approval required** + **Approve**, **Expiration disabled**, red
 **Login required**), actions. Filters: All / Online / Offline, Pending Approvals, group
@@ -343,7 +343,7 @@ restrict access. Details: `30-activity-reports-and-integrations.md` §2.
 | Event Streaming | Min.io | same, S3-compatible | endpoint, bucket, access key, secret |
 | Networking | Twilio / Cloudflare | managed TURN instead of the built-in relay | account SID + auth token / token id + API token |
 | Networking | TURN/STUN Servers | your own STUN/TURN (`static`) with a browser-side **Test Connection** | STUN `host:port` UDP/TCP; TURN `host:port` UDP/TCP/DTLS/HTTPS + username/password |
-| Artificial Intelligence | one card per provider (Anthropic Messages, OpenAI-compatible or System One endpoint) plus an **Add Provider** card | management's own AI: the Assistant, AI Smart Search, guardrail generation and the AI judge; a System One provider is called only by detection rules | provider + per-model approval per feature: **Assistant**, **Log Analysis**, **Threat Analysis** (`/api/ai/providers`, owner writes). These are **not** the gateway's upstream providers — those live under Edge → Providers (`/api/edge/providers`, `45-ai-gateway-providers-and-limits.md` §1); the two lists are independent |
+| Artificial Intelligence | one card per provider (Anthropic Messages, OpenAI-compatible or System One endpoint) plus an **Add Provider** card | management's own AI: the Assistant (also in the guardrail editor), AI Smart Search and the AI judge; a System One provider is called only by detection rules | provider + per-model approval per feature: **Assistant**, **Log Analysis**, **Threat Analysis** (`/api/ai/providers`, owner writes). These are **not** the gateway's upstream providers — those live under Edge → Providers (`/api/edge/providers`, `45-ai-gateway-providers-and-limits.md` §1); the two lists are independent |
 
 Only one of Twilio / Cloudflare / static TURN can be active. Disabling an integration
 deletes its settings.

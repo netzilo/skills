@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 29917
+chars: 29921
 sections:
 - id: '0'
   title: The server and an admin token come first
@@ -17,7 +17,7 @@ sections:
   chars: 2640
 - id: '2'
   title: Endpoint catalogue
-  chars: 6792
+  chars: 6899
 - id: '3'
   title: Field reference (request bodies)
   chars: 7132
@@ -32,7 +32,7 @@ sections:
   chars: 3273
 - id: '7'
   title: How the API reports failure
-  chars: 3343
+  chars: 3240
 ---
 # Netzilo — Public API and Automation
 
@@ -148,10 +148,10 @@ nz /users | jq '.[] | {id,email,role,is_service_user}'
 | Profiles (Enterprise) | `GET/POST /profiles`, `PUT/DELETE /profiles/{id}`, `GET /templates`, `GET /templates/{category}` |
 | Tenant | `GET/PUT /tenant`, `POST /tenant/subscription`, `POST /tenant/subscription/confirm`, `GET/POST/DELETE /tenant/logo`, `GET /tenant/logo/info` |
 | Integrations | `GET/POST /integrations`, `PUT/DELETE /integrations/{id}` (platforms `twilio`, `cloudflare`, `static`; posting an AI platform here is refused) |
-| AI providers (Integrations → Artificial Intelligence) | `GET/POST /ai/providers`, `PUT/DELETE /ai/providers/{id}`, `POST /ai/providers/verify` (draft), `POST /ai/providers/{id}/verify`, `GET /ai/protocols`, `GET /ai/models?use=assistant\|log-analysis\|threat-analysis`, `GET /ai/capabilities` — **management's own AI** (the Assistant, smart search, guardrail generation, the AI judge), OpenAI, Anthropic and any compatible endpoint; see `30-activity-reports-and-integrations.md` §4a. Not the AI gateway's upstream providers, which are `/edge/providers` below; the two lists are independent |
+| AI providers (Integrations → Artificial Intelligence) | `GET/POST /ai/providers`, `PUT/DELETE /ai/providers/{id}`, `POST /ai/providers/verify` (draft), `POST /ai/providers/{id}/verify`, `GET /ai/protocols`, `GET /ai/models?use=assistant\|log-analysis\|threat-analysis`, `GET /ai/capabilities` — **management's own AI** (the Assistant, also in the guardrail editor; smart search; the AI judge), OpenAI, Anthropic and any compatible endpoint; see `30-activity-reports-and-integrations.md` §4a. Not the AI gateway's upstream providers, which are `/edge/providers` below; the two lists are independent |
 | Event streaming | `GET/POST /event-streaming`, `DELETE /event-streaming/{id}`, `GET /event-streaming/getLogVideos`, `POST /event-streaming/sign-urls` |
 | MFA | `GET/PUT/POST /mfa` |
-| AI Edge — guardrails | `GET/POST /edge/guardrails`, `GET/PUT/DELETE /edge/guardrails/{id}`, `GET/POST /edge/guardrails/generate` (AI rule generation; 428 when no model is approved for Threat Analysis, 422 when the provider is not approved); `/edge/scanners…` still answers as an alias. `28-edge-guardrails.md` §5 |
+| AI Edge — guardrails | `GET/POST /edge/guardrails`, `GET/PUT/DELETE /edge/guardrails/{id}`, `/edge/scanners…` still answers as an alias. Rules are written with the AI Assistant in the guardrail dialog: threads are support sessions of kind `guardrail_authoring` (`POST /support/sessions {"kind":"guardrail_authoring"}`, `GET /support/sessions?kind=guardrail_authoring`) and `editor` on `POST /support/sessions/{id}/messages`; the former `/edge/guardrails/generate` is removed. `28-edge-guardrails.md` §2.1, §5 |
 | AI Edge — providers, limits | `GET/POST /edge/providers`, `GET/PUT/DELETE /edge/providers/{id}`, `POST /edge/providers/discover` (list a provider's models); `GET/POST /edge/limits`, `GET/PUT/DELETE /edge/limits/{id}`. `45-ai-gateway-providers-and-limits.md` |
 | AI Edge — MCP servers, bundles | `GET/POST /edge/mcp-servers`, `GET/PUT/DELETE /edge/mcp-servers/{id}`, `POST /edge/mcp-servers/{id}/oauth` (admin's shared sign-in), `DELETE /edge/mcp-servers/{id}/credential`; `GET/POST /edge/virtual-mcps`, `GET/PUT/DELETE /edge/virtual-mcps/{id}` (bundles); `GET /edge/mcp-catalog` (reference library, not what is configured). `46-ai-gateway-mcp-servers-and-bundles.md` §7 |
 | AI Edge — filters, events | `GET/POST /edge/filters`, `GET/PUT/DELETE /edge/filters/{id}`, `GET /edge/filters/effective?type=gateway\|endpoint&user=&peer=` (what applies to someone), `GET /edge/filters/{id}/expanded`; `POST /edge/events` (devices, the extension and gateways post verdicts). `29-edge-filters.md` §3. **Gone (404):** `/edge/tools*`, `/edge/discovered-tools*`, `/edge/scanners/catalog` |
@@ -159,7 +159,7 @@ nz /users | jq '.[] | {id,email,role,is_service_user}'
 | Agentic Activity and AI sessions (gateway traffic) | `GET /ai/activity?window=24h\|7d\|30d&scope=org\|group:<groupId>` (the window's views; admins), `POST /ai/activity/refresh` (builds the dashboard snapshot and the views now; admins; a build younger than 30 s is kept), `GET /ai/sessions?since&until&agent&user&group&model&q&sort&order&limit(≤500)&offset`, `GET /ai/sessions/session?id=`, `GET /ai/sessions/trajectory?id=` (transcript with 300-character previews, verdicts, kill chains), `GET /ai/sessions/message?id=<session>&hash=<message>` (one message's whole text). Admins see every session; any other user only their own. `30-activity-reports-and-integrations.md` §3 |
 | Caller-scoped (any user, own view) | `GET /users/current/ai-access`; `GET /users/current/mcp-connections`, `POST /users/current/mcp-connections/{serverId}/oauth`, `POST /users/current/mcp-connections/complete`, `PUT /users/current/mcp-connections/{serverId}/headers`, `DELETE /users/current/mcp-connections/{serverId}`; `GET /users/{id}/gateway-sessions`; `GET /users/current/published-apps`, `POST /users/current/published-apps/access` |
 | Published applications | `GET/POST /published-apps`, `PUT/DELETE /published-apps/{id}`, `GET /published-apps/check?domain=[&except=]`, `GET /published-apps/exists?domain=` (no token; `{published, version}`). `44-published-applications.md` §4 |
-| AIDR (behaviour graph) | `GET /aidr/sessions`, `GET /aidr/graph`, `GET /aidr/observations`, `GET /aidr/detections`, `GET /aidr/search?q=` — all take `scope=source:<peerId>\|account\|actor:<id>\|session:<id>`, `since`, `until`; `POST /aidr/replay {scope, since, until, rules_yaml, limit}` (rule YAML above 1 MB is rejected). The former `/peers/{id}/aidr-snapshot*` paths answer 404 |
+| AIDR (behaviour graph) | `GET /aidr/sessions`, `GET /aidr/graph`, `GET /aidr/observations`, `GET /aidr/detections`, `GET /aidr/search?q=` — all take `scope=source:<peerId>\|account\|actor:<id>\|session:<id>`, `since`, `until`. The former `/peers/{id}/aidr-snapshot*` paths answer 404 |
 | Smart search / AI | `GET/POST /smartsearch`, `POST /ai/scanprompt` |
 | Unauthenticated | `POST /register`, `POST /verify-recaptcha`, `GET /lookup-account?search=<subdomain>`, `GET /auth/tokens/{sessionId}`, `GET /getclient?os=windows\|macos-amd64\|macos-arm64` (301 to installer — currently redirects to filenames that return 404 on the CDN; use the dashboard download URLs instead) |
 
@@ -399,8 +399,6 @@ creating.
 - A `limit` outside one to a thousand is ignored silently and the default of 25 is used.
   A bad value under-fetches instead of erroring.
 - A search term longer than 500 characters is silently truncated.
-- Guardrail replay payloads (`POST /api/aidr/replay`) with more than 1 MB of rule YAML
-  are rejected.
 - Tenant logo uploads above 500 KB return 400 with a message naming the limit.
 - Devices batch their own events; the server caps a batch and says so.
 

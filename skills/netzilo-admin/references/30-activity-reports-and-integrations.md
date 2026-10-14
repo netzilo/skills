@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 26779
+chars: 27099
 sections:
 - id: '1'
   title: Activity → Events
@@ -17,16 +17,16 @@ sections:
   chars: 3073
 - id: '3'
   title: Dashboard home
-  chars: 4474
+  chars: 4511
 - id: '4'
   title: Integrations
-  chars: 7664
+  chars: 7913
 - id: '5'
   title: Procedures
-  chars: 1730
+  chars: 1718
 - id: '6'
   title: Diagnosis
-  chars: 2831
+  chars: 2877
 ---
 # Admin Skill — Activity Events, Reports, Dashboard Home and Integrations
 
@@ -146,8 +146,8 @@ groups' members.
 
 Four tiles with a 7-day history: **Users**, **Devices**, **Agents** (distinct AI agents
 active in the last 7 days) and **Tokens** (tokens through the AI Gateway per day). There
-is no Security Score tile any more; the per-peer score is still on the Peers page
-(`24-peers-and-setup-keys.md` §2).
+is no Security Score tile any more; the per-peer score is on each peer's page (the
+Peers list no longer has the column; `24-peers-and-setup-keys.md` §2).
 
 **Agentic Activity**: a period selector (**Last 24 Hours** | **Last 7 Days** | **Last 30
 Days**), three tabs, and two buttons at the top right — **Refresh** (circular arrows) and
@@ -260,10 +260,13 @@ provider's first model answers. The key stays in management: hosts reach it thro
 management (`POST /api/ai/systemone`), and every call is a paid round trip.
 
 **Approval is per feature.** There are three: **Assistant** (`assistant`) is
-the admin chat panel; **Log Analysis** (`log-analysis`) covers AI Smart Search
-and log analysis; **Threat Analysis** (`threat-analysis`) covers guardrail
-generation (`28-edge-guardrails.md`) and the AI judge that `scan` rules with a
-`prompt` and the `llm_call()` builtin call (`32-detection-rule-authoring.md`). A rule's
+the admin assistant in the chat panel and the guardrail editor (the dialog's AI
+panel, `28-edge-guardrails.md` §2.1); **Log Analysis** (`log-analysis`) covers AI
+Smart Search and log analysis; **Threat Analysis** (`threat-analysis`) covers only
+the AI judge of guardrail rules — `scan` rules with a `prompt`, the `llm_call()`
+builtin and prompt scanning (`32-detection-rule-authoring.md`). The dashboard
+describes them as "The admin assistant in the chat panel and the guardrail editor"
+and "Judging content for guardrails — AI scans and judge rules". A rule's
 `llm_call(..., model=...)` may name any model an enabled text provider lists, approved
 for Threat Analysis or not; a model the account cannot use is an error, never a
 fallback to another model. Each is approved at
@@ -297,7 +300,7 @@ A self-hosted endpoint must be reachable **from the management server**, not
 from the admin's browser.
 
 **These providers are management's own AI**, used by the server itself for the
-assistant, smart search, guardrail generation and the AI judge. They are not
+assistant (also in the guardrail editor), smart search and the AI judge. They are not
 the models employees reach through the AI Gateway: those are configured under
 Edge → **Providers** (`45-ai-gateway-providers-and-limits.md` §1, API
 `/api/edge/providers`) and the two lists are independent. Adding a vendor key
@@ -349,8 +352,8 @@ if it does, the dashboard is out of date.
   `GET /api/aidr/sessions?scope=source:<peer-id>` — for a browser, the source id of the
   user's browser from `GET /api/aidr/sources` (`kind: browser`), so
   `scope=source:<browser-source-id>`; a regular user sees only their own browser
-  sessions there, an admin all (`49` §7); test candidate rules against that
-  traffic with **Replay** in the guardrail (`28-edge-guardrails.md` §4); view the kill
+  sessions there, an admin all (`49` §7); test candidate rules in report mode on
+  the same device or user (`28-edge-guardrails.md` §4); view the kill
   chain on `ai.blocked` rows that have one; then generate an **AI Agent Activity** report
   for the period (device and gateway events) and, when the AI Gateway is involved, an
   **AI Usage** report (what the gateway served, with cost).
@@ -371,7 +374,7 @@ if it does, the dashboard is out of date.
 | AI Smart Search greyed / AI Insights Disabled | no model approved for Log Analysis | Integrations → Artificial Intelligence → approve a model |
 | Assistant button missing from the header | no model approved for `assistant` | Integrations → Artificial Intelligence → approve a model |
 | "The model … cannot serve Assistant" | approval withdrawn while a chat was open | re-approve it, or pick another model in the chat's picker |
-| Guardrail generation unavailable (Edge → Guardrails) | no model approved for Threat Analysis (428), or the provider is not approved for it (422) | Integrations → Artificial Intelligence → approve a model for Threat Analysis |
+| No AI panel in the guardrail dialog (Edge → Guardrails) | no model approved for Assistant (the header's Assistant button is missing too), or the user is not an admin | Integrations → Artificial Intelligence → approve a model for Assistant (`28-edge-guardrails.md` §2.1) |
 | Report empty | date range / groups; users not in the selected groups | widen |
 | AI Agent Activity report lists peers under **Agents** | setup-key peers (no user) | expected; shown per peer |
 | AI Agent Activity violation shows "—" under **Blocked By** | the report was generated before reports recorded what refused a call (limit or model/MCP grant), or the event came from a client or gateway that does not report its engine | generate the report again for the same period |

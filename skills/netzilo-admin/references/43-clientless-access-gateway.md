@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 68611
+chars: 68574
 sections:
 - id: '1'
   title: How it works
@@ -43,7 +43,7 @@ sections:
   chars: 3266
 - id: '10'
   title: Operating it
-  chars: 7860
+  chars: 7823
 - id: '11'
   title: Troubleshooting
   chars: 13998
@@ -863,7 +863,7 @@ management` (node mode), `session limit reached`, `no TLS certificate yet`, `dra
   (`24-peers-and-setup-keys.md` §2).
 - **`vp-<n>-RPROXY` is a reverse-proxy tunnel, not a browser's session.** It is a
   user's tunnel for published applications (`44-published-applications.md` §10.3): one
-  per user, public address and operating system, kept across restarts, reporting every
+  per user, kept across restarts, reporting every
   browser it has served. It carries the Netzilo Gateway posture item like an
   extension session, but it is not a browser's session: `gateway-sessions` leaves it
   out and it never makes the Workplace's Private access status Online.
