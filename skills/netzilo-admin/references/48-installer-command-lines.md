@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 39824
+chars: 45155
 sections:
 - id: '1'
   title: Which file to use
-  chars: 2215
+  chars: 2351
 - id: '2'
   title: How the Windows client installers fit together
   chars: 2014
@@ -46,25 +46,25 @@ sections:
   chars: 970
 - id: '13'
   title: Enterprise Browser — the MSI `netzilo_enterprise_browser.msi`
-  chars: 3392
+  chars: 5297
 - id: '14'
   title: Enterprise Browser — the EXE `netzilo_enterprise_browser.exe`
-  chars: 2476
+  chars: 3404
 - id: '15'
   title: Uninstall — Windows client
   chars: 1383
 - id: '16'
   title: macOS
-  chars: 1668
+  chars: 2987
 - id: '17'
   title: Linux
-  chars: 1117
+  chars: 1289
 - id: '18'
   title: Diagnosis
-  chars: 3523
+  chars: 4145
 - id: '19'
   title: Known installer limitations — what to avoid
-  chars: 1638
+  chars: 1887
 ---
 # Installer command lines — Netzilo client and Enterprise Browser
 
@@ -94,11 +94,11 @@ All files are served from `https://pkg.netzilo.com`.
 | Client, Windows x64 | **Offline EXE** `nz_installer_64.exe` | `/download/windows/x64/nz_installer_64.exe` | `/S`, `NONADMIN=1`, `CONFIGFILE=` (fragile, §5) | a person installing by hand without internet at install time |
 | Client, Windows x64 | **Pack** `nz_installer_64.pack` | `/download/windows/x64/nz_installer_64.pack` | `-q`, `-s`, `-na`, `--config-file=` | scripts that need non-admin mode **and** a config file together (§6) |
 | Client, Windows | **Online EXE** `netzilo_setup.exe` | `/download/windows/netzilo_setup.exe` | `/S`, `NONADMIN=1`, `CONFIGFILE=` (fragile) | a person installing by hand; **never** for managed deployment (§7) |
-| Enterprise Browser, Windows x64 | **MSI** `netzilo_enterprise_browser.msi` | `/download/windows/netzilo_enterprise_browser.msi` | `TENANT`, `SHORTCUTNAME` | every managed deployment of the browser (§12) |
-| Enterprise Browser, Windows x64 | **EXE** `netzilo_enterprise_browser.exe` | `/download/windows/netzilo_enterprise_browser.exe` | `--system-level`, `--netzilo-tenant=`, `--netzilo-update=`, `--shortcut-name=` | scripted install when the update URL must be set (§13) |
-| Enterprise Browser, Windows | **Online EXE** `browser_setup.exe` | `/download/windows/browser_setup.exe` | none | a person installing for themselves (§14) |
+| Enterprise Browser, Windows x64 | **MSI** `netzilo_enterprise_browser.msi` | `/download/windows/netzilo_enterprise_browser.msi` | `TENANT`, `SHORTCUTNAME`, `FORCETENANT` | every managed deployment of the browser (§13) |
+| Enterprise Browser, Windows x64 | **EXE** `netzilo_enterprise_browser.exe` | `/download/windows/netzilo_enterprise_browser.exe` | `--system-level`, `--netzilo-tenant=`, `--netzilo-update=`, `--netzilo-forcetenant`, `--shortcut-name=` | scripted install when the update URL must be set (§14) |
+| Enterprise Browser, Windows | **Online EXE** `browser_setup.exe` | `/download/windows/browser_setup.exe` | none | a person installing for themselves, no tenant (§14.4) |
 | Client, macOS | `nz_installer_arm64.pkg`, `nz_installer_amd64.pkg` | `/download/macos/arm64/…`, `/download/macos/amd64/…` | none | every macOS deployment (§16) |
-| Enterprise Browser, macOS | `.pkg` / `.dmg` from the dashboard's download page | — | none | §16.2 |
+| Enterprise Browser, macOS | **DMG** `NetziloEnterpriseBrowser_arm64.dmg`, `NetziloEnterpriseBrowser_amd64.dmg` | `/download/macos/arm64/…`, `/download/macos/amd64/…` | none | §16.2 |
 | Client, Linux | `install_netzilo_linux.sh`, or the binary `netzilo` | `/download/linux/install_netzilo_linux.sh`, `/download/linux/netzilo` | none | §17 |
 
 There is no x86 or ARM64 Windows MSI and no ARM64 Windows EXE. On Windows on ARM, the
@@ -508,7 +508,7 @@ log (`/l*v`) so something survives (§18).
 | Product name | Netzilo Enterprise Browser (publisher Netzilo) |
 | Scope | **per-machine** (`InstallScope=perMachine`), x64; installs to `%ProgramFiles%\Netzilo\NetziloEnterpriseBrowser\Application\` |
 | UpgradeCode | `{70905420-FC56-4EAC-8A4E-EE444EB1D298}` — **the same as the client MSI** (§19, item 4) |
-| How it installs | runs the browser installer as LocalSystem with `--netzilo-tenant=[TENANT] --shortcut-name="[SHORTCUTNAME]" --msi --system-level` |
+| How it installs | runs the browser installer as LocalSystem with `--netzilo-tenant=[TENANT] --shortcut-name="[SHORTCUTNAME]" --msi --system-level`, plus `--netzilo-forcetenant` when `FORCETENANT=1` |
 
 ### 13.1 Properties
 
@@ -516,12 +516,19 @@ log (`/l*v`) so something survives (§18).
 |---|---|---|
 | `TENANT` | your **Workplace / dashboard address**: `https://go.netzilo.com` on Netzilo Cloud, `https://<your domain>` self-hosted | written to `netzilo.json` in the browser's install folder; the built-in Netzilo extension uses it as its portal. **Also used as the browser's update host** — see §13.3 |
 | `SHORTCUTNAME` | text, e.g. `Acme Browser` | name of the desktop and Start-menu shortcuts. Empty = the default name |
+| `FORCETENANT` | `1` (exactly; any other value or absent = off) | locks the browser to `TENANT`: users cannot sign in to another Workplace from it (§13.5) |
 
-**Neither property is remembered.** Pass both on **every** install and upgrade: an MSI
-upgrade without `TENANT` rewrites `netzilo.json` with an empty tenant, and without
-`SHORTCUTNAME` the custom shortcut name is removed.
+**No property is remembered.** Pass all of them on **every** install and upgrade: an MSI
+upgrade without `TENANT` rewrites `netzilo.json` with an empty tenant, without
+`SHORTCUTNAME` the custom shortcut name is removed, and without `FORCETENANT=1` the lock
+is lifted.
 
 There is no MSI property for the update URL.
+
+The installer writes the values to `netzilo.json` in the browser's `Application` folder:
+`{"tenant":"<TENANT>", "update":"", "forcetenant":true|false}`. At every start the browser
+hands the tenant and the lock to its built-in Netzilo extension. Read the file to check
+what a machine was installed with; do not edit it by hand (the next install rewrites it).
 
 ### 13.2 Command lines
 
@@ -531,6 +538,9 @@ msiexec /i netzilo_enterprise_browser.msi /qn /norestart TENANT=https://go.netzi
 
 :: Self-hosted server
 msiexec /i netzilo_enterprise_browser.msi /qn /norestart TENANT=https://netzilo.example.com SHORTCUTNAME="Acme Browser"
+
+:: Locked to your Workplace (§13.5)
+msiexec /i netzilo_enterprise_browser.msi /qn /norestart TENANT=https://netzilo.example.com SHORTCUTNAME="Acme Browser" FORCETENANT=1
 ```
 
 `TENANT` is passed to the browser installer without quotes: the value must not contain
@@ -564,6 +574,27 @@ update source, used when no tenant is set, is
   uninstall fails with `1603`. Then uninstall with the browser's current uninstaller
   (§14.3) and remove the MSI registration with `msiexec /x {ProductCode} /qn` afterwards.
 
+### 13.5 Locking the browser to your Workplace — `FORCETENANT`
+
+Without the lock, a signed-out browser's new tab shows **Login to access your workplace**
+with two cards: **Default** (the tenant) and **Custom** (a **Workplace URL** field the
+user can fill with any address), then **Login to Workplace**. A custom address the user
+entered is remembered by the browser and used from then on.
+
+With `FORCETENANT=1` (EXE: `--netzilo-forcetenant`):
+
+- a signed-out browser shows no choice: its new tab goes straight to the tenant's sign-in
+  page;
+- a custom Workplace URL a user saved earlier is cleared, so an existing install switches
+  to the tenant on its next sign-in;
+- the lock follows `TENANT`. Set `TENANT` too: the lock without a tenant locks the browser
+  to the built-in default, `https://go.netzilo.com` (Netzilo Cloud) — wrong for a
+  self-hosted server.
+
+Use it on managed machines where the browser must only ever reach your own Workplace
+(the usual case for a company-deployed Enterprise Browser). It does not restrict which
+websites the browser opens — that is the Enterprise Browser profile's job (`26`).
+
 ---
 
 ## 14. Enterprise Browser — the EXE `netzilo_enterprise_browser.exe`
@@ -575,6 +606,7 @@ The browser's own (Chromium) installer with Netzilo switches.
 | `--system-level` | per-machine install to `%ProgramFiles%` (requires elevation; run as SYSTEM or elevated admin). Without it the browser is installed for the current user only |
 | `--netzilo-tenant=<URL>` | writes `netzilo.json` with the tenant (your Workplace/dashboard address, §13.1). Present with an empty value, it writes an empty tenant |
 | `--netzilo-update=<URL>` | the **full URL of the update JSON**; only used together with `--netzilo-tenant`. Use `https://pkg.netzilo.com/download/windows/browser_updates.json` |
+| `--netzilo-forcetenant` | a flag, no value: locks the browser to the tenant (§13.5). Pass it together with `--netzilo-tenant`; alone it locks to `https://go.netzilo.com`. Not remembered: an install without it writes the lock off |
 | `--shortcut-name=<name>` | shortcut name; **per-machine installs only**. Absent or empty removes a custom name |
 | `--msi` | used by the MSI only: suppresses the browser's own Add/Remove Programs entry. Do not pass it yourself |
 
@@ -583,6 +615,9 @@ The browser's own (Chromium) installer with Netzilo switches.
 ```bat
 :: Per-machine, tenant set, update checks kept working
 netzilo_enterprise_browser.exe --system-level --netzilo-tenant=https://go.netzilo.com --netzilo-update=https://pkg.netzilo.com/download/windows/browser_updates.json --shortcut-name="Acme Browser"
+
+:: Per-machine, locked to a self-hosted Workplace, update checks kept working
+netzilo_enterprise_browser.exe --system-level --netzilo-tenant=https://netzilo.example.com --netzilo-update=https://pkg.netzilo.com/download/windows/browser_updates.json --netzilo-forcetenant --shortcut-name="Acme Browser"
 
 :: Per-user (a person installing for themselves)
 netzilo_enterprise_browser.exe --netzilo-tenant=https://go.netzilo.com --netzilo-update=https://pkg.netzilo.com/download/windows/browser_updates.json
@@ -612,6 +647,13 @@ Through Add/Remove Programs ("Netzilo Enterprise Browser"), or the browser's uni
 per-user install, use the same command from
 `%LOCALAPPDATA%\Netzilo\NetziloEnterpriseBrowser\Application\<version>\Installer\` without
 `--system-level`.
+
+### 14.4 The online EXE — `browser_setup.exe`
+
+What the dashboard's download page offers on Windows. It runs without admin rights,
+downloads `netzilo_enterprise_browser.exe` and runs it **with no switches**: a per-user
+install with no tenant, no lock and no shortcut name. The user then picks the Workplace
+on the new tab (§13.5). Never use it for managed deployment; it takes no parameters.
 
 ---
 
@@ -664,11 +706,35 @@ sudo installer -pkg nz_installer_amd64.pkg -target /     # Intel
   `com.netzilo.NetziloSecurity` with a SystemExtensions payload so users are not prompted
   (`05` §3).
 
-### 16.2 Enterprise Browser `.pkg` / `.dmg`
+### 16.2 Enterprise Browser `.dmg`
 
-- Installs `/Applications/Netzilo Enterprise Browser.app`. **No parameters and no tenant
-  setting**: macOS has no install-time way to set the tenant; the browser uses its defaults.
-- `sudo installer -pkg <file>.pkg -target /`, or drag the app from the `.dmg`.
+The browser is published as a disk image only (there is no `.pkg`):
+`/download/macos/arm64/NetziloEnterpriseBrowser_arm64.dmg` (Apple silicon) and
+`/download/macos/amd64/NetziloEnterpriseBrowser_amd64.dmg` (Intel). The image holds one
+item, `Netzilo Enterprise Browser.app` — bundle id `org.netzilo.browser`, version = its
+Chromium version (e.g. `152.0.7977.75`), signed by Developer ID "Netzilo Inc."
+(team `37WAJBKQG4`) and notarized.
+
+- **No parameters, no tenant, no lock.** macOS has no install-time way to set the tenant
+  or `FORCETENANT`; the user picks the Workplace on the new tab (§13.5). Do not add files
+  into the app bundle: it is sealed by its signature and would no longer open.
+- By hand: open the image and drag the app to Applications.
+- **Jamf / MDM:** deploy the DMG as an app package (Jamf copies the `.app` from a DMG), or
+  run a script as root:
+
+```bash
+dmg=/tmp/NetziloEnterpriseBrowser.dmg
+curl -fsSL -o "$dmg" https://pkg.netzilo.com/download/macos/arm64/NetziloEnterpriseBrowser_arm64.dmg
+mnt=$(mktemp -d)
+hdiutil attach -nobrowse -readonly -quiet -mountpoint "$mnt" "$dmg"
+ditto "$mnt/Netzilo Enterprise Browser.app" "/Applications/Netzilo Enterprise Browser.app"
+hdiutil detach -quiet "$mnt"; rm -f "$dmg"
+```
+
+- **Detection:** `/Applications/Netzilo Enterprise Browser.app` with
+  `CFBundleIdentifier` `org.netzilo.browser`; the version is `CFBundleShortVersionString`.
+- **Upgrade:** replace the app the same way (quit it first), or let users update from
+  **About** (the update check reads `https://pkg.netzilo.com/download/macos/browser_updates.json`).
 
 ---
 
@@ -695,8 +761,10 @@ curl -fsSL https://pkg.netzilo.com/download/linux/install_netzilo_linux.sh | sh
 ### 17.2 Enterprise Browser
 
 A `.deb` package `netzilo-enterprise-browser`, installed to `/opt/netzilo/enterprisebrowser`
-(`sudo apt install ./netzilo-enterprise-browser_*.deb`). No install-time parameters and no
-tenant setting.
+(`sudo apt install ./netzilo-enterprise-browser_*.deb`). It has **no public download link**
+(the dashboard's download page offers none): get the package from Netzilo. No
+install-time parameters, no tenant setting and no lock; the user picks the Workplace on
+the new tab (§13.5).
 
 ---
 
@@ -721,6 +789,9 @@ tenant setting.
 | A user cannot find "Netzilo Client" in Add/Remove Programs | per-user MSI installed as SYSTEM, or a pack install with `-q` | uninstall from the deployment tool / with the engine (§15) |
 | Installer logs are gone after a failed install | the rollback deletes `%ProgramData%\Netzilo` | always deploy with `/l*v` to a path outside it |
 | Browser shortcut lost its custom name after an MSI upgrade / extension shows no portal | `SHORTCUTNAME` / `TENANT` not passed again (§13.1) | redeploy with both properties |
+| Users can sign in to another Workplace from the browser (the **Custom** card) | installed without `FORCETENANT=1` / `--netzilo-forcetenant`, or a later install dropped it (§13.5) | redeploy with `TENANT` and `FORCETENANT=1`; `netzilo.json` shows `"forcetenant":true` afterwards |
+| Locked browser opens the sign-in page of `go.netzilo.com` on a self-hosted deployment | `FORCETENANT=1` without `TENANT` (§13.5) | redeploy with `TENANT=https://<your server>` |
+| macOS: `installer: … is not a valid package` / no `.pkg` for the browser | the browser ships as a DMG (§16.2) | deploy the DMG or copy the app with `ditto` |
 | Browser "About" update check fails | `TENANT` is used as the update host (§13.3) | reinstall with the EXE and `--netzilo-update=…` |
 | Browser MSI uninstall fails with `1603` | browser updated since that MSI (§13.4) | browser's own uninstaller, then `msiexec /x` |
 
@@ -758,6 +829,9 @@ promise otherwise.
 7. **`CONFIGFILE` leaves the service token in the installing account's temp folder, and
    with `apiurl` rewrites the device's identity and sets the dashboard address to
    `go.netzilo.com` (§10.3).**
+8. **Only the Windows browser installers take a tenant or a lock.** On macOS and Linux
+   the Enterprise Browser is installed without one and each user picks the Workplace on
+   the new tab (§16.2, §17.2); plan sign-in instructions for those users.
 8. **Uninstall removes everything** under `%ProgramData%\Netzilo`, with no keep option
    (§15).
 9. **Browser MSI properties are not remembered; the browser's update host is the tenant;

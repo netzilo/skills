@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 18655
+chars: 19022
 sections:
 - id: '1'
   title: Model
@@ -29,10 +29,10 @@ sections:
   chars: 1234
 - id: '7'
   title: The behaviour graph side
-  chars: 2008
+  chars: 2141
 - id: '8'
   title: Events
-  chars: 880
+  chars: 1114
 - id: '9'
   title: API
   chars: 1146
@@ -216,7 +216,9 @@ with your browser management.
 - **"Session snapshot":** the first time a session shows behaviour, management records
   one activity entry — `aidr.graph`, shown as **Session snapshot**, "Session snapshot is
   available for <program> in the browser" — with the session id, program, device and
-  source `extension`; the row opens the session's behaviour graph.
+  source `extension`; the row opens the session's behaviour graph. Devices no longer
+  create these entries; their AI sessions are announced by **Session trajectory
+  available** (`aidr.trajectory`).
 - **Who sees what:** regular users see only their own browser sessions (`GET
   /api/aidr/sources` and `/api/aidr/sessions` answer their own browser sources and their
   own peers); admins see all.
@@ -251,8 +253,11 @@ allowed | blocked by rule … | redacted | matched", where a device row would sa
 on <peer> for <user>". A conversation reload that is redacted produces an `ai.redacted`
 event with the same tab session and program as the original answer.
 
-The AI Agent Activity report counts these events; the AI Usage report does not (it is
-gateway usage only, `30` §2).
+The AI Agent Activity report counts these events; the AI Usage report does not (it
+counts the usage recorded in AI sessions, by gateways and devices, `30` §2; the extension
+records no sessions). Browser tab sessions are not in Activity → AI Sessions or the
+Agentic Activity window; the extension still sends an event per call, `ai.allowed`
+included.
 
 ---
 

@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 88977
+chars: 89048
 sections:
 - id: '1'
   title: Know which layout you are on
@@ -67,7 +67,7 @@ sections:
   chars: 663
 - id: '20'
   title: AI data retention
-  chars: 2410
+  chars: 2481
 ---
 # Netzilo Server — Day-2 Operations Runbook
 
@@ -1582,9 +1582,9 @@ Cloud the same job runs for every account.
 
 | Setting | Default | What goes when older |
 |---|---|---|
-| raw days | `90` (at least `31`: records may arrive up to 30 days late) | each AI Gateway model request and tool call, the sessions with their captured conversations (a message's text a day later), and the behaviour observations of AI Gateway sessions |
+| raw days | `90` (at least `31`: records may arrive up to 30 days late) | each recorded model request and tool call (gateway and endpoint), the sessions with their captured conversations (a message's text a day later) and their search words, and the behaviour observations of recorded AI sessions |
 | rollup days | `400` (at least the raw days) | the hourly totals behind the AI Usage report and Agentic Activity |
-| observation days | `7` (at least `1`) | every other behaviour observation (devices, browsers) |
+| observation days | `7` (at least `1`) | every other behaviour observation (devices, browsers; not those of AI sessions) |
 
 **Setting them.** `NETZILO_AI_RAW_DAYS`, `NETZILO_AI_ROLLUP_DAYS` and
 `NETZILO_AI_OBSERVATION_DAYS` apply when the job is created — at install, or by the upgrade

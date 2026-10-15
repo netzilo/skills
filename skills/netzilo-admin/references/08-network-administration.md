@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 24300
+chars: 24629
 sections:
 - id: '1'
   title: Peers (Endpoint → Peers, `/peers`)
@@ -32,7 +32,7 @@ sections:
   chars: 3696
 - id: '8'
   title: Activity, reports, integrations
-  chars: 5248
+  chars: 5577
 - id: '9'
   title: Multi-tenant / self-service (cloud and MSP servers)
   chars: 807
@@ -310,7 +310,7 @@ geo: `GET /api/locations/countries`, `GET /api/locations/countries/{cc}/cities`.
 
 ## 8. Activity, reports, integrations
 
-**Activity → Events** (`/activity`): server-side paginated (`GET /api/events/paginated?limit&offset&user=<email>&code=…&date_from&date_to&q=`), default last 14 days, 25 rows. Filters: date range, event types (grouped by category: Administration, Access Control, Data Exfiltration, Policy Violation, Suspicious, Investigation, AI Edge; search matches name and code), user (incl. "Netzilo System"). Keyword search is BM25 ranked; with a model approved for Log Analysis under Integrations → Artificial Intelligence the sparkle button runs **AI Smart Search** and stores the answer as an `ai.insight` event. **Download CSV** exports the *current page* (Timestamp, User, Email, Event code, Source, Target, More Information). Event rows for `session.recorded` play recordings; `aidr.graph` opens the session snapshot; events with a kill chain open **Kill Chain**.
+**Activity → Events** (`/activity`): server-side paginated (`GET /api/events/paginated?limit&offset&user=<email>&code=…&date_from&date_to&q=`), default last 14 days, 25 rows. Filters: date range, event types (grouped by category: Administration, Access Control, Data Exfiltration, Policy Violation, Suspicious, Investigation, AI Edge; search matches name and code), user (incl. "Netzilo System"). Keyword search is BM25 ranked; with a model approved for Log Analysis under Integrations → Artificial Intelligence the sparkle button runs **AI Smart Search** and stores the answer as an `ai.insight` event. **Download CSV** exports the *current page* (Timestamp, User, Email, Event code, Source, Target, More Information). Event rows for `session.recorded` play recordings; `aidr.trajectory` (**View session**) opens a new AI session in the Agentic Activity window; `aidr.graph` (browser tab sessions) opens the session snapshot; events with a kill chain open **Kill Chain**. Recorded AI sessions are listed under **Activity → AI Sessions** (`30-activity-reports-and-integrations.md` §1a).
 
 Key event codes: `user.peer.add`, `setupkey.peer.add`, `user.peer.delete`, `peer.rename`,
 `peer.login.expire`, `peer.access.granted/blocked`, `policy.add/update/delete`,
@@ -321,16 +321,17 @@ Key event codes: `user.peer.add`, `setupkey.peer.add`, `user.peer.delete`, `peer
 `gateway_mcp_server.*`, `gateway_virtual_mcp.*` (MCP bundles), `published_app.*`
 (created/updated/removed, access_allowed/not_admitted, access_denied for posture),
 `ai.allowed/blocked/redacted/redirected/detected` (AI Edge verdicts from devices and
-gateways), `semantic.event`, `aidr.graph`, `gateway.credential_refused` (a bearer the
+gateways; `ai.allowed` only from hosts that do not record AI sessions), `semantic.event`,
+`aidr.graph`, `aidr.trajectory`, `gateway.credential_refused` (a bearer the
 gateway refused: door proxy|publish|publish_api|ai, reason expired|unknown|no_user|not_in_account),
 `mcp.connected/disconnected/reauth_required`, `browser.*`, `workspace.*`,
 `session.recorded`, `report.*`. The old `tool.*` codes no longer exist; a row from an
-old client with one of them shows as unknown activity. The full list (159 activities):
+old client with one of them shows as unknown activity. The full list (162 activities):
 `34-event-catalogue.md`.
 
 **Activity → Reports** (`/reports`): **Create Report** → type **User Activity**,
 **Authentication Activity**, **AI Agent Activity** (tabs Users | Agents, the latter =
-setup-key peers) or **AI Usage** (gateway usage only: requests, tokens, cost, latency by
+setup-key peers) or **AI Usage** (usage recorded by gateways and devices: requests, tokens, cost, latency by
 model, user, provider, gateway; MCP tool calls by server, tool, user) → date range →
 groups (or all) → generated as PDF; view/download/delete. Contains sensitive data —
 restrict access. Details: `30-activity-reports-and-integrations.md` §2.

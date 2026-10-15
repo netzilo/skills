@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16584
+chars: 16877
 sections:
 - id: '1'
   title: Peer lifecycle
@@ -17,7 +17,7 @@ sections:
   chars: 3907
 - id: '3'
   title: Setup keys — reference
-  chars: 2099
+  chars: 2392
 - id: '4'
   title: API
   chars: 1406
@@ -153,7 +153,11 @@ copy, Delete. Filter Valid / All. States: valid, overused, expired, revoked.
 Facts: revoking/deleting/expiring a key **does not disconnect** peers already enrolled
 with it; a one-off key is consumed by the first device; an ephemeral key marks peers
 ephemeral for their lifetime; setup-key peers are exempt from login expiration and have
-no owner (they appear under **Agents** in the AI Agent Activity report).
+no owner (they appear under **Agents** in the AI Agent Activity report). Their AI
+sessions are owned by the peer (`peer:<dns label>`), shown with the peer's name as the
+user and the peer's groups, in Activity → AI Sessions and the Agentic Activity window.
+The report's Agents tab counts their events only, so for a current client it shows
+verdicts, not clean calls.
 
 What a device sees when a key is refused (details and the activity fields in §6): a key
 that **exists here but is expired, revoked or over-used** is refused with

@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 43342
+chars: 43810
 sections:
 - id: '1'
   title: Escalate only when the answer needs the source code
@@ -30,7 +30,7 @@ sections:
   chars: 2071
 - id: '4'
   title: Collect
-  chars: 9875
+  chars: 10343
 - id: '5'
   title: Correlation keys — include these explicitly
   chars: 1239
@@ -379,6 +379,16 @@ nz "/aidr/sessions?scope=source:<peerId>&since=$FROM" > events/aidr-sessions.jso
 (`/api/aidr/graph`, `/observations` and `/detections` take the same `scope`, `since` and
 `until`; the former `/api/peers/{id}/aidr-snapshot` answers 404 on this release.)
 
+Add the user's recorded AI sessions — metadata only (agent, models, counts, verdicts), no
+conversation text:
+
+```bash
+nz "/ai/sessions?user=<userId>&since=$FROM&limit=500" > events/ai-sessions.json
+```
+
+`/api/ai/sessions/trajectory` and `/api/ai/sessions/message` carry the captured
+conversation; include them only with the customer's consent.
+
 ### 4.5 AI Gateway cases
 
 When the case is about an agent calling the AI Gateway (`27-ai-gateway.md`), add the
@@ -408,7 +418,9 @@ and the `NZ_GATEWAY_*` variables never leave the host), and the failing request:
 status code and response body **without the token** (the body's `type` field,
 `netzilo_gateway` or `netzilo_policy`, says which door refused it, `27` §6). An **AI
 Usage** report over the window (`POST /api/reports`, `report_type: ai_usage`, schema in
-`33`) shows whether the gateway's usage reaches management at all.
+`33`) shows whether the gateway's usage reaches management at all; the same
+`/ai/sessions?user=<userId>&since=$FROM&limit=500` list as in §4.4 shows the user's
+sessions (`point` `gateway`).
 
 ---
 

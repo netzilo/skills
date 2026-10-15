@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 10872
+chars: 10936
 sections:
 - id: '1'
   title: Before you touch anything
@@ -17,7 +17,7 @@ sections:
   chars: 1934
 - id: '3'
   title: Suspected compromised device
-  chars: 1215
+  chars: 1279
 - id: '4'
   title: Suspected compromised or leaked credential
   chars: 1292
@@ -94,8 +94,9 @@ Contain in this order.
    as connected. Confirm from the server side rather than from the device.
 5. **Collect evidence** from the device if you still have access, then rebuild it.
 6. **Review what it reached** in Activity, filtered to that peer, for the period in
-   question. For AI activity use the AI Agent Activity report; for what went through the
-   gateway, the AI Usage report.
+   question. For AI activity use Activity → AI Sessions (filtered to the user) and the AI
+   Agent Activity report; for usage on devices and through the gateway, the AI Usage
+   report.
 
 **If the device is lost or stolen and you cannot reach it:** block the user, delete the
 peer, and rotate any setup key it held. Its stored configuration contains a private key

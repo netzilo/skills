@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 31555
+chars: 31597
 sections:
 - id: '1'
   title: Nothing loads / certificate problems
@@ -28,7 +28,7 @@ sections:
   chars: 378
 - id: '5'
   title: Performance and load
-  chars: 1438
+  chars: 1480
 - id: '6'
   title: Disk full
   chars: 569
@@ -334,7 +334,7 @@ browser side in one step.
 | Zitadel slow / 5xx under login storm | `ZITADEL_DATABASE_POSTGRES_MAXOPENCONNS=20` | raise to 40 in `zitadel.env` (keep total under Postgres `max_connections`) |
 | Disk filling | `du -sh /var/lib/docker/containers/*` | container logs unbounded — configure Docker log rotation (`02-server-operations.md` §2.2); lower `ZITADEL_LOG_LEVEL` to `info` |
 | Postgres volume growing fast | `events` table (activity) grows with usage; `account_stats` pruned at 90 days automatically | archive/stream events to S3 (Integrations → Event Streaming) and prune with a DB maintenance window (coordinate with Netzilo before deleting rows) |
-| AI tables keep growing (`ai_usage_*`, `ai_sessions`, `ai_call_contents`, `ai_messages`, `aidr_observations`) | `docker compose ps` shows no `ai-retention`, or `docker logs ai-retention` shows `RUN FAILED`; management itself deletes no AI data | add the job with `--upgrade` or `update management`, or fix what the failed run printed (`02-server-operations.md` §20) |
+| AI tables keep growing (`ai_usage_*`, `ai_sessions`, `ai_session_*` incl. `ai_session_search`, `ai_call_contents`, `ai_messages`, `aidr_observations`) | `docker compose ps` shows no `ai-retention`, or `docker logs ai-retention` shows `RUN FAILED`; management itself deletes no AI data | add the job with `--upgrade` or `update management`, or fix what the failed run printed (`02-server-operations.md` §20) |
 
 ---
 

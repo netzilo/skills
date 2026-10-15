@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR) on devices, in the browser through the Netzilo browser extension (ChatGPT, Claude, Gemini and other web AI apps, browser filters, the behaviour graph of browser sessions) and through the Netzilo AI Gateway (providers, model grants, limits, MCP servers and bundles, guardrails, gateway filters, Agentic Access, Claude Desktop organization sign-in, AI usage), detection-rule authoring, clientless access and published applications, the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server, the Netzilo client, the browser extension or the Netzilo AI Gateway, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance, guardrails, MCP, LLM gateways, AI in the browser or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 4.4.0
-  released: "2026-10-14"
+  version: 4.5.0
+  released: "2026-10-15"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 4.4.0, released 2026-10-14.** Confirm it is current before
+**This copy is version 4.5.0, released 2026-10-15.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -163,7 +163,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **4.4.0** above.
+Compare its `version:` with **4.5.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -366,7 +366,8 @@ customer's problem.
   define **Providers** (models and their keys), **MCP servers and bundles**,
   **Guardrails** (detection rules), **Limits** (token, request and spend budgets) and
   **Filters** — *endpoint* filters bind guardrails to devices, *gateway* filters grant
-  users models, limits, MCP servers and gateways.
+  users models, limits, MCP servers and gateways. The client and the gateway record each
+  model and MCP call into AI sessions (Activity → **AI Sessions**).
 - **AI Gateway:** `netzilo-aigw` is a gateway users point their AI tools at
   (`<gateway>/v1`, `<gateway>/anthropic`, `<gateway>/mcp/<slug>`) with a personal token;
   it identifies every caller as a Netzilo user, enforces model grants, limits and
@@ -439,10 +440,10 @@ is instructions for the admin rather than work you performed.
 | Workplace → **Agentic Access**: what a user sees, the Connect dialogs and snippets (Claude Code, Cursor, Codex, VS Code, Claude Desktop, SDKs, curl), the gateway access token, Claude Desktop "Sign in with your organization" (endpoint `<gateway>/anthropic`, the code and the approval page, its error strings), and "my agent cannot use the gateway" | `references/47-agentic-access-workplace.md` — §5 diagnosis | API |
 | Edge → Guardrails (detection rules): create, enable, contexts, write a rule with the AI Assistant in the dialog (Guardrail Authoring), test it in report mode | `references/28-edge-guardrails.md` | API |
 | Edge → Filters: endpoint filters (groups, OS, agents, guardrails) and gateway filters (models, limits, MCP, gateways, guardrails); effective filters per device or user | `references/29-edge-filters.md` | API |
-| Activity → Events/Reports (incl. AI Agent Activity and AI Usage), the Dashboard home (Agentic Activity), Integrations | `references/30-activity-reports-and-integrations.md` | API |
+| Activity → Events / **AI Sessions** / Reports (incl. AI Agent Activity and AI Usage), the Dashboard home (Agentic Activity), Integrations | `references/30-activity-reports-and-integrations.md` | API |
 | Integrations → Artificial Intelligence: connect an AI provider, approve models per feature, pick the assistant's model | `references/30-activity-reports-and-integrations.md` §4a | API |
 | What to call a page, an object or an event when you answer an admin | `references/35-plain-language.md` | reading only |
-| What an activity code means, or which code to filter on | `references/34-event-catalogue.md` — all 159 activities with display names and categories | reading only |
+| What an activity code means, or which code to filter on | `references/34-event-catalogue.md` — all 162 activities with display names and categories | reading only |
 | Automate with the public REST API, export/import, bulk changes | `references/09-api-and-automation.md` | API |
 | Build a request body for any API write (required fields, enums, parameters) | `references/33-api-request-schemas.md` — generated from the server's OpenAPI; live copy at `GET /api/support/openapi.yml` | API |
 | Govern AI agents: choose devices (client, hooks, SDK, browser extension) or the AI Gateway, roll out, what each enforcement point sees, troubleshoot | `references/10-ai-security-aidr.md` | API |

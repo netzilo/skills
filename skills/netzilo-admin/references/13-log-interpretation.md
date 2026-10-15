@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 69262
+chars: 69937
 sections:
 - id: '1'
   title: Method
@@ -20,10 +20,10 @@ sections:
   chars: 1677
 - id: '4'
   title: The client log
-  chars: 40070
+  chars: 40098
 - id: '5'
   title: The management log
-  chars: 19020
+  chars: 19667
 - id: '6'
   title: Correlating client and server
   chars: 1548
@@ -355,7 +355,7 @@ Peer lines are keyed by the **WireGuard public key** of the other peer (full, or
 | `[scanner] Scan [tool_output] blocked=false triggered=N loaded=N version=mgmt-sync-N time=N.Nms` | one evaluation; `blocked=true` would be a block. **Verify the exact wording on the client at hand before relying on it**; it has changed between releases |
 | `Execute script for rule <id> error: rule:<id>:<line>:<col>: <error>` (WARN; client and gateway) | a scripted (`execute`) guardrail failed — a Starlark parse error (`got string literal, want ')'`, `if statement not within a function`, `cannot reassign global result`) or a runtime error. The rule took its `on_error` verdict (default `allow`; with `block` the caller saw `execute script failed (rule <id>): …`). Saving a guardrail does not check its script: fix it in the guardrail and run it once more on a pilot (`28` §4, `32`) |
 | `MITM BYPASS pipe closed: client=… upstream=<ip:port> client→upstream=N bytes upstream→client=N bytes duration=…` | a flow that was passed through without inspection (excluded domain, non-HTTP, or not an intercepted app) — informational |
-| `[aidr] ingest queue full, dropping event` | back-pressure in the behaviour-graph ingester; events are being lost. Bursts of thousands during heavy AI traffic. Cosmetic for connectivity; matters if session snapshots look incomplete |
+| `[aidr] ingest queue full, dropping event` | back-pressure in the behaviour-graph ingester; events are being lost. Bursts of thousands during heavy AI traffic. Cosmetic for connectivity; matters if a session's behaviour graph or host activity looks incomplete |
 | `enrichment slots saturated (N), skipping URL enrichment for <url>` | metadata enrichment skipped under load; cosmetic |
 | `SecurityFilter: connected to extension at <addr>` / `SecurityFilter: disconnected, retrying in 3s` / `MacFilter: extension IPC disconnected, retrying in 3s` | macOS system-extension link; reconnects on its own. Never connecting → extension not approved (`07` §9) |
 | `WSS ListenAndServeTLS() failed: listen tcp 127.0.0.1:41337: bind: address already in use` | another process (or a second daemon) holds the local TLS port; the browser-extension channel is down |
@@ -526,6 +526,9 @@ Rows marked **debug** appear only with `--log-level debug` (§5.5).
 | `failed sending SyncResponse rpc error: code = Unavailable desc = transport is closing` | the client disconnected while the server was pushing an update; benign |
 | `failed to update sync cache for peer …: context canceled` / `failed to cache account in redis: context canceled` | request cancelled mid-flight (client went away); benign unless constant |
 | `error when getting account <id> from the store: record not found` (ERRO), followed by an `account not found` answer | something referenced an account id that does not exist on this server (a token from another server, a stale integration, a deleted tenant) |
+| `ai records from peer <id>: <err>` (WARN) | a device's AI session batch (usage or captured content) was refused or not stored; the client sends it again when the store failed |
+| `ai usage: N endpoint record(s) dropped: not in a session of their user` (WARN) | a device sent records for a session that is not its user's (or, for a setup-key peer, not the peer's); they are dropped |
+| `aidr observations from peer <id>: <err>` (WARN), `… N dropped: they name another user's AI session` | the device's behaviour batch was refused, or part of it named a session that is not its user's and was dropped |
 | `auto migrate: …` / `failed creating Store` / `failed retrieving a new idp manager` / `unsupported store type` at start | fatal start-up problems — `03` §2 |
 | `dropped table tools` / `dropped table discovered_tools` / `dropped table discovered_tool_calls`, `deleted N global guardrail row(s)`, `filter <id>: dropped N guardrail reference(s) that no longer exist`, `idx_events_account_timestamp created` — in the start sequence | the migration of the release that removed Edge Tools, discovered tools and the global guardrail catalogue, and that added an index on events. **Expected once**, at the first start after the upgrade; a filter line names a filter whose guardrail list was trimmed of ids that no longer exist. Not an error, whatever the level |
 
@@ -641,7 +644,8 @@ unreachable or the token is refused (records are kept and retried); `… N recor
 dropped: …` when the server rejected a batch as malformed. Successful uploads are logged at
 debug level only, so a quiet log is the healthy state; usage missing from the dashboard
 with none of these lines is the hourly snapshot (or the window's 15-minute build), not the
-gateway — **Refresh** on Agentic Activity builds both now. A `kept, upload failed` with
+gateway — **Refresh** on Agentic Activity builds both now; Activity → AI Sessions reads
+sessions live. A `kept, upload failed` with
 HTTP 403 means the service token's user lacks the Admin role.
 
 **Content lines** (`gateway ai: content: …`, `27` §8.1): `N call(s) kept, upload failed`

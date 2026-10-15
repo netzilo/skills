@@ -8,11 +8,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 22243
+chars: 22609
 sections:
 - id: '1'
   title: What a regular user can see through the API
-  chars: 5992
+  chars: 6358
 - id: '2'
   title: What you may do on their device
   chars: 2164
@@ -70,6 +70,7 @@ here is what the person's devices themselves hold, no more.
 | `GET/POST/DELETE /api/users/{their id}/tokens` | Their own personal access tokens; the Workplace creates one named **AI Gateway** with scope `mcp` (90 days) for gateway use — that scope identifies them to gateways and reads nothing else. An application they approved on the consent page (Claude Desktop's **Sign in with your organization**) holds one named **<app> (MCP)**, for example **Claude (MCP)**, same scope, renewed by the application itself; deleting it signs that application out |
 | `GET /api/users/current/published-apps` | The published applications the person may open (the Workplace's Applications tiles): name, address, `url`. Empty when publishing is off for the tenant or none of their groups is admitted (`44-published-applications.md` §12) |
 | `GET /api/users/{their id}/gateway-sessions` | Their browser sessions through a Netzilo gateway (`vp-<n>-PROXY`) with `connected`, browser and OS: the Workplace page's **Private access** status (`43-clientless-access-gateway.md` §3.5, §10.3). Another user's id answers 403. (Not the AI gateway: for that, `ai-access` above) |
+| `GET /api/ai/sessions`, `/api/ai/sessions/session`, `/trajectory`, `/message` | Their own AI sessions only (recorded on their devices and through the AI Gateway), with the captured conversation; `user=` is always themselves, and another person's session answers 404. The **AI Sessions** page is for admins only; regular users read their sessions through the API |
 | `GET /api/aidr/sessions`, `GET /api/aidr/sources` | Their own AI sessions and sources only: the sessions recorded on their devices and in their browser (a source of `kind: browser`, with the `device` it runs on and the `capabilities` the browser offers). Without `scope` the list is narrowed to theirs; `scope=session:<id>` for someone else's session answers 403 (`session is not one of yours`); `scope=source:<id>` must be one of their peers or their browser |
 
 When the administrator has **disabled the portal for regular users** (Settings → Permissions),

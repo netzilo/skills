@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16900
+chars: 17236
 sections:
 - id: '1'
   title: Model
@@ -23,7 +23,7 @@ sections:
   chars: 1807
 - id: '5'
   title: Diagnosis — "the filter is not applying"
-  chars: 4233
+  chars: 4569
 ---
 # Admin Skill — Edge Filters (binding AI policy to devices and to gateway users)
 
@@ -231,7 +231,8 @@ rule bound in the baseline reaches everyone.
 6. **Evidence:** Activity → Events, category AI Edge, filtered by the user or peer: `ai.*`
    events name the filter and rule (source `mitm` from the client, `extension` from the
    browser); the peer's or the browser's behaviour graph (`/api/aidr/…`) proves the
-   engine sees traffic.
+   engine sees traffic. Clean traffic from a current client shows as a session in
+   Activity → AI Sessions (point `endpoint`), not as events.
 
 ### 5.2 Gateway filter, for a user
 
@@ -243,11 +244,12 @@ rule bound in the baseline reaches everyone.
 4. The gateway loaded it: `gateway ai: filters for user <id> …: [<ids>]` in
    `journalctl -u netzilo-aigw`; a policy change reaches the gateway with its next sync
    (seconds), a user is re-checked within `--ai-policy-refresh` (60 s).
-5. **Evidence:** `ai.*` events with source `gateway`; usage in the AI Usage report.
+5. **Evidence:** `ai.*` events with source `gateway`; the session in Activity → AI
+   Sessions; usage in the AI Usage report.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| No events at all from a device | §5.1 steps 1–4 | as above |
+| No events at all from a device | §5.1 steps 1–4; or a current client with no rule matching, which reports verdicts only (expected) | as above; check Activity → AI Sessions |
 | Events but nothing blocked | guardrails in report mode | change actions |
 | Chrome not intercepted although in Agents | path mismatch (env var casing, install dir); another browser | use `%ProgramFiles%\…` and `%LocalAppData%\…` variants |
 | Works on Windows, not on Linux | Linux lacks per-app steering | hooks/SDK/proxy env; for the browser, the extension (OS **Browser**) |
@@ -259,4 +261,4 @@ rule bound in the baseline reaches everyone.
 | A user gets less than intended | another filter carries a lower limit | find it with `/effective` and the filters' `limits` |
 | Group cannot be deleted | referenced by a filter | edit the filter first |
 
-Events: `filter.created/updated/deleted`; verdicts `ai.allowed/blocked/redacted/redirected/detected`.
+Events: `filter.created/updated/deleted`; verdicts `ai.allowed/blocked/redacted/redirected/detected` (`ai.allowed` only from hosts that do not record AI sessions).

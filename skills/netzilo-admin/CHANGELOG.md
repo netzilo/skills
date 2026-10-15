@@ -7,6 +7,127 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.5.0 — 2026-10-15
+
+AI sessions are recorded on devices as well as on the AI Gateway, MCP calls are part of
+them, and the new Activity → AI Sessions page lists them. Minor version: the skill said
+that prompts never leave a device unless a rule fires, that AI Usage and the Agentic
+Activity window are gateway traffic only, and that every clean call produces an
+`ai.allowed` event; none of that holds for current clients and servers.
+
+**AI sessions recorded on devices and gateways (`10` §1, §2, §3, §7, §11; `14` §1, §3,
+§4, §6, §8; `27` §1, §8, §10, §11; `02` §20; `03`; `13`; `16`; `24`; `29`; `32`; `00`;
+`SKILL.md`):**
+
+- One session, two observation points: the Netzilo client's TLS inspection records each
+  model call and HTTP MCP call into the user's AI session (usage incl. cached and
+  reasoning tokens, and the conversation after the guardrails), sent to management every
+  15 seconds, once management announces it records them. `point` is `endpoint`,
+  `gateway` or `endpoint,gateway`; both hosts use `session://agent/ai/<user>/…` keys
+  (older gateway sessions keep `agent-gateway/` and are still shown). A call a device
+  sends to the account's AI Gateway is recorded once, by the gateway.
+- Verdicts only: a host that records sessions (current client, hooks included, and the
+  gateway) sends no `ai.allowed` event for a clean call. `ai.allowed` now comes only from
+  the browser extension and from clients or servers older than session recording, so its
+  volume drops after an upgrade.
+- Setup-key peers own their sessions as the peer (`peer:<dns label>`), with the peer's
+  name as the user and its groups. Device cost is 0 (not computed on devices). Not
+  recorded on devices yet: Cursor, Gemini CLI and other Connect-streaming traffic, stdio
+  MCP servers.
+- Data handling rewritten to match: what a device sends, a new data-flow row for the
+  client's AI sessions (in memory until sent, every 15 s), session capture has no
+  switch, and how to keep an app out of capture (remove it from the filter's Agents).
+- Retention: observations of AI sessions (device or gateway) are kept for the raw days,
+  as are the sessions' search words (`ai_session_search`); other observations keep 7 days.
+- Management log lines for device AI batches (`ai records from peer …`, `ai usage: N
+  endpoint record(s) dropped …`, `aidr observations from peer …`).
+- Rule authors: Claude Code hooks with a user, SDK runs and the model calls the proxy and
+  the gateway see share the user's `ai/…` session; Codex, Gemini and OpenClaw keep their
+  framework keys.
+
+**MCP activity and MCP result guardrails (`10` §7, `27` §1, §8, `28`, `32`, `46` §5):**
+
+- Every MCP tool call is recorded on either host with server, tool, status, latency,
+  sizes, the MCP client's name and version (from `initialize`), the MCP session id, and
+  its arguments and result after the guardrails; one server key names a server from
+  either host. Status `redacted` whenever a guardrail rewrote, even if the tool failed; a
+  refusal wins over a rewrite.
+- An MCP result is judged text by text — content items, embedded resource text, text
+  resource blobs, resource links, every `structuredContent` string; not images, audio or
+  binary blobs. A rewrite goes back in place and the result keeps its shape; a different
+  number of texts back from the guardrails refuses the result. Same on the client and the
+  gateway. New diagnosis row: a pattern spanning two items does not match.
+
+**The Agentic Activity window (`30` §1, §3; `28` §4; `35`; `49`; `10` §10):**
+
+- Built from both points' sessions. A team has an **LLM | MCP** switch; the MCP flow is
+  Users → MCP Clients → MCP Servers → Tools (band = calls). The MCP session list has Last
+  activity, MCP servers, Calls, Latency, Violations (the whole session's blocked +
+  redacted + detected) and a **Model + MCP** / **MCP only** badge.
+- A session has an **MCP Calls** tab (when it has MCP calls) with Redacted, Blocked and
+  Execution chips; a tool row's **Source** tab names Server, Tool, Ran by, MCP client, MCP
+  session and **Seen at**. Calls with no model loop are steps of their own; a client that
+  never named itself is **Unknown client**.
+- The Trajectory shows the agent's host activity (processes started, files read and
+  written, connections) on the tool run that caused it, with a Host lane; the behavior
+  graph folds file nodes per program.
+- New event **171 `aidr.trajectory`** "Session trajectory is available for {agent} on
+  {peer}", one per new AI session as its first calls arrive, **View session** opens it.
+  Device "Session snapshot" (`aidr.graph`) entries are no longer created; browser tab
+  sessions still create them.
+
+**Activity → AI Sessions (`30` §1a, §6; `09` §2; `39`; `12` §4.4, §4.5; `35`; `00`):**
+
+- New page `/ai-sessions` for admins and owners: **LLM** and **MCP** tabs, each with its
+  own search, date range (default 14 days, remembered per tab), user filter, page and
+  sort; server-side sort on Started, Last activity, Turns/Calls, Usage, Violations; a row
+  opens the session in the Agentic Activity window. Search matches word starts of the
+  user, agent, client app, MCP client, gateway, models, servers and tools; provider
+  names are not searched.
+- `GET /api/ai/sessions` documented in full: every filter (`client`, `server`, `tool`,
+  `mcp=1`, `llm=1`, `q`), sort keys, `limit` default 100 clamped to 500, the date-range
+  rule, and the session fields. Regular users read only their own sessions, through the
+  API. Escalation bundles add the user's session list (metadata only).
+- Diagnosis rows: device sessions missing, "no allowed events any more", tokens but cost
+  $0.00, a peer name as the user, "Unknown client", word-prefix search.
+
+**Reports and privacy corrections (`30` §2, §3, §5, §6; `14`; `16`; `49`; `24`; `08`; `15`):**
+
+- AI Usage, the home **Tokens** tile and the Agentic Activity panel count the usage
+  recorded by gateways **and** current clients; the report's Gateway breakdown names the
+  device for device records. AI Agent Activity takes calls from usage records plus the
+  `ai.allowed` events of non-recording hosts; its **Agents** tab counts events only, so a
+  current setup-key peer shows verdicts there, not clean calls.
+- The "prompts are not recorded unless a guardrail matches" statements are gone from the
+  rollout phases and the data-handling answers; users are told their conversations are
+  recorded and readable by administrators.
+- Incident procedure: find the session in AI Sessions or from its **Session trajectory
+  available** entry instead of a session snapshot.
+
+**Enterprise Browser installers (`48` §1, §13, §14, §16, §17, §18, §19; `10` §6):**
+
+- Windows MSI property **`FORCETENANT`** (exactly `1`) and EXE switch
+  **`--netzilo-forcetenant`** lock the browser to its tenant: a signed-out browser goes
+  straight to the tenant's sign-in page, a saved custom Workplace URL is cleared, and
+  without `TENANT` the lock points at `https://go.netzilo.com`. Not remembered, like
+  `TENANT` and `SHORTCUTNAME`; `netzilo.json` now carries `forcetenant`. New §13.5 and
+  examples.
+- The online `browser_setup.exe` is per-user and runs the installer with no switches (no
+  tenant, no lock) (§14.4).
+- macOS: the browser ships as a DMG only (arm64 and amd64), bundle id
+  `org.netzilo.browser`, notarized; MDM `ditto` script, detection and update feed; no
+  install-time tenant or lock (§16.2). Linux: the `.deb` has no public download link
+  (§17.2).
+- Diagnosis rows for an unlocked browser, a lock without a tenant, and a missing macOS
+  `.pkg`; a rollout constraint that only the Windows installers take a tenant or a lock.
+
+**Event catalogue (`34`, `08`, `35`, `SKILL.md`):**
+
+- Regenerated: 162 activities, adding `ai.content`, `ai.usage` (internal carriers of
+  recorded calls, not shown as events) and `aidr.trajectory`, with notes on those and on
+  `aidr.graph` (shown as **Session snapshot** only for browser tab sessions and older
+  device rows).
+
 ## 4.4.0 — 2026-10-14
 
 The AI Assistant writes guardrails in the guardrail dialog, rule Replay is rebuilt on

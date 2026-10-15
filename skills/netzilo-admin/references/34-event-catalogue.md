@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 9839
+chars: 10631
 sections:
 - id: administration
   title: Administration
@@ -28,12 +28,12 @@ sections:
   chars: 79
 - id: ai-edge
   title: AI Edge
-  chars: 286
+  chars: 1078
 ---
 # Event catalogue — what each activity is called
 
-Generated from Netzilo Server's activity table on 2026-10-12 by
-`scripts/gen-event-codes.py`. 159 activities.
+Generated from Netzilo Server's activity table on 2026-10-15 by
+`scripts/gen-event-codes.py`. 162 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
 name), `activity_code` (the stable identifier) and `activity_category`. **Say the
@@ -235,9 +235,12 @@ rows written before they were retired still show their name.
 |---|---|
 | AI allowed | `ai.allowed` |
 | AI blocked | `ai.blocked` |
+| AI content reported | `ai.content` (the captured messages of recorded model and tool calls on their way to the AI sessions; never shown in Activity) |
 | AI detected | `ai.detected` |
 | AI redacted | `ai.redacted` |
 | AI redirected | `ai.redirected` |
-| AI behavior graph updated | `aidr.graph` |
+| AI usage reported | `ai.usage` (a device's or gateway's recorded model and tool calls on their way to the AI sessions; never shown in Activity) |
+| AI behavior graph updated | `aidr.graph` (a device's behaviour data on its way to the graph, never stored as an entry; shown as "Session snapshot" only for a browser tab session's first behaviour (and on older device rows), with a session id that opens its graph) |
+| Session trajectory available | `aidr.trajectory` (one per AI session, when its first recorded calls reach the server; meta `session_id`, `agent_name`, `peer`, `point`; opens the session in the Agentic Activity window; `30-activity-reports-and-integrations.md` §3) |
 | Semantic event | `semantic.event` |
 

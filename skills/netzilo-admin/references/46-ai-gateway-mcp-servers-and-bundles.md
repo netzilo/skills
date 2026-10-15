@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 23752
+chars: 24668
 sections:
 - id: '1'
   title: MCP server — field reference
@@ -23,7 +23,7 @@ sections:
   chars: 2890
 - id: '5'
   title: How a tool call is governed
-  chars: 1165
+  chars: 1875
 - id: '6'
   title: Clients that sign in themselves at the gateway (OAuth 2.1)
   chars: 6221
@@ -51,8 +51,10 @@ process it starts) and how it authenticates. Every gateway serves it at
 endpoint `<gateway>/mcp/<bundle-slug>`. Which servers, bundles and tools a user may call
 is a **gateway filter** grant (`29-edge-filters.md` §2.2). Guardrails run on every tool
 call and result (`28-edge-guardrails.md`). The device-side MCP gateway of earlier
-clients (port 41338, tool catalogue, discovered tools) no longer exists; MCP goes through
-the AI Gateway.
+clients (port 41338, tool catalogue, discovered tools) no longer exists; MCP servers are
+served by the AI Gateway. The Netzilo client also governs and records the HTTP MCP
+traffic of intercepted apps on a device; both land in the same AI session records, and
+one server key identifies a server from either host.
 
 ---
 
@@ -212,9 +214,17 @@ That is the user's cue, not an error of the gateway.
 3. Each `tools/call` runs the user's guardrails on the arguments (block → the call is
    refused with the rule's reason; redact → the arguments are rewritten) and on the
    result (block → the tool answers `Tool execution failed: Blocked by rule: <name>`;
-   redact → the result text is rewritten, recorded as `redacted`).
+   redact → the text is rewritten in place, recorded as `redacted`). A result is judged
+   text by text — content items, embedded resource text, text resource blobs, resource
+   links, every string of `structuredContent`; not images, audio or binary blobs — and
+   keeps its shape (`isError`, `structuredContent`, item order); if the guardrails hand
+   back a different number of texts, the result is refused (`10-ai-security-aidr.md` §7).
 4. Each call is one usage record (server, tool, status, latency, argument and result
-   sizes; never the content).
+   sizes, MCP client name and version, MCP session id; never the content). The
+   arguments and the result after the guardrails go to the session as captured content
+   (the **MCP Calls** tab, `30-activity-reports-and-integrations.md` §3). The status is
+   `redacted` whenever a guardrail rewrote something, even if the tool failed; a refusal
+   wins over a rewrite.
 5. Tool names are shown to callers as `<server-slug-with-underscores>-<tool>`; the
    grant and the event use the bare tool name.
 

@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12441
+chars: 12697
 sections:
 - id: '0'
   title: What the admin sees first
@@ -32,13 +32,13 @@ sections:
   chars: 710
 - id: phase-7-ai-security-in-report-mode-first
   title: Phase 7 — AI security, in report mode first
-  chars: 745
+  chars: 944
 - id: phase-7b-clientless-access-if-browsers-without
   title: Phase 7b — Clientless access, if browsers without the client need access
   chars: 1185
 - id: phase-7c-the-ai-gateway
   title: Phase 7c — The AI Gateway
-  chars: 2875
+  chars: 2932
 - id: phase-8-roll-out-to-everyone
   title: Phase 8 — Roll out to everyone
   chars: 639
@@ -186,10 +186,13 @@ changed.
 2. **Run every rule in report mode.** Collect a week of real traffic.
 3. **Review what fired.** Tune the rules that produce noise before anyone is blocked.
 4. **Switch to blocking** one rule at a time, highest confidence first.
-5. **Tell users in advance** that AI traffic is inspected, before the first block.
+5. **Tell users in advance** that AI traffic is inspected and that the conversations of
+   governed AI apps are recorded and readable by administrators (`14` §3), before the
+   first block.
 
-**Exit test:** a week of events with an acceptable false-positive rate, and a named owner
-for tuning.
+**Exit test:** a pilot device's AI app shows up as a session in Activity → AI Sessions
+(point `endpoint`), a week of events with an acceptable false-positive rate, and a named
+owner for tuning.
 
 ---
 
@@ -247,13 +250,15 @@ the Workplace.
 7. **Check the Workplace card**: the pilot user opens Workplace → Agentic Access, sees the
    gateway **Online**, creates their AI Gateway token and connects one client from the
    Connect tab (`47-agentic-access-workplace.md` §2).
-8. **Tell users** which address to use and that model, token and cost usage is recorded
-   per user; prompts are not, unless a guardrail matches. Guardrails govern the chat,
+8. **Tell users** which address to use and that usage per user and the conversation
+   after the guardrails are recorded and readable by administrators (`14` §3).
+   Guardrails govern the chat,
    Responses and Anthropic surfaces (Claude Code and Codex included); embeddings and
    text completions are limited and counted only (`27` §1).
 
 **Exit test:** a pilot user's agent completes a request through the gateway, the request
-shows under Dashboard → Agentic Activity and in an AI Usage report, an ungranted model is
+shows under Dashboard → Agentic Activity, in Activity → AI Sessions (LLM tab) and in an
+AI Usage report, an ungranted model is
 refused with the exact 400 text, and the limit refuses with 429/402 when its window is
 exhausted.
 

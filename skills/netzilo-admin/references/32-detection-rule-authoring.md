@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 190809
+chars: 191520
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
@@ -32,7 +32,7 @@ sections:
   chars: 1630
 - id: how-it-works-architecture-overview
   title: How It Works — Architecture Overview
-  chars: 7108
+  chars: 7557
 - id: what-are-rules
   title: What Are Rules?
   chars: 591
@@ -65,7 +65,7 @@ sections:
   chars: 56597
 - id: sessions-and-the-observation-log
   title: Sessions and the Observation Log
-  chars: 9668
+  chars: 9871
 - id: call-id-tracking-the-triggering-event
   title: Call ID — Tracking the Triggering Event
   chars: 1746
@@ -77,7 +77,7 @@ sections:
   chars: 8582
 - id: the-behaviour-graph-complete-reference
   title: The Behaviour Graph — complete reference
-  chars: 12638
+  chars: 12697
 - id: debug-http-api
   title: Debug HTTP API
   chars: 1554
@@ -492,7 +492,7 @@ An endpoint with the probe, the proxy and the hooks produces every capability. T
 
 **Hook path** — The agent framework (Claude Code, Codex, Gemini, OpenClaw) calls the `netzilo hook` binary for every tool invocation and session event. The hook POSTs to `/evaluate`. Rules with `event_type: tool_call` fire on PreToolUse (synchronous — can block); rules with `event_type: tool_response` fire on PostToolUse (observability only). `command` and `file_path` fields are extracted from tool arguments. The framework's own session id becomes the session key (`session://agent/…`).
 
-**Proxy path** — Network traffic is proxied transparently. Rules fire on raw MCP protocol messages, LLM API calls, HTTP requests, and semantic events emitted by the classifier. Conversation and MCP session ids found in the traffic become session keys; otherwise the calling process is the session.
+**Proxy path** — Network traffic is proxied transparently. Rules fire on raw MCP protocol messages, LLM API calls, HTTP requests, and semantic events emitted by the classifier. Conversation and MCP session ids found in the traffic become session keys; otherwise the calling process is the session. Model calls are also placed in the user's AI session (`session://agent/ai/<user>/s|fp|run/…`, the calling process as its parent), the same key the AI Gateway uses.
 
 **Probe path** — Process execs, file operations and outbound connections from the agent and every subprocess it spawns. File events feed the observation log and the graph only; rules do not evaluate on each file I/O (see the `file_*` warning below).
 
@@ -502,7 +502,7 @@ All paths feed the same observation log and behaviour graph and publish the same
 
 | Traffic type | Description |
 |---|---|
-| **MCP tool calls** | Agent → tool: the arguments sent to `read_file`, `bash`, `search`, etc., and their results. On a device: hook tool events and MCP over HTTP from intercepted apps. At the AI Gateway: every MCP call to the servers and bundles it serves (`/mcp/<slug>`) |
+| **MCP tool calls** | Agent → tool: the arguments sent to `read_file`, `bash`, `search`, etc., and their results. On a device: hook tool events and MCP over HTTP from intercepted apps. At the AI Gateway: every MCP call to the servers and bundles it serves (`/mcp/<slug>`). An MCP result is evaluated text by text — content items' text, embedded resource text, text resource blobs (decoded), resource links, every string in `structuredContent`; not images, audio or binary blobs — so a rule sees one text at a time and a `redact` rewrites that text in place |
 | **MCP prompts / sampling** | Agent → prompt templates and sampling operations defined by MCP servers |
 | **LLM API calls** | Agent → OpenAI / Anthropic / Azure / Gemini: the full prompt and model response, including `tool_use` and `tool_result` blocks. At the AI Gateway, prompts and answers are evaluated on `/v1/chat/completions`, `/v1/responses` and `/anthropic/v1/messages`, streamed answers included; embeddings and text completions are not evaluated |
 | **HTTP** | Any request the proxy sees (endpoint) or the gateway forwards |
@@ -2092,7 +2092,7 @@ A **session** is one acting instance, identified by a node id `session://<kind>/
 
 | Kind (strongest first) | Key | Where it comes from |
 |---|---|---|
-| `agent` | the agent framework's own session or conversation id | hooks (Claude Code, Codex, Gemini, OpenClaw), SDK-governed agents |
+| `agent` | the agent framework's own session or conversation id; or the user's AI session `ai/<user>/s\|fp\|run/…` | hooks (Codex, Gemini, OpenClaw keep `agent/<framework>/<id>`); Claude Code hooks with a user, SDK runs, and model calls seen by the proxy (MITM) or the AI Gateway use the `ai/…` key, with the agent's process as parent |
 | `mcp` | an MCP session header (`Mcp-Session-Id`) | MCP traffic through the proxy or the gateway |
 | `conversation` | a provider conversation id | LLM traffic that carries one |
 | `guest` | a hosted virtual peer's key | the gateway's per-user tunnel peers |
@@ -2396,7 +2396,7 @@ Every node dict always has `id` and `_type`. Every node except the identity node
 
 | Property | Description | Example |
 |---|---|---|
-| `id` | `session://<kind>/<key>` | `"session://pid/811:1780936000000000000"`, `"session://agent/claude-code/5f2c…"` |
+| `id` | `session://<kind>/<key>` | `"session://pid/811:1780936000000000000"`, `"session://agent/ai/<user>/s/5f2c…"` (Claude Code with a user), `"session://agent/codex/5f2c…"` |
 | `kind`, `key`, `aliases` | primary key and other keys | `"pid"`, `"811:1780…"` |
 | `owner` | owning actor node id | `"user://u-123"` |
 | `program`, `path`, `name` | program node id, path or client name, short name | `"program:///usr/bin/curl"`, `"/usr/bin/curl"`, `"curl"` |

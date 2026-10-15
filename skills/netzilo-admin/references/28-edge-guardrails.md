@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 25977
+chars: 26663
 sections:
 - id: '1'
   title: Model
-  chars: 2141
+  chars: 2316
 - id: '2'
   title: Field reference (Add / Edit Guardrail)
   chars: 5270
@@ -20,7 +20,7 @@ sections:
   chars: 3580
 - id: '4'
   title: Testing a rule
-  chars: 4314
+  chars: 4494
 - id: '5'
   title: API
   chars: 2443
@@ -29,7 +29,7 @@ sections:
   chars: 885
 - id: '7'
   title: Diagnosis
-  chars: 3414
+  chars: 3685
 - id: '8'
   title: Limits to state before a customer discovers them
   chars: 1968
@@ -50,7 +50,7 @@ in two places depending on the filter's type:
 
 | Bound in | Runs on | Sees |
 |---|---|---|
-| an **endpoint** filter | the Netzilo client of each device in the filter's groups and OS | LLM prompts and responses of intercepted apps, hooks and the extension; MCP over HTTP from intercepted apps; HTTP requests; semantic events; process and file activity (where the client has those probes) |
+| an **endpoint** filter | the Netzilo client of each device in the filter's groups and OS | LLM prompts and responses of intercepted apps, hooks and the extension; MCP over HTTP from intercepted apps (a result judged text by text, `10-ai-security-aidr.md` §7); HTTP requests; semantic events; process and file activity (where the client has those probes) |
 | a **gateway** filter | the AI Gateway, per user of the filter's groups | prompts and answers (streamed or not) on the OpenAI chat, Responses and Anthropic Messages surfaces, tool calls a model asks for, every MCP tool call and result through `/mcp/<slug>`; not embeddings or text completions. No process, file or connect contexts: rules needing them are not loaded there |
 
 For deep authoring (Starlark scripts over the behaviour graph, the full field, modifier,
@@ -85,7 +85,9 @@ Start there: find a close match, paste it into **Add Guardrail**, adjust, test (
   (`32-detection-rule-authoring.md`, "Evaluation Order and Verdicts").
 - Verdict events (category AI Edge): **AI allowed** (`ai.allowed`), **AI blocked**
   (`ai.blocked`), **AI redacted** (`ai.redacted`), **AI redirected** (`ai.redirected`),
-  **AI detected** (`ai.detected`, a report-only match). Every one carries the rule
+  **AI detected** (`ai.detected`, a report-only match). **AI allowed** comes only from
+  hosts that do not record AI sessions (the browser extension, older clients or
+  servers); current clients and gateways report the other four. Every one carries the rule
   (`rule_name`, `rule_id`), the filter (`filter_name`), the surface (`llm_request`,
   `llm_response`, `tool_call`, `tool_result`, `http_request`, …), the agent, model or
   tool, the source (`mitm`, `hook`, `extension`, `gateway`) and, when a rule matched
@@ -264,7 +266,9 @@ A rule is tested live, on a small scope, before it blocks anything:
    on the device or the gateway (`13` §4). What the engine recorded is in the peer's
    behaviour graph (the **View** window from the peer page or an activity entry: graph,
    keyword search, Search Results) and in
-   `GET /api/aidr/sessions|graph|observations|detections|search?q=&scope=…`.
+   `GET /api/aidr/sessions|graph|observations|detections|search?q=&scope=…`; the
+   session itself is in Activity → AI Sessions or behind its **Session trajectory
+   available** entry → **View session** (Trajectory, MCP Calls).
 5. Iterate until the intended traffic, and only that, fires; then change the action
    (§6).
 
@@ -284,7 +288,8 @@ steps had no recorded content.
 Facts to state:
 
 - **Content.** Prompts, answers and tool arguments and results come from what the
-  session's source captured (the AI Gateway captures them, as the guardrails left them).
+  session's source captured (the AI Gateway and current Netzilo clients capture them, as
+  the guardrails left them).
   A step blocked live never reached the caller, so its content was not captured and
   replay cannot re-evaluate it; such steps are counted as "without recorded content".
 - **Cost.** Script rules that call `system_one()` or `llm_call()` and `action: scan`
@@ -361,6 +366,7 @@ silently at expansion, and the next save of such a filter fails with
 |---|---|---|
 | Rule saved, never fires | not bound (Used by = No Filters); the filter does not match the device or user; wrong `logsource.category` for where the content is; bound in a gateway filter but needs an endpoint-only context (process, file, connect); a more severe rule already blocks the same events, so a lower-severity `report` rule is skipped | bind it; check filter targets and type; reproduce the traffic in report mode and read the device or gateway log (§4) |
 | Fires far too often | broad `contains`; no exclusions | tighten; `excl` selection + `condition: sel and not excl`; report mode |
+| An MCP result redaction rewrote one item, but a pattern spanning two items did not match | each text of an MCP result (content item, resource text, `structuredContent` string) is judged on its own (`10-ai-security-aidr.md` §7) | write the rule for one text's content |
 | Redaction not visible | redaction applies to matched content only; a match longer than about 1 KB in a streamed answer has its start released before the rule sees all of it; a Cursor streamed request is blocked instead of redacted | check the event's content |
 | AI panel and ✦ button missing from the guardrail dialog | no model approved for **Assistant** (the header's AI Assistant button is missing too), or the user is not an owner or admin | Integrations → Artificial Intelligence → approve a model for Assistant; a Threat Analysis approval does not enable it |
 | AI panel: "The assistant is still answering in this conversation in another window" (`409`) | that thread is answering a message sent from another tab or window | wait for that answer, or close the other dialog, then send again |

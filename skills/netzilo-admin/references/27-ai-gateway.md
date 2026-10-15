@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 48705
+chars: 49820
 sections:
 - id: '1'
   title: How it works
-  chars: 6791
+  chars: 7388
 - id: '2'
   title: Requirements
   chars: 1514
@@ -43,7 +43,7 @@ sections:
   - human-operator
 - id: '8'
   title: Usage telemetry
-  chars: 2846
+  chars: 3154
   requires:
   - api
   executable_on:
@@ -55,10 +55,10 @@ sections:
   chars: 3702
 - id: '10'
   title: Troubleshooting
-  chars: 7040
+  chars: 7195
 - id: '11'
   title: Limits to state before a customer discovers them
-  chars: 2265
+  chars: 2320
 ---
 # Admin Skill — The Netzilo AI Gateway (`netzilo-aigw`)
 
@@ -134,18 +134,21 @@ gateway filters that target the user's groups (cached for `--ai-policy-refresh`,
    each kind applies. Exceeded limits answer 429 or 402.
 3. **Guardrails** — the rules bound by the user's filters run on the prompt (block,
    redact, or route to another model), on the answer (block, redact), on each tool call
-   the model asks for (block, redact arguments) and on each MCP tool call and result.
+   the model asks for (block, redact arguments) and on each MCP tool call and result (a
+   result is judged text by text and keeps its shape, `10-ai-security-aidr.md` §7).
    A rule on a requested tool call sees the agent's name (`agent_name`) and, for a
    scripted judge, the conversation's first prompt and system prompt (`meta["task"]`,
    `meta["instructions"]`), so it can ask System One or an LLM whether the call serves
    the task (`32`, two-tier judging).
 4. **Usage** — one record per model request and per MCP tool call: who, which model,
-   tokens, cost, latency, status. Usage records carry no prompt, answer, argument or
-   result text.
+   tokens, cost, latency, status; MCP records also carry the MCP client's name and
+   version (from `initialize`) and the MCP session id. Usage records carry no prompt,
+   answer, argument or result text.
 5. **Captured conversations** — the messages of each model call (system prompt, prompts,
-   context, thinking, answers, tool calls and results) as the caller sent and received
-   them, after the guardrails, sent separately from usage and shown to administrators in
-   the session's trajectory (§8.1).
+   context, thinking, answers, tool calls and results) and of each MCP tool call
+   (arguments and result) as the caller sent and received them, after the guardrails,
+   sent separately from usage and shown to administrators in the session's trajectory
+   (§8.1).
 
 **Which API surfaces are governed.** This is the fact customers trip over, so say it
 before they ask:
@@ -182,7 +185,11 @@ first message are one conversation, and a call with nothing answered in it yet s
 session, so two runs of the same task are two sessions. Exact sessions: the agent sends its
 own ID per task in `x-bf-session-id`. A call with no conversation at all joins the user's run
 with that agent, which ends after 30 minutes of quiet. A session always belongs to the user
-who made it.
+who made it. Session keys are `session://agent/ai/<user>/s|fp|run/…`, the same as the
+Netzilo client uses on a device, so a session the device and the gateway both saw is one
+session (`point` `endpoint,gateway`); a call a device sends to the gateway is recorded
+once, by the gateway. Sessions recorded before this keep their `agent-gateway/` keys and
+are still shown.
 
 **Which agent.** The agent is the name a Netzilo SDK agent carries in its User-Agent
 (`NetziloAgent/<percent-encoded name>`, added by the embedded client; `10` §5), else the
@@ -525,8 +532,8 @@ One record per model request (user, gateway name, provider, model asked for and 
 served, streamed or not, status `ok`/`error`/`blocked`/`limited`, tokens by kind, cost in
 US dollars from the upstream's pricing catalogue, latency, the tool calls the answer asked
 for) and one per MCP tool call (server, tool, status `ok`/`error`/`blocked`/`redacted`/
-`limited`, latency, argument and result sizes). No prompt, answer, argument or result
-content is included.
+`limited`, latency, argument and result sizes, MCP client name and version, MCP session
+id). No prompt, answer, argument or result content is included.
 
 Records are buffered (cap 50 000; the oldest are dropped past that), posted every 15 s in
 batches of 1000 (gzip) to `POST /api/ai-gateway/usage`, kept on disk in
@@ -539,17 +546,18 @@ logged at debug level only.
 
 Management keeps them as long as the server's AI data retention says (Netzilo Cloud: raw
 records 90 days, hourly totals 400 days; self-hosted: the `ai-retention` job,
-`02-server-operations.md` §AI data retention). They feed the home page's Agentic Activity
+`02-server-operations.md` §AI data retention). Together with the records current Netzilo
+clients ship from devices (`10-ai-security-aidr.md` §1), they feed the home page's Agentic Activity
 panel (built hourly) and Tokens tile, the Agentic Activity window (built every 15 minutes;
 **Refresh** builds both at once), and the **AI Usage** report, which reads them live
 (`30-activity-reports-and-integrations.md` §2–3).
 
 ### 8.1 Captured conversations
 
-For each model call the gateway also sends the messages the call added to its session —
-system prompt, the user's prompts, the agent's context, thinking, answers, tool calls with
-their arguments and results — as the caller sent and received them **after the
-guardrails**: what a guardrail redacted arrives redacted, and a tool call the guardrails
+For each model call and each MCP tool call the gateway also sends the messages the call
+added to its session — system prompt, the user's prompts, the agent's context, thinking,
+answers, tool calls with their arguments and results — as the caller sent and received
+them **after the guardrails**: what a guardrail redacted arrives redacted, and a tool call the guardrails
 held back or refused is not sent at all. A message is cut past 32 KB. A message a session
 already sent is not sent again with the next call. A refused tool call still appears in the
 Trajectory, from its verdict: a row with the tool's name, **Blocked**, the rule and the
@@ -559,8 +567,10 @@ They go to `POST /api/ai-gateway/content` in batches of at most 2 MB and 1 000 c
 are held **in memory only**, never on disk: up to 64 MB wait during an outage (the oldest
 go first, `gateway ai: content: N call(s) dropped, the buffer is full`), and those waiting
 when the gateway stops are lost. Capture is always on. Management stores each text once,
-shows it only to administrators, in the session's **Trajectory** in the Agentic Activity
-window (`30` §3), and deletes it with the rest of the AI data (`14` §8).
+shows it only to administrators, in the session's **Trajectory** and **MCP Calls** tabs
+(Activity → AI Sessions, the Agentic Activity window, `30` §1a, §3), and deletes it with
+the rest of the AI data (`14` §8). The Netzilo client captures the same on devices
+(`14` §3); both land in the same sessions.
 
 ---
 
@@ -646,7 +656,7 @@ and users are fetched afresh.
 | Through a published application: 502 `The application did not answer.` | target without `:8447`; gateway down; no policy from the user's device groups to the gateway peer; the proxy still on a stale target (≤10 min on old proxies) | fix the target; `44` §11 |
 | Through a published application: 404 `There is no application at this address.` | application disabled or unpublished; name cache up to 30 s old | enable; wait; `44` §11 |
 | Usage never appears on the dashboard | `gateway ai: usage: … kept, upload failed` (management unreachable or token refused; a 403 means the service token lacks the Admin role) or `… dropped` (server rejected the batch); the panel is built hourly and the window every 15 minutes | fix the cause; click **Refresh** on Agentic Activity; the AI Usage report reads the same data at once |
-| A session shows no messages, or **Content not captured for this call** | the call did not go through the gateway; the gateway restarted or its content buffer overflowed before shipping (`gateway ai: content: …` lines) | nothing to recover for those calls; keep the gateway up and management reachable |
+| A session shows no messages, or **Content not captured for this call** | the gateway restarted or its content buffer overflowed before shipping (`gateway ai: content: …` lines); for a call recorded on a device, the client stopped before it shipped its content (device buffers are in memory), or the traffic is not recorded there (Cursor, Gemini CLI, stdio MCP) | nothing to recover for those calls; keep the gateway and clients up and management reachable |
 | Every restart creates a new peer | `gateway: no data dir: …` | make `--data-dir` writable by the service user, or set it |
 | Upstream providers show in the upstream but not the ones defined | the gateway is the only writer: hand-made upstream providers of a type management defines are replaced | define providers in the dashboard only |
 
@@ -686,5 +696,6 @@ admin, and `netzilo-aigw --version`.
 - **No Windows service, no Linux arm64 build** today.
 - **The browser-access proxy on `:8443` is always on.** Bind it to loopback when it is
   not wanted.
-- **Content never leaves the gateway through telemetry**; detections (events with a rule
-  name and a short excerpt) do, as on devices — `14-data-handling-and-privacy.md` §3.
+- **Usage telemetry carries no text**; the captured conversation goes to management
+  separately (§8.1), and detections (events with a rule name and a short excerpt) do too,
+  as on devices — `14-data-handling-and-privacy.md` §3.

@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 36742
+chars: 39766
 sections:
 - id: '1'
   title: Architecture in one page
-  chars: 3812
+  chars: 4285
 - id: '2'
   title: Rollout runbook
-  chars: 3650
+  chars: 3923
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
-  chars: 3506
+  chars: 4184
 - id: '4'
   title: Coding-agent hooks (`netzilo hook`)
   chars: 2869
@@ -26,10 +26,10 @@ sections:
   chars: 4658
 - id: '6'
   title: Browser extension and Enterprise Browser
-  chars: 4726
+  chars: 4866
 - id: '7'
   title: The AI Gateway and MCP
-  chars: 1292
+  chars: 2227
 - id: '8'
   title: Writing and testing rules (Guardrails)
   chars: 1886
@@ -38,10 +38,10 @@ sections:
   chars: 5634
 - id: '10'
   title: Reporting and evidence
-  chars: 1155
+  chars: 1337
 - id: '11'
   title: Constraints to disclose early
-  chars: 2919
+  chars: 3262
 ---
 # Netzilo — AI Security (AIDR) Administration
 
@@ -59,20 +59,23 @@ the account; an upgrade prompt on one of them is explained in
 
 ## 1. Architecture in one page
 
-Every governed AI action produces an **event** and feeds a per-device or per-user
-**behaviour graph** (agents, LLM calls, tool calls, files, processes, hosts, skills).
-**Guardrails** (YAML rules, `28-edge-guardrails.md`) evaluate events and the graph and
-return a verdict: allow, report (detected), redact, block, redirect to another model, a
-few HTTP rewrites. Verdicts and events flow to the dashboard (Activity, Reports, the home
-page's **Agentic Activity**) as `ai.*` events.
+Every governed AI action feeds a per-device or per-user **behaviour graph** (agents, LLM
+calls, tool calls, files, processes, hosts, skills). **Guardrails** (YAML rules,
+`28-edge-guardrails.md`) evaluate the actions and the graph and return a verdict: allow,
+report (detected), redact, block, redirect to another model, a few HTTP rewrites. The
+client (TLS inspection) and the AI Gateway also record each model call and MCP call into
+an **AI session** — usage, the conversation after the guardrails, the MCP calls — shown in
+Activity → **AI Sessions**, the home page's **Agentic Activity** and the AI Usage report
+(`30` §1a, §3). Verdicts are `ai.*` events (Activity, Reports); a host that records
+sessions sends no event for a clean call, only hosts that do not record send `ai.allowed`.
 
 Two enforcement points, one rule language, bound by **Filters** of two types
 (`29-edge-filters.md`):
 
 | Enforcement point | Filter type | Governs | Identity |
 |---|---|---|---|
-| **The Netzilo client on a device** | endpoint (groups × OS, Agents, guardrails) | what runs on the device: desktop AI apps through the TLS-inspecting proxy, coding agents through hooks, custom agents through the SDK, the browser extension | the device and its user |
-| **The Netzilo AI Gateway** (`27-ai-gateway.md`) | gateway (groups, model grants, limits, MCP grants, gateway addresses, guardrails) | what any agent sends to the organisation's LLM providers and MCP servers **through the gateway**: model access, spend and rate limits, guardrails on prompts, answers and tool calls, usage facts | the Netzilo user, from the token the agent presents or the calling peer |
+| **The Netzilo client on a device** | endpoint (groups × OS, Agents, guardrails) | what runs on the device: desktop AI apps through the TLS-inspecting proxy, coding agents through hooks, custom agents through the SDK, the browser extension; records AI sessions (point `endpoint`) of the traffic it inspects | the device and its user; a setup-key peer (no user) owns its sessions as the peer |
+| **The Netzilo AI Gateway** (`27-ai-gateway.md`) | gateway (groups, model grants, limits, MCP grants, gateway addresses, guardrails) | what any agent sends to the organisation's LLM providers and MCP servers **through the gateway**: model access, spend and rate limits, guardrails on prompts, answers and tool calls, usage facts; records AI sessions (point `gateway`) | the Netzilo user, from the token the agent presents or the calling peer |
 
 Ways traffic enters the device-side engine:
 
@@ -117,8 +120,11 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
    on the filter, but without one nothing is judged); name; save.
 5. **Verify on a device:** the client log shows `Filters applied: N` (debug: `Rules
    updated: N loaded, 0 failed, version=mgmt-sync-…`) with no `Failed rules:` line. Use an
-   AI app named in Agents; Activity shows **AI allowed / AI detected** events and the peer
-   has observations (`/api/aidr/sessions?scope=source:<peer>`).
+   AI app named in Agents; the session appears in Activity → **AI Sessions** within about
+   15 seconds (point `endpoint`) with a **Session trajectory available** event, rules
+   show as **AI detected / blocked / redacted** events, and the peer has observations
+   (`/api/aidr/sessions?scope=source:<peer>`). **AI allowed** events appear only from
+   clients or servers older than session recording.
 6. **Coding agents:** on each dev machine
    `curl -fsSL https://pkg.netzilo.com/download/plugin/install.sh | sh` (Linux installs the
    client if missing; macOS/Windows need the client first), or `netzilo hook install
@@ -144,8 +150,8 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 6. **Verify:** `GET /api/edge/filters/effective?type=gateway&user=<id>` lists it;
    `curl <gateway>/v1/models -H "Authorization: Bearer <user token>"` lists the models;
    the Workplace shows the card **Online**; a chat completion appears in Dashboard →
-   Agentic Activity after the hourly snapshot (or at once with **Refresh**) and in the AI
-   Usage report at once.
+   Agentic Activity after the hourly snapshot (or at once with **Refresh**), and in
+   Activity → AI Sessions and the AI Usage report at once.
 7. **Tell users** (`47` §6).
 
 ---
@@ -166,7 +172,9 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 | Hook evaluation | `toolCall`, `promptRequest`, `promptResponse` synchronous (can block; a redaction cannot be applied by a hook, so the hook acts only on allow/block); `toolResult`, `sessionStart`, `sessionEnd` fire-and-forget; hooks are **fail-open** by default (`NETZILO_HOOK_POLICY=allow`); set `block` for fail-closed |
 | Scan actions | the built-in prompt classifier and the AI judge run through management (15 s timeout on the device); a scan that cannot run is an **error for the rule's `on_error`** (default allow) — not a silent allow, not a block unless `on_error: block` |
 | Posture in filters | none; a failing posture check never blocks AI traffic through a filter. Posture gates policies, profiles and published applications (`21`) |
-| Verdict events | `ai.allowed` (148), `ai.blocked` (149), `ai.redacted` (150), `ai.redirected` (151), `ai.detected` (152); `semantic.event` (127); `aidr.graph` (129, a session snapshot) |
+| Verdict events | `ai.allowed` (148, only from hosts that do not record AI sessions), `ai.blocked` (149), `ai.redacted` (150), `ai.redirected` (151), `ai.detected` (152); `semantic.event` (127); `aidr.graph` (129, browser tab sessions only); `aidr.trajectory` (171, one per new AI session) |
+| AI session records | usage and the captured conversation of each model call and HTTP MCP call the proxy inspected, held in memory and sent to management every 15 s, only once management announces it records them (an older server: none). A call sent to the account's AI Gateway is recorded once, by the gateway. Claude Code hooks, SDK runs and the proxy's model calls of the same process land on one session. Not recorded yet: Cursor, Gemini CLI and other Connect-streaming traffic, stdio MCP servers. Cost is 0 on devices |
+| MCP tool results | judged text by text (§7) |
 
 To inspect what the engine recorded for a device: `GET /api/aidr/sessions?scope=source:<peerId>`,
 `/api/aidr/graph`, `/api/aidr/observations`, `/api/aidr/detections`, `/api/aidr/search?q=`
@@ -340,9 +348,11 @@ line 5.1.x. Everything below in full, with the diagnosis table, is
 Play `com.netzilo.browser2`, App Store `6747919491`. Windows MSI silent install
 (per-machine, system context):
 `msiexec /i netzilo_enterprise_browser.msi /qn /norestart TENANT=https://<your Workplace address> SHORTCUTNAME="Acme Browser"`.
-Pass both properties on **every** install and upgrade (they are not remembered), and note
-that the tenant is also the browser's update host — every switch, the EXE alternative that
-keeps update checks working, and uninstall: `48-installer-command-lines.md` §13–14.
+Add `FORCETENANT=1` to lock the browser to that Workplace (users can no longer pick
+another one on the new tab). Pass the properties on **every** install and upgrade (they
+are not remembered), and note that the tenant is also the browser's update host — every
+switch, the EXE alternative that keeps update checks working, macOS (DMG only, no tenant)
+and uninstall: `48-installer-command-lines.md` §13–16.
 It bundles the Netzilo client and its own extension; policy comes from **Enterprise
 Browser** profiles (domain restrictions, watermark, clipboard, downloads/uploads,
 keylogging, screenshot, extension allow/block, encryption). Updates: users check
@@ -371,7 +381,19 @@ The two enforcement points complement each other: the device engine sees everyth
 governed process does (files, processes, every provider it talks to), the gateway sees
 every user's model and MCP traffic wherever the agent runs, holds the keys and the
 budgets, and is the only place MCP servers are served. Use both for developer
-workstations; the gateway alone for CI, servers and unmanaged devices.
+workstations; the gateway alone for CI, servers and unmanaged devices. Both record into
+the same AI sessions (`point` `endpoint`, `gateway` or `endpoint,gateway`); a call a
+device sends through the gateway is recorded once, by the gateway.
+
+**MCP tool results are judged text by text**, on the client (HTTP MCP answers, JSON-RPC
+incl. SSE and batches) and on the gateway (its MCP endpoints, tool execution and tool
+calls in a chat agent loop): every text a model or user can read — the content items'
+text, embedded resource text, text resource blobs (decoded and re-encoded), resource
+links, and every string in `structuredContent` — is a text of its own; images, audio,
+binary blobs and shape fields (`type`, `mimeType`) are not judged. A rewrite goes back to
+the exact place and the result keeps its shape (`isError`, `structuredContent`, item
+order); if the guardrails hand back a different number of texts, the result is refused
+(fail closed). Tool-call arguments are judged too, on the request side.
 
 ---
 
@@ -451,14 +473,18 @@ Log prefixes to search for on a device: `MITM:`, `Filters applied`, `Rules updat
 
 - Dashboard → **Agentic Activity** (Last 24 Hours | Last 7 Days | Last 30 Days; Overview /
   Agents / MCP tabs; Top Teams, Guardrails, Agents, Models, Servers, Tools), recomputed
-  hourly or on **Refresh**; its window drills from teams to a single AI Gateway session's
-  trajectory and behavior graph, with kill chains marked (`30` §3).
+  hourly or on **Refresh**; its window drills from teams to a single AI session's
+  (device or gateway) trajectory, MCP calls and behavior graph, with kill chains marked
+  (`30` §3).
+- Activity → **AI Sessions**: every recorded session, LLM and MCP tabs, word-prefix
+  search, server-side sort (`30` §1a).
 - Activity → Events filtered by category *AI Edge*: each `ai.*` event carries the agent,
   surface, model or tool, verdict, rule and filter, source (`mitm`, `hook`, `extension`,
   `gateway`), and the kill chain where a script built one.
 - Reports → **AI Agent Activity** (agents, models, servers, top calls, violations per
-  user, and per setup-key peer under **Agents**) and **AI Usage** (gateway requests,
-  tokens, cost, latency, MCP calls; by model, user, provider, gateway, server, tool).
+  user, and per setup-key peer under **Agents**) and **AI Usage** (usage recorded by
+  gateways and devices: requests, tokens, cost, latency, MCP calls; by model, user,
+  provider, gateway, server, tool).
 - API: `GET /api/events/paginated?code=ai.blocked&…`, `GET /api/aidr/…`,
   `GET /api/stats`, `GET /api/ai/activity`, `GET /api/ai/sessions…`,
   `POST /api/reports {report_type: ai_activity|ai_usage}` (`09` §2).
@@ -503,7 +529,13 @@ reports "the AI got slower" after a redaction rule was bound.
 with guardrails and enforces them; it reports its verdicts with activity codes the server
 no longer knows (`tool.allowed`, `tool.blocked`, `tool.detected`), which the Activity page
 shows as an unknown activity and the AI reports do not count. Upgrade clients to see their
-AI events again. Their local MCP gateway receives no tool catalogue any more.
+AI events again. Their local MCP gateway receives no tool catalogue any more. A client
+older than AI session recording, or any client of a server older than it, records no
+sessions and still sends an `ai.allowed` event per clean call.
+
+**Not recorded on devices yet:** Cursor, Gemini CLI and other Connect-streaming traffic,
+and stdio MCP servers; device sessions carry tokens (cached and reasoning included) but
+cost 0.
 
 **Reading the behaviour graph.** Node colour encodes node type and is consistent across
 every graph view. Clustered nodes carry a count badge and appear when several nodes of

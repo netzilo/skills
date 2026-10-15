@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 30817
+chars: 31343
 sections:
 - id: '1'
   title: Rules of engagement
   chars: 3399
 - id: '2'
   title: What Netzilo is (30-second model)
-  chars: 2938
+  chars: 3084
 - id: '3'
   title: 'Triage: route the request'
-  chars: 7227
+  chars: 7507
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
@@ -26,7 +26,7 @@ sections:
   chars: 4935
 - id: '6'
   title: Known product gaps to warn about proactively
-  chars: 4647
+  chars: 4747
 - id: '7'
   title: Closing a task
   chars: 329
@@ -104,8 +104,10 @@ this folder. Read it fully before your first action.
   proxy, hooks for coding agents, and an SDK (there is no local MCP gateway any more);
   the dashboard's **Edge** pages hold the policy objects — **Providers**, **MCP** servers
   and bundles, **Guardrails**, **Limits** and **Filters** (endpoint filters for devices,
-  gateway filters for users); verdicts arrive as `ai.*` events and feed Activity, Reports
-  and the home page's **Agentic Activity** (`10-ai-security-aidr.md`).
+  gateway filters for users); the client and the AI Gateway record every model and MCP
+  call into AI sessions (Activity → **AI Sessions**, the Agentic Activity window), and
+  verdicts arrive as `ai.*` events and feed Activity, Reports and the home page's
+  **Agentic Activity** (`10-ai-security-aidr.md`).
 - **AI Gateway:** the **Netzilo AI Gateway** (`netzilo-aigw`, a peer of the account) sits
   between any agent and the organisation's LLM providers and MCP servers: it identifies
   callers as Netzilo users from the bearer token (or the calling peer), applies their
@@ -167,8 +169,9 @@ first; go to the device to see what the account cannot.
 | "Guardrails" (write, test, bind, why a rule did not fire) | `28-edge-guardrails.md` |
 | "Filters" — endpoint (devices) vs gateway (users); "the filter is not applying" | `29-edge-filters.md` |
 | "AI usage / Agentic Activity / tokens and cost per user, model, gateway" | `30-activity-reports-and-integrations.md` §2–3 |
-| "Agentic Activity window: teams, a team's flow, an agent's sessions, a session's trajectory or behavior graph, Refresh; a session with no messages" | `30-activity-reports-and-integrations.md` §3, then `27-ai-gateway.md` §8–§10 |
-| "What does the AI Gateway send to the server; are prompts stored; who can read them" | `14-data-handling-and-privacy.md` §3 and §8, `27-ai-gateway.md` §8.1 |
+| "Agentic Activity window: teams, a team's flow (LLM or MCP), an agent's sessions, a session's trajectory, MCP calls or behavior graph, Refresh" | `30-activity-reports-and-integrations.md` §3, then `27-ai-gateway.md` §8–§10 |
+| "AI Sessions page / find or search a session / an agent's MCP calls / my device's sessions are missing / no allowed events any more / a session with no cost / a session with no messages" | `30-activity-reports-and-integrations.md` §1a, §3, §6; `27-ai-gateway.md` §10 |
+| "What do the client and the AI Gateway send to the server; are prompts stored; who can read them" | `14-data-handling-and-privacy.md` §3 and §8, `27-ai-gateway.md` §8.1 |
 | "How long is AI data kept; AI tables growing; the `ai-retention` container" | `02-server-operations.md` §20 |
 | "Write a detection rule for threat X" (Sigma rule or Starlark behaviour script) | `32-detection-rule-authoring.md` (rule-author persona, full field/action/Starlark reference), then `10-ai-security-aidr.md` §8 to deploy and test it |
 
@@ -393,7 +396,8 @@ It is a tool you may use; it is never evidence about the customer's environment.
   admin provides (`27` §3).
 - **Old clients report AI verdicts with codes the server no longer knows** (`tool.*`);
   those rows show as unknown activity on the Activity page. Upgrade the clients; the
-  current codes are `ai.allowed/blocked/redacted/redirected/detected`.
+  current codes are `ai.allowed/blocked/redacted/redirected/detected`, and a current
+  client reports verdicts only (no `ai.allowed`; clean calls are in its AI sessions).
 - **MCP sign-in flows live in one management process** (10 minutes in memory): a
   self-hosted server with several management replicas needs session affinity, or a user's
   OAuth sign-in to an MCP server can fail with "the sign-in expired or was not started
