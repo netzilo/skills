@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 24629
+chars: 24598
 sections:
 - id: '1'
   title: Peers (Endpoint → Peers, `/peers`)
@@ -32,7 +32,7 @@ sections:
   chars: 3696
 - id: '8'
   title: Activity, reports, integrations
-  chars: 5577
+  chars: 5546
 - id: '9'
   title: Multi-tenant / self-service (cloud and MSP servers)
   chars: 807
@@ -320,9 +320,8 @@ Key event codes: `user.peer.add`, `setupkey.peer.add`, `user.peer.delete`, `peer
 `profile.*`, `guardrail.*`, `filter.*`, `gateway_provider.*`, `gateway_limit.*`,
 `gateway_mcp_server.*`, `gateway_virtual_mcp.*` (MCP bundles), `published_app.*`
 (created/updated/removed, access_allowed/not_admitted, access_denied for posture),
-`ai.allowed/blocked/redacted/redirected/detected` (AI Edge verdicts from devices and
-gateways; `ai.allowed` only from hosts that do not record AI sessions), `semantic.event`,
-`aidr.graph`, `aidr.trajectory`, `gateway.credential_refused` (a bearer the
+`ai.blocked/redacted/redirected/detected` (AI Edge verdicts from devices, browsers and
+gateways; allowed calls are in AI sessions, not events), `aidr.graph`, `aidr.trajectory`, `gateway.credential_refused` (a bearer the
 gateway refused: door proxy|publish|publish_api|ai, reason expired|unknown|no_user|not_in_account),
 `mcp.connected/disconnected/reauth_required`, `browser.*`, `workspace.*`,
 `session.recorded`, `report.*`. The old `tool.*` codes no longer exist; a row from an

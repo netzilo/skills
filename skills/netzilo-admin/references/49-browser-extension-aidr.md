@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 19022
+chars: 18978
 sections:
 - id: '1'
   title: Model
@@ -32,7 +32,7 @@ sections:
   chars: 2141
 - id: '8'
   title: Events
-  chars: 1114
+  chars: 1070
 - id: '9'
   title: API
   chars: 1146
@@ -237,8 +237,8 @@ with your browser management.
 
 ## 8. Events
 
-Every verdict is an `ai.allowed`, `ai.blocked`, `ai.redacted`, `ai.redirected` or
-`ai.detected` event with:
+Every verdict is an `ai.blocked`, `ai.redacted`, `ai.redirected` or `ai.detected` event
+with:
 
 | Field | Value from the browser |
 |---|---|
@@ -249,15 +249,14 @@ Every verdict is an `ai.allowed`, `ai.blocked`, `ai.redacted`, `ai.redirected` o
 | `surface`, `engine`, rule, filter, `content` | as for every source (`30` §1) |
 
 The Activity page phrases them "**<site> in the browser for <user>**: prompt to … —
-allowed | blocked by rule … | redacted | matched", where a device row would say "<agent>
+blocked by rule … | redacted | matched", where a device row would say "<agent>
 on <peer> for <user>". A conversation reload that is redacted produces an `ai.redacted`
 event with the same tab session and program as the original answer.
 
-The AI Agent Activity report counts these events; the AI Usage report does not (it
-counts the usage recorded in AI sessions, by gateways and devices, `30` §2; the extension
-records no sessions). Browser tab sessions are not in Activity → AI Sessions or the
-Agentic Activity window; the extension still sends an event per call, `ai.allowed`
-included.
+A clean call is not an event. Extension 5.2.577 and later records each model call in the
+user's AI session (point `browser`), as devices and gateways do, so its calls count in
+the AI Agent Activity and AI Usage reports (`30` §2). An older extension records no
+sessions; the `ai.allowed` events it sends are dropped by the server.
 
 ---
 

@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 191520
+chars: 196080
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
@@ -26,7 +26,7 @@ sections:
   chars: 1268
 - id: rule-authoring-workflow
   title: Rule Authoring Workflow
-  chars: 3268
+  chars: 3596
 - id: what-you-produce
   title: What You Produce
   chars: 1630
@@ -74,7 +74,7 @@ sections:
   chars: 1428
 - id: best-practices-for-advanced-scripted-rules
   title: Best Practices for Advanced Scripted Rules
-  chars: 8582
+  chars: 12814
 - id: the-behaviour-graph-complete-reference
   title: The Behaviour Graph — complete reference
   chars: 12697
@@ -402,8 +402,9 @@ When asked to create a rule:
 7. **Choose the action** — `block` only when confident; `report` when uncertain; `redact` for PII. Scripts use `on_error: allow` unless the rule is critical enough to justify fail-closed.
 8. **Assign level** — match the actual risk of a true positive, not the desired priority of the rule. When `action:` is absent, `level: critical`/`high` → block, `level: medium`/`low` → report.
 9. **Name the rule** — use a `title:` prefixed by threat category: `MCP Config Write`, `Credential File Access`, etc. The `id:` should be a UUID4 (or `<uuid>-p` for a periodic companion, or `netzilo-<kebab-slug>-NNN` for a Netzilo-authored rule). The filename should be `ai_agent_<kebab_description>.yml`.
-10. **Prove it** — for a scripted rule, an attack scenario (expected `block`/`report`, with a chain) and the closest legitimate sequence (expected `allow`). In the public rule library these are fixtures (`ai_agent/fixtures/<rule>.fixture.yml` / `.benign.yml`); for an account rule, a pilot group in report mode (`action: report`) where you reproduce both and read the resulting **AI detected** events. A script that was never run is not evidence.
-11. **Run `python3 tools/rulelint.py` before you are done.** A rule that references an event type no producer emits, a field the engine never populates, a builtin the engine no longer has, or a regex RE2 cannot compile **loads without error and then never fires** — silently, and indistinguishably from "no attack happened". The linter is the only thing standing between you and a rule that looks like coverage but is not. Zero errors is the bar; warnings are decisions for you to make.
+10. **Decide the OS coverage** — which of macOS, Linux and Windows the rule must protect, and write it for them (see *OS coverage — paths, names and shells differ* below). A rule written only with `/` paths and `bash` command words loads on a Windows host and never fires there.
+11. **Prove it** — for a scripted rule, an attack scenario (expected `block`/`report`, with a chain) and the closest legitimate sequence (expected `allow`). In the public rule library these are fixtures (`ai_agent/fixtures/<rule>.fixture.yml` / `.benign.yml`); for an account rule, a pilot group in report mode (`action: report`) where you reproduce both and read the resulting **AI detected** events; repeat it for every OS spelling the rule claims. A script that was never run is not evidence.
+12. **Run `python3 tools/rulelint.py` before you are done.** A rule that references an event type no producer emits, a field the engine never populates, a builtin the engine no longer has, or a regex RE2 cannot compile **loads without error and then never fires** — silently, and indistinguishably from "no attack happened". The linter is the only thing standing between you and a rule that looks like coverage but is not. Zero errors is the bar; warnings are decisions for you to make.
 
 ## What You Produce
 
@@ -2343,8 +2344,48 @@ script: |
 
 19. **Always return a chain for graph/log-based verdicts.** A `block`/`report` from a behavioral rule without `"chain"` gives investigators nothing. Return `{"action": ..., "reason": ..., "chain": chain}`.
 
+### OS coverage — paths, names and shells differ
+
+The engine reports what the host reports, in the host's own form; it does not translate. A rule written against macOS or Linux values loads on a Windows host and **never fires there** — silently, like a rule that references a field nobody produces. So decide the coverage on purpose: write the rule for every OS it must protect, or say in `description:` that it is POSIX-only and accept the gap.
+
+20. **Paths arrive in the host's own form.** `/Users/dev/.aws/credentials` (macOS), `/home/dev/.aws/credentials` (Linux), `C:\Users\dev\.aws\credentials` (Windows: drive letter, backslashes, any letter case, UNC `\\server\share\…`). This holds for every path a rule reads: `fs_activity()` and event-row `path`, a session's program `path`, `subject["program"]`, the exec content's `path`. A substring such as `".aws/credentials"` never matches the Windows form. In a script, compare a normalized copy and keep the original for the message: `p = r["path"].replace("\\", "/").lower()` (in Starlark `"\\"` is one backslash). In a content rule, accept both separators and ignore case: `command|re: '(?i)[\\/]\.aws[\\/]credentials'` (in single-quoted YAML the backslashes stay as written).
+
+21. **The command line is the host's too.** Windows hands over the process's raw command line as one string whose first token is the quoted program path; macOS and Linux give the arguments joined by spaces. A backslash in it is a Windows path separator, not an escape. Match command lines through the `command` field (`command|re:`), which sees the decoded text, with the same `[\\/]` class. Do not rewrite the command line and do not assume a separator.
+
+22. **Program names differ.** Windows executables carry `.exe` and are case-insensitive: `node.exe`, `cmd.exe`, `powershell.exe`, `…\Git\usr\bin\bash.exe`, where macOS and Linux have `node`, `sh`, `bash`. `endswith: '/node'` and `node$` miss `node.exe`. Use `path|re: '(?i)[\\/]node(\.exe)?$'`.
+
+23. **Shells and tools differ.** The same intent has different words: `cat` / `type` / `Get-Content`; `curl` / `Invoke-WebRequest` (`iwr`); `rm` / `del` / `Remove-Item`; `sh -c` / `cmd /c` / `powershell -Command`; `~` and `$HOME` / `%USERPROFILE%` / `$env:USERPROFILE`. An agent that runs its commands through Git Bash on Windows writes POSIX-style paths (`C:/Users/dev/…`) while its own file reads arrive with backslashes, so both spellings occur on one machine: write the pattern for both.
+
+24. **Locations differ.** `Library/…` is macOS-only; `/etc/passwd` and `/proc/…` exist on macOS and Linux only; the Windows counterparts live under `%APPDATA%` (`AppData\Roaming`), `%LOCALAPPDATA%` and `C:\Windows\System32\config`. Credential directories such as `.aws`, `.ssh`, `.kube` and `.docker` sit in the user's profile on every OS, so anchor on the tail (`[\\/]\.ssh[\\/]id_`) rather than on a home-directory prefix.
+
+25. **Say what you cover, and prove each spelling.** Name the OS families in `description:`. Prove every spelling the rule claims — the POSIX attack, a Windows attack (Windows paths and command line) and a benign case for each: as fixtures (`<rule>.windows.yml`) in the public library, or on a pilot group in report mode for an account rule, with a device of each OS. A rule never run against a Windows spelling is, on Windows, untested.
+
+A scripted rule that covers both:
+
+```yaml
+action: execute
+script: |
+  SENSITIVE = [".aws/credentials", ".ssh/id_rsa", ".ssh/id_ed25519", ".kube/config"]
+
+  def norm(p):
+      return p.replace("\\", "/").lower()      # one separator, one case, for matching only
+
+  def run():
+      for a in sessions(agent=True):
+          for r in fs_activity(session=a["id"], op="READ"):
+              p = norm(r["path"])
+              for s in SENSITIVE:
+                  if s in p:
+                      print("Credential file read: " + r["path"])   # the original, as the host spelled it
+                      return "block"
+      return "allow"
+
+  result = run()
+```
+
 ### Pre-ship checklist
 
+- [ ] OS coverage is decided and stated in `description:`; paths, program names and command lines are matched in a form that fits every OS the rule claims (both separators, `(?i)`, `(\.exe)?`), and each claimed spelling was proven.
 - [ ] `requires:` lists every capability the trigger and the script depend on; `rulelint` shows no `missing-requires` / `requires-incomplete`.
 - [ ] Relevance gate is first, pure, and returns `allow` fast.
 - [ ] Anchored on `session()` → `lineage()` (no all-agents walk in an event-triggered rule).

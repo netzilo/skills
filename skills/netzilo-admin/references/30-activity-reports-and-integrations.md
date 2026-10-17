@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 35094
+chars: 34840
 sections:
 - id: '1'
   title: Activity → Events
-  chars: 7125
+  chars: 7012
 - id: 1a-activity-ai-sessions
   title: 1a. Activity → AI Sessions
   chars: 2360
 - id: '2'
   title: Reports
-  chars: 3668
+  chars: 3523
 - id: '3'
   title: Dashboard home
   chars: 6455
@@ -29,7 +29,7 @@ sections:
   chars: 1914
 - id: '6'
   title: Diagnosis
-  chars: 4673
+  chars: 4677
 ---
 # Admin Skill — Activity Events, Reports, Dashboard Home and Integrations
 
@@ -88,12 +88,12 @@ Event categories and the most useful codes:
 | Policy Violation | `browser.download.file`, `browser.upload.file`, `browser.url.blocked`, `browser.isolation.*.required`, `browser.posture.check`, `workspace.posture.check`, `browser.data.code.redacted`, `browser.exception.request`, `published_app.access_denied` |
 | Suspicious | `workspace.selfdefense.activated`, `workspace.injection.detected`, `browser.data.prompt.injection.blocked`, `user.failedlogin` |
 | Investigation | `ai.insight` |
-| AI Edge | `ai.allowed`, `ai.blocked`, `ai.redacted`, `ai.redirected`, `ai.detected` (a report-only match), `semantic.event`, `aidr.graph` ("Session snapshot"), `aidr.trajectory` ("Session trajectory available": one per new AI session, when its first recorded calls reach the server — seconds after the first call, not at the end; initiator = the user, none for a setup-key peer's session; target = the device or the account; meta `session_id`, `agent_name`, `peer`, `point`) |
+| AI Edge | `ai.blocked`, `ai.redacted`, `ai.redirected`, `ai.detected` (a report-only match), `aidr.graph` ("Session snapshot"), `aidr.trajectory` ("Session trajectory available": one per new AI session, when its first recorded calls reach the server — seconds after the first call, not at the end; initiator = the user, none for a setup-key peer's session; target = the device or the account; meta `session_id`, `agent_name`, `peer`, `point`) |
 
 Reading AI Edge rows. Every `ai.*` row has the same shape: "`<agent>` on `<peer>` for
 `<user>`: prompt to `<model>` (`<provider>`) | response from … | tool call `<tool>` on
 `<server>` | tool result … | request to `<host>` | connection to `<host>` | process
-`<tool>` | periodic rule — allowed | blocked by rule `<rule>` by filter `<filter>` —
+`<tool>` | periodic rule — blocked by rule `<rule>` by filter `<filter>` —
 `<reason>` (matched: `<excerpt>`) | redacted | redirected to `<target>` | matched". The
 raw JSON carries `surface` (`llm_request`, `llm_response`, `tool_call`, `tool_result`,
 `prompt`, `sampling`, `http_request`, `connect`, `process_exec`, `periodic`), `engine`
@@ -105,11 +105,10 @@ session and actor fields, and `content` (at most 8 KB, after redaction, with
 granted is engine `policy`. Rows written by clients before this release with the retired
 `tool.*` codes render as "UNKNOWN_ACTIVITY"; they are history, not a fault.
 
-`ai.allowed` rows come only from hosts that do not record AI sessions: the browser
-extension, clients older than session recording, and any client or gateway of a server
-older than it. A current client and gateway (hooks included) report verdicts only —
-blocked, redacted, redirected, detected; a clean call is in its AI session (§1a). So
-`ai.allowed` volume drops once clients and server are upgraded; that is not a fault.
+AI Edge events are verdicts only — blocked, redacted, redirected, detected — from every
+source; a clean call is in its AI session (§1a), never an event. The server no longer
+records `ai.allowed` or `semantic.event`, also when an older client, gateway or extension
+still sends them; older rows stay until they age out. Rows saying "allowed" are history.
 
 **Browser rows.** Events from the browser extension (`49-browser-extension-aidr.md`)
 have `source` `extension`, the **site** as the agent (`chatgpt.com`, `claude.ai`,
@@ -179,7 +178,7 @@ Range, Groups with View / Download (PDF) / Delete.
 |---|---|
 | User Activity | Total/active users, average session time, total events; User Distribution pie; events radar (Access Control, Data Exfiltration, Policy Violation, Suspicious Activity, Administration); per user: session time, last seen, daily activity chart, Top Targets, Top Applications, Top Web Sites, Top Blocked Sites, per-category event tables |
 | Authentication Activity | Total logins, success/failed trend per day, failed-login reasons pie; per user: login/failed counts, session time, event list (from `user.login`/`user.failedlogin`) |
-| AI Agent Activity | Two tabs, **Users (n)** and **Agents (n)** — "Agents" are setup-key peers, which have no user. Per-user calls come from the usage recorded in AI sessions plus the `ai.allowed` events of hosts that do not record; the **Agents** tab counts events only, so for a current, recording setup-key peer it shows verdicts, not clean calls. Stats Total Users / AI Agents / Servers / Total Tool Calls / Policy Violations; charts Agents, Models, Servers; per user or agent: Top Agents, Top Servers, Top Calls, Violations table (Date/Time, Category, Tool Call, Blocked By, Reason / Filter). **Blocked By** is **Guardrail** when a rule refused the call, **Limit** when a limit did (event engine `limit`), **Model or MCP grant** when the user's filters grant no such model or MCP server (engine `policy`); Reason / Filter names the guardrail and filter, or the refusal reason. Reports generated before this distinction show "—" in Blocked By for refusals that were not a rule — generate the report again. Violations are the `ai.blocked` events; detected, redacted and redirected calls count as calls, not violations |
+| AI Agent Activity | Two tabs, **Users (n)** and **Agents (n)** — "Agents" are setup-key peers, which have no user. Calls come from the usage recorded in AI sessions: per user on **Users**, per setup-key peer (sessions the peer owns) on **Agents**. Stats Total Users / AI Agents / Servers / Total Tool Calls / Policy Violations; charts Agents, Models, Servers; per user or agent: Top Agents, Top Servers, Top Calls, Violations table (Date/Time, Category, Tool Call, Blocked By, Reason / Filter). **Blocked By** is **Guardrail** when a rule refused the call, **Limit** when a limit did (event engine `limit`), **Model or MCP grant** when the user's filters grant no such model or MCP server (engine `policy`); Reason / Filter names the guardrail and filter, or the refusal reason. Reports generated before this distinction show "—" in Blocked By for refusals that were not a rule — generate the report again. Violations are the `ai.blocked` events; detected, redacted and redirected calls count as calls, not violations |
 | AI Usage | The usage recorded in AI sessions, by AI Gateways and by current Netzilo clients. **LLM Usage**: cards Requests, Tokens, Cost, Avg Latency, Users, Cache Hit; "Over time" chart switchable Requests \| Tokens \| Cost; Breakdown by Model / User / Provider / Gateway (for a device's records, the device's name); Top Models, Top Users. **MCP Usage**: Tool Calls, Servers, Avg Latency, Users; Breakdown by Server / Tool / User / Gateway; Top Servers, Top Tools. Breakdowns show at most 20 rows, Top lists at most 6 as shares; series are hourly up to 72 h, daily beyond. Empty: "No AI gateway usage in this period." The PDF is titled "NETZILO AI USAGE REPORT" |
 
 AI Usage counts the usage recorded in AI sessions (`27-ai-gateway.md` §8): by AI
@@ -188,8 +187,7 @@ holds facts (user, model, tokens, cost, latency, status, MCP server and tool), n
 text. Hook-only traffic, the browser extension and clients or servers older than session
 recording are not in it; the empty text still reads "No AI gateway usage in this
 period." AI Agent Activity counts violations from the `ai.blocked` events of every
-source and calls from usage records plus the `ai.allowed` events of non-recording
-hosts.
+source and calls from the usage records only.
 
 Reports contain personal data; restrict who can open Activity (admins only by design).
 
@@ -448,7 +446,7 @@ if it does, the dashboard is out of date.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| No events for a device | client not connected; nothing matched a policy/filter/profile; a current client reports AI verdicts only, so clean AI traffic is in Activity → AI Sessions, not in events | `netzilo status`; check bindings; look in AI Sessions |
+| No events for a device | client not connected; nothing matched a policy/filter/profile; AI events are verdicts only, so clean AI traffic is in Activity → AI Sessions, not in events | `netzilo status`; check bindings; look in AI Sessions |
 | `user.login` events missing (self-hosted) | login-event import from the identity provider requires the built-in provider and the service account roles created at install | verify identity provider health (`04` §9) |
 | CSV export incomplete | only the current page is exported | raise rows per page or use the API |
 | AI Smart Search greyed / AI Insights Disabled | no model approved for Log Analysis | Integrations → Artificial Intelligence → approve a model |
@@ -463,7 +461,7 @@ if it does, the dashboard is out of date.
 | Agentic Activity on the home page empty although the gateway works | the snapshot is computed hourly; the AI Usage report reads live data | wait for the next run, or generate the report |
 | Tokens tile zero | no recorded usage (gateway or device) that day | — |
 | My device's sessions do not show up in AI Sessions | client or server older than session recording (the client records only once management announces it); the app is not intercepted (not in an endpoint filter's Agents; on Linux not pointed at the proxy); Cursor, Gemini CLI, Connect-streaming or stdio MCP (not recorded yet); the call went to the account's AI Gateway (recorded once, as point `gateway`) | upgrade both; fix Agents (`10-ai-security-aidr.md` §2); look for the gateway session |
-| "No allowed events any more" | expected once client or gateway and server record sessions: verdicts only | read the sessions in AI Sessions |
+| "No allowed events any more" | expected: AI events are verdicts only, and the server drops allowed events from older hosts | read the sessions in AI Sessions |
 | Session usage shows tokens but cost $0.00 | recorded on a device: cost is not computed on devices | cost comes from the gateway only |
 | A session's user is a peer name | a setup-key peer (no user) owns its sessions (`peer:<dns label>`); its groups are the peer's | expected |
 | MCP sessions under "Unknown client" | an MCP client with no model that never sent its name (`clientInfo` in `initialize`) | expected |

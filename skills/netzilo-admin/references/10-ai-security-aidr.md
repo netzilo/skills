@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 39766
+chars: 39659
 sections:
 - id: '1'
   title: Architecture in one page
-  chars: 4285
+  chars: 4228
 - id: '2'
   title: Rollout runbook
-  chars: 3923
+  chars: 3868
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
-  chars: 4184
+  chars: 4162
 - id: '4'
   title: Coding-agent hooks (`netzilo hook`)
   chars: 2869
@@ -41,7 +41,7 @@ sections:
   chars: 1337
 - id: '11'
   title: Constraints to disclose early
-  chars: 3262
+  chars: 3289
 ---
 # Netzilo — AI Security (AIDR) Administration
 
@@ -66,8 +66,8 @@ report (detected), redact, block, redirect to another model, a few HTTP rewrites
 client (TLS inspection) and the AI Gateway also record each model call and MCP call into
 an **AI session** — usage, the conversation after the guardrails, the MCP calls — shown in
 Activity → **AI Sessions**, the home page's **Agentic Activity** and the AI Usage report
-(`30` §1a, §3). Verdicts are `ai.*` events (Activity, Reports); a host that records
-sessions sends no event for a clean call, only hosts that do not record send `ai.allowed`.
+(`30` §1a, §3). Verdicts are `ai.*` events (Activity, Reports); a clean call is never an
+event, it is in the session.
 
 Two enforcement points, one rule language, bound by **Filters** of two types
 (`29-edge-filters.md`):
@@ -123,8 +123,7 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
    AI app named in Agents; the session appears in Activity → **AI Sessions** within about
    15 seconds (point `endpoint`) with a **Session trajectory available** event, rules
    show as **AI detected / blocked / redacted** events, and the peer has observations
-   (`/api/aidr/sessions?scope=source:<peer>`). **AI allowed** events appear only from
-   clients or servers older than session recording.
+   (`/api/aidr/sessions?scope=source:<peer>`). There are no **AI allowed** events.
 6. **Coding agents:** on each dev machine
    `curl -fsSL https://pkg.netzilo.com/download/plugin/install.sh | sh` (Linux installs the
    client if missing; macOS/Windows need the client first), or `netzilo hook install
@@ -172,7 +171,7 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 | Hook evaluation | `toolCall`, `promptRequest`, `promptResponse` synchronous (can block; a redaction cannot be applied by a hook, so the hook acts only on allow/block); `toolResult`, `sessionStart`, `sessionEnd` fire-and-forget; hooks are **fail-open** by default (`NETZILO_HOOK_POLICY=allow`); set `block` for fail-closed |
 | Scan actions | the built-in prompt classifier and the AI judge run through management (15 s timeout on the device); a scan that cannot run is an **error for the rule's `on_error`** (default allow) — not a silent allow, not a block unless `on_error: block` |
 | Posture in filters | none; a failing posture check never blocks AI traffic through a filter. Posture gates policies, profiles and published applications (`21`) |
-| Verdict events | `ai.allowed` (148, only from hosts that do not record AI sessions), `ai.blocked` (149), `ai.redacted` (150), `ai.redirected` (151), `ai.detected` (152); `semantic.event` (127); `aidr.graph` (129, browser tab sessions only); `aidr.trajectory` (171, one per new AI session) |
+| Verdict events | `ai.blocked` (149), `ai.redacted` (150), `ai.redirected` (151), `ai.detected` (152); `ai.allowed` (148) and `semantic.event` (127) are no longer recorded; `aidr.graph` (129, browser tab sessions only); `aidr.trajectory` (171, one per new AI session) |
 | AI session records | usage and the captured conversation of each model call and HTTP MCP call the proxy inspected, held in memory and sent to management every 15 s, only once management announces it records them (an older server: none). A call sent to the account's AI Gateway is recorded once, by the gateway. Claude Code hooks, SDK runs and the proxy's model calls of the same process land on one session. Not recorded yet: Cursor, Gemini CLI and other Connect-streaming traffic, stdio MCP servers. Cost is 0 on devices |
 | MCP tool results | judged text by text (§7) |
 
@@ -530,8 +529,8 @@ with guardrails and enforces them; it reports its verdicts with activity codes t
 no longer knows (`tool.allowed`, `tool.blocked`, `tool.detected`), which the Activity page
 shows as an unknown activity and the AI reports do not count. Upgrade clients to see their
 AI events again. Their local MCP gateway receives no tool catalogue any more. A client
-older than AI session recording, or any client of a server older than it, records no
-sessions and still sends an `ai.allowed` event per clean call.
+older than AI session recording records no sessions; the `ai.allowed` events it still
+sends are dropped by the server, so its clean calls appear nowhere until it is upgraded.
 
 **Not recorded on devices yet:** Cursor, Gemini CLI and other Connect-streaming traffic,
 and stdio MCP servers; device sessions carry tokens (cached and reasoning included) but

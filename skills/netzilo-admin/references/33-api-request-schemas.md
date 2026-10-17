@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 102824
+chars: 108718
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -24,6 +24,9 @@ sections:
 - id: get-api-ai-gateway-mcp-credentials
   title: '`GET /api/ai-gateway/mcp-credentials`'
   chars: 202
+- id: post-api-ai-gateway-peer
+  title: '`POST /api/ai-gateway/peer`'
+  chars: 366
 - id: get-api-ai-gateway-providers
   title: '`GET /api/ai-gateway/providers`'
   chars: 194
@@ -63,9 +66,15 @@ sections:
 - id: post-api-ai-systemone
   title: '`POST /api/ai/systemone`'
   chars: 458
+- id: post-api-aidr-browser-content
+  title: '`POST /api/aidr/browser/content`'
+  chars: 415
 - id: post-api-aidr-browser-observations
   title: '`POST /api/aidr/browser/observations`'
   chars: 1072
+- id: post-api-aidr-browser-usage
+  title: '`POST /api/aidr/browser/usage`'
+  chars: 2343
 - id: get-api-aidr-detections
   title: '`GET /api/aidr/detections`'
   chars: 661
@@ -377,7 +386,7 @@ sections:
   chars: 193
 - id: post-api-published-apps
   title: '`POST /api/published-apps`'
-  chars: 1400
+  chars: 2785
 - id: get-api-published-apps-check
   title: '`GET /api/published-apps/check`'
   chars: 250
@@ -389,7 +398,7 @@ sections:
   chars: 141
 - id: put-api-published-apps-appid
   title: '`PUT /api/published-apps/{appId}`'
-  chars: 1481
+  chars: 2866
 - id: delete-api-published-apps-appid
   title: '`DELETE /api/published-apps/{appId}`'
   chars: 240
@@ -597,7 +606,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-10-14 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-10-17 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -661,6 +670,15 @@ Responses: `200` Servers and virtual MCPs, `304` Not modified, `401` Requires au
 What an AI gateway pulls for per-user MCP credentials (ETag)
 
 Responses: `200` Credentials, `304` Not modified, `401` Requires authentication, `403` Forbidden
+
+## `POST /api/ai-gateway/peer`
+
+Name a gateway's own peer as the account's AI gateway
+
+Request body (JSON):
+- `key` (string, **required**): The gateway peer's WireGuard public key
+
+Responses: `204` The peer is the account's AI gateway, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `500` Internal Server Error
 
 ## `GET /api/ai-gateway/providers`
 
@@ -867,6 +885,16 @@ Request body (JSON):
 
 Responses: `200` Answers, or the reason there are none, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
 
+## `POST /api/aidr/browser/content`
+
+Record a browser's AI call content
+
+Request body (JSON):
+- `gateway` (string, optional): The recording browser, as it names itself ("Chrome 154")
+- `content` (array of object, optional)
+
+Responses: `200` How many calls were stored, `401` Requires authentication, `422` Validation failed, `429` Too many uploads; retry after the Retry-After seconds, `500` Internal Server Error
+
 ## `POST /api/aidr/browser/observations`
 
 Upload a browser's observation batch
@@ -891,6 +919,67 @@ Request body (JSON):
   - `report_callid` (string, optional)
 
 Responses: `200` Batch stored, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
+
+## `POST /api/aidr/browser/usage`
+
+Record a browser's AI usage
+
+Request body (JSON):
+- `gateway` (string, optional)
+- `llm` (array of object, optional)
+  - `request_id` (string, optional)
+  - `session_id` (string, optional)
+  - `at` (string (date-time), optional)
+  - `gateway` (string, optional)
+  - `user_id` (string, optional)
+  - `user_email` (string, optional)
+  - `user_name` (string, optional)
+  - `peer_id` (string, optional)
+  - `path` (string, optional): bearer
+  - `client_app` (string, optional): The caller's User-Agent
+  - `request_type` (string, optional)
+  - `provider` (string, optional)
+  - `model_requested` (string, optional)
+  - `model` (string, optional)
+  - `stream` (boolean, optional)
+  - `status` (string (ok | error | blocked | limited), optional)
+  - `status_code` (integer, optional)
+  - `error_kind` (string, optional)
+  - `prompt_tokens` (integer, optional)
+  - `completion_tokens` (integer, optional)
+  - `total_tokens` (integer, optional)
+  - `cached_tokens` (integer, optional)
+  - `reasoning_tokens` (integer, optional)
+  - `cost_input` (number, optional)
+  - `cost_output` (number, optional)
+  - `cost_additional` (number, optional)
+  - `cost_total` (number, optional): USD
+  - `latency_ms` (integer, optional)
+  - `upstream_latency_ms` (integer, optional)
+  - `tool_calls` (integer, optional): Tool calls the answer asked for
+  - `tool_names` (array of string, optional)
+- `mcp` (array of object, optional)
+  - `request_id` (string, optional)
+  - `call_id` (string, optional)
+  - `llm_request_id` (string, optional)
+  - `session_id` (string, optional)
+  - `at` (string (date-time), optional)
+  - `gateway` (string, optional)
+  - `user_id` (string, optional)
+  - `user_email` (string, optional)
+  - `user_name` (string, optional)
+  - `peer_id` (string, optional)
+  - `client_app` (string, optional)
+  - `server_id` (string, optional)
+  - `server_name` (string, optional)
+  - `slug` (string, optional)
+  - `tool` (string, optional)
+  - `status` (string (ok | error | blocked | limited | redacted), optional)
+  - `latency_ms` (integer, optional)
+  - `arg_bytes` (integer, optional)
+  - `result_bytes` (integer, optional)
+
+Responses: `200` How many rows were new, `401` Requires authentication, `422` Validation failed, `429` Too many uploads; retry after the Retry-After seconds, `500` Internal Server Error
 
 ## `GET /api/aidr/detections`
 
@@ -2125,6 +2214,16 @@ Request body (JSON):
 - `forward_credential` (boolean, optional): Send the user's own credential to the target as an Authorization bearer, for an application that verifies users with management itself (an AI gateway)
 - `posture_checks` (array of string, optional): Posture check IDs the accessing device must satisfy at the application's door
 - `any_check_must_pass` (boolean, optional): Posture check evaluation logic. If false (default), all posture checks must pass. If true, at least one posture check set must pass.
+- `restrictions` (object, optional): Data-protection rules the reverse proxy enforces inside the application's pages for every signed-in browser, by placing a script in each HTML page it serves. Omitted or empty means nothing is placed in the pages. PUT replaces the whole application, so a request without restrictions clears them.
+  - `redact` (array of ?, optional): Mask text matching these patterns before it is displayed
+  - `watermark_text` (string, optional): Drawn over every page. %netzilo.username%, %netzilo.ip% and %netzilo.region% are filled in per user, %date% and %time% by the page.
+  - `watermark_type` (string (sparse | dense), optional): sparse (a few marks) or dense (a tiled pattern)
+  - `restrict_clipboard` (boolean, optional): Block copy, cut and drag out of the page
+  - `restrict_printing` (boolean, optional): Blank the page when printed
+  - `restrict_downloads` (array of string, optional): "all" blocks every download the page offers; other entries are patterns a download's name or address must not match
+  - `restrict_uploads` (array of string, optional): "all" blocks every file picked, dropped or pasted for upload; other entries are patterns a file's name must not match
+  - `block_urls` (array of string, optional): Patterns of addresses within the application the user may not open
+  - `show_gray_border` (boolean, optional): Frame protected pages
 
 Responses: `200` The published application, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
 
@@ -2174,6 +2273,16 @@ Request body (JSON):
 - `forward_credential` (boolean, optional): Send the user's own credential to the target as an Authorization bearer, for an application that verifies users with management itself (an AI gateway)
 - `posture_checks` (array of string, optional): Posture check IDs the accessing device must satisfy at the application's door
 - `any_check_must_pass` (boolean, optional): Posture check evaluation logic. If false (default), all posture checks must pass. If true, at least one posture check set must pass.
+- `restrictions` (object, optional): Data-protection rules the reverse proxy enforces inside the application's pages for every signed-in browser, by placing a script in each HTML page it serves. Omitted or empty means nothing is placed in the pages. PUT replaces the whole application, so a request without restrictions clears them.
+  - `redact` (array of ?, optional): Mask text matching these patterns before it is displayed
+  - `watermark_text` (string, optional): Drawn over every page. %netzilo.username%, %netzilo.ip% and %netzilo.region% are filled in per user, %date% and %time% by the page.
+  - `watermark_type` (string (sparse | dense), optional): sparse (a few marks) or dense (a tiled pattern)
+  - `restrict_clipboard` (boolean, optional): Block copy, cut and drag out of the page
+  - `restrict_printing` (boolean, optional): Blank the page when printed
+  - `restrict_downloads` (array of string, optional): "all" blocks every download the page offers; other entries are patterns a download's name or address must not match
+  - `restrict_uploads` (array of string, optional): "all" blocks every file picked, dropped or pasted for upload; other entries are patterns a file's name must not match
+  - `block_urls` (array of string, optional): Patterns of addresses within the application the user may not open
+  - `show_gray_border` (boolean, optional): Frame protected pages
 
 Responses: `200` The published application, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 

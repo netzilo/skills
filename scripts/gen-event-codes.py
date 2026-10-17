@@ -40,6 +40,11 @@ NOTES = {
     "ai.content": "the captured messages of recorded model and tool calls on their way to the "
     "AI sessions; "
     "never shown in Activity",
+    "ai.allowed": "no longer recorded: allowed calls are in AI sessions; the server drops "
+    "the event from older hosts, and older rows remain until they age out",
+    "semantic.event": "no longer recorded: behaviour observations are in the behaviour "
+    "graph; the server drops the event from older hosts, and older rows remain until they "
+    "age out",
     "aidr.trajectory": "one per AI session, when its first recorded calls reach the server; "
     "meta `session_id`, `agent_name`, `peer`, `point`; opens the session in the Agentic "
     "Activity window; `30-activity-reports-and-integrations.md` §3",

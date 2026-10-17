@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR) on devices, in the browser through the Netzilo browser extension (ChatGPT, Claude, Gemini and other web AI apps, browser filters, the behaviour graph of browser sessions) and through the Netzilo AI Gateway (providers, model grants, limits, MCP servers and bundles, guardrails, gateway filters, Agentic Access, Claude Desktop organization sign-in, AI usage), detection-rule authoring, clientless access and published applications, the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server, the Netzilo client, the browser extension or the Netzilo AI Gateway, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance, guardrails, MCP, LLM gateways, AI in the browser or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 4.5.0
-  released: "2026-10-15"
+  version: 4.6.0
+  released: "2026-10-17"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 4.5.0, released 2026-10-15.** Confirm it is current before
+**This copy is version 4.6.0, released 2026-10-17.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -163,7 +163,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **4.5.0** above.
+Compare its `version:` with **4.6.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -404,7 +404,7 @@ is instructions for the admin rather than work you performed.
 | Install the server: on-prem, AWS, Azure, external DB, air-gapped, provided TLS | `references/01-server-install.md`, `references/18-server-install-gated.md` (scripted gates), `references/19-server-install-handout.md` (hand to the customer) | server shell |
 | Upgrade (including the one-liner's in-place upgrade mode and its `update`/`install <component>` commands, §4.10, which must be checked for before any re-run) / backup / restore / rotate cert / domain / disk / logs / metering / decommission | `references/02-server-operations.md` | server shell |
 | Clientless access: browsers with only the extension reaching internal resources; the gateway bundled with the server, added to a server installed without it, or run on any other host or on Kubernetes; its options, logs, health and every error; "Private access unavailable"; introducing it to existing installations; the Netzilo Gateway posture item and policies for browser users only | `references/43-clientless-access-gateway.md` — §3 to turn it on (API), §3.4 for posture, §6 to add it in place, §11 to troubleshoot | server shell; API for §3 and §12 |
-| Published applications: a private web app at its own address opened in any browser without the client; turning it on (Settings → Permissions, application domains, DNS), publishing (Network → Applications) with posture checks judged at the application's door (the device's own posture through its Netzilo client, the extension, the Enterprise Browser), what users see, the access events, API access with a token, the reverse proxy on self-hosted servers (install, add to an existing server, certificates, Kubernetes), its logs, peers and every symptom, and supporting a user who cannot open one | `references/44-published-applications.md` — §3–4 to turn it on and publish (API), §4.1 for posture at the door and the access events, §5 and §12 for users, §8 to install, §11 to troubleshoot | server shell; API for §3, §4 and §12 |
+| Published applications: a private web app at its own address opened in any browser without the client; turning it on (Settings → Permissions, application domains, DNS), publishing (Network → Applications) with posture checks judged at the application's door (the device's own posture through its Netzilo client, the extension, the Enterprise Browser), restrictions inside the application's pages (watermark, redaction, clipboard, printing, downloads, uploads, blocked addresses; §4.2), what users see, the access events, API access with a token, the reverse proxy on self-hosted servers (install, add to an existing server, certificates, Kubernetes), its logs, peers and every symptom, and supporting a user who cannot open one | `references/44-published-applications.md` — §3–4 to turn it on and publish (API), §4.1 for posture at the door and the access events, §5 and §12 for users, §8 to install, §11 to troubleshoot | server shell; API for §3, §4 and §12 |
 | The AI Assistant on a self-hosted server: how Management and the support worker fit, their configuration, deploying the worker on compose or Kubernetes, runbook source and air-gapped use, proxies, token rotation, and why it does not answer | `references/42-ai-assistant-self-hosted.md` | server shell |
 | Server down, cert warning, container restarting, can't log in, slow | `references/03-server-troubleshooting.md` | server shell |
 | Users, invites, SSO (Entra/Okta/Google/SAML), MFA, lockout, SMTP, roles | `references/04-identity-and-sso.md` | IdP console, server shell |

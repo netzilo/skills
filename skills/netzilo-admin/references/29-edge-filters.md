@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 17236
+chars: 17190
 sections:
 - id: '1'
   title: Model
@@ -23,7 +23,7 @@ sections:
   chars: 1807
 - id: '5'
   title: Diagnosis — "the filter is not applying"
-  chars: 4569
+  chars: 4523
 ---
 # Admin Skill — Edge Filters (binding AI policy to devices and to gateway users)
 
@@ -249,7 +249,7 @@ rule bound in the baseline reaches everyone.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| No events at all from a device | §5.1 steps 1–4; or a current client with no rule matching, which reports verdicts only (expected) | as above; check Activity → AI Sessions |
+| No events at all from a device | §5.1 steps 1–4; or no rule matched: AI events are verdicts only (expected) | as above; check Activity → AI Sessions |
 | Events but nothing blocked | guardrails in report mode | change actions |
 | Chrome not intercepted although in Agents | path mismatch (env var casing, install dir); another browser | use `%ProgramFiles%\…` and `%LocalAppData%\…` variants |
 | Works on Windows, not on Linux | Linux lacks per-app steering | hooks/SDK/proxy env; for the browser, the extension (OS **Browser**) |
@@ -261,4 +261,4 @@ rule bound in the baseline reaches everyone.
 | A user gets less than intended | another filter carries a lower limit | find it with `/effective` and the filters' `limits` |
 | Group cannot be deleted | referenced by a filter | edit the filter first |
 
-Events: `filter.created/updated/deleted`; verdicts `ai.allowed/blocked/redacted/redirected/detected` (`ai.allowed` only from hosts that do not record AI sessions).
+Events: `filter.created/updated/deleted`; verdicts `ai.blocked/redacted/redirected/detected` (allowed calls are in AI sessions, not events).

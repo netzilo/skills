@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 31343
+chars: 31778
 sections:
 - id: '1'
   title: Rules of engagement
   chars: 3399
 - id: '2'
   title: What Netzilo is (30-second model)
-  chars: 3084
+  chars: 3301
 - id: '3'
   title: 'Triage: route the request'
-  chars: 7507
+  chars: 7714
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
@@ -26,7 +26,7 @@ sections:
   chars: 4935
 - id: '6'
   title: Known product gaps to warn about proactively
-  chars: 4747
+  chars: 4758
 - id: '7'
   title: Closing a task
   chars: 329
@@ -126,6 +126,9 @@ this folder. Read it fully before your first action.
   own (`*.netzilo.app` on Cloud) opens in **any browser**, nothing installed, after a
   Workplace sign-in, through the **Netzilo reverse proxy** (its own container); each
   request through the user's tunnel, a `vp-<n>-RPROXY` peer (`44-published-applications.md`).
+  An application's **restrictions** (watermark, redaction, clipboard, printing, downloads,
+  uploads, blocked addresses) are enforced inside its pages by a script the reverse proxy
+  adds, in any browser (`44` §4.2).
 
 Delivery paths for the server: on-prem one-liner (`/opt/netzilo`), AWS Marketplace AMI
 and Azure Marketplace image (`/opt/netzilo/run`), or Netzilo Cloud (nothing to install).
@@ -162,6 +165,7 @@ first; go to the device to see what the account cannot.
 | "Automate with the API / export-import / bulk changes / tokens / IaC" | `09-api-and-automation.md` |
 | "Reach internal apps from a browser without the client" / "Private access unavailable" in the extension / install, add or debug the gateway / proxy errors in the browser | `43-clientless-access-gateway.md` |
 | "Publish an internal web app at its own address" / "the application tile is missing" / "Access Denied" or "Access Failed" opening a published application / "There is no application at this address" / install or add the reverse proxy / call an application from a script | `44-published-applications.md` |
+| "Watermark / block copy, print, downloads or uploads on a published application" / "users can't copy or download in the app" / "a restriction does not apply" | `44-published-applications.md` §4.2, §11.2 |
 | "Govern AI agents / Claude Code hooks / SDK / browser extension / Enterprise Browser / which enforcement point (device or AI gateway) / test detection rules" | `10-ai-security-aidr.md` (the gateway side continues in `27-ai-gateway.md`) |
 | "Set up / run the AI gateway", connect Claude Code / Cursor / Codex / Claude Desktop to it, 400 / 401 / 403 / 405 / 429 from the gateway, the Workplace card shows Offline | `27-ai-gateway.md` (install, doors, refusals, logs) + `47-agentic-access-workplace.md` (what the user sees and pastes) |
 | "Providers, models, limits" / "model X is not granted" / spend or token quotas | `45-ai-gateway-providers-and-limits.md` |
@@ -396,8 +400,8 @@ It is a tool you may use; it is never evidence about the customer's environment.
   admin provides (`27` §3).
 - **Old clients report AI verdicts with codes the server no longer knows** (`tool.*`);
   those rows show as unknown activity on the Activity page. Upgrade the clients; the
-  current codes are `ai.allowed/blocked/redacted/redirected/detected`, and a current
-  client reports verdicts only (no `ai.allowed`; clean calls are in its AI sessions).
+  current codes are `ai.blocked/redacted/redirected/detected`, verdicts only (clean calls
+  are in AI sessions; the server drops `ai.allowed` and `semantic.event` from older hosts).
 - **MCP sign-in flows live in one management process** (10 minutes in memory): a
   self-hosted server with several management replicas needs session affinity, or a user's
   OAuth sign-in to an MCP server can fail with "the sign-in expired or was not started

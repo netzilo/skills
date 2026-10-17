@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 32938
+chars: 33474
 sections:
 - id: '1'
   title: Model
@@ -23,7 +23,7 @@ sections:
   chars: 636
 - id: '5'
   title: Domain Settings (Browser Extension and Enterprise Browser)
-  chars: 4382
+  chars: 4918
 - id: 5a-proxy-clientless-access
   title: 5a. Proxy (clientless access)
   chars: 1305
@@ -238,6 +238,14 @@ Every restriction produces events: `browser.url.blocked`, `browser.download.file
 `browser.isolation.bluezone.required` (workspace required), `browser.isolation.redzone.required`
 (disposable browser required), `browser.posture.check`, `browser.exception.request`,
 `browser.url.access`.
+
+**Published applications are not domain settings.** A published application has its own
+**Restrictions** tab (watermark, redaction, clipboard, printing, downloads, uploads, block
+URLs, gray border) that the reverse proxy enforces in its pages for every browser, with or
+without the extension (`44-published-applications.md` §4.2). The extension does not
+receive those, and a profile domain setting for the application's address applies in
+addition, in browsers that carry the extension. Set the application's rules on the
+application.
 
 ---
 

@@ -6,17 +6,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 26859
+chars: 26532
 sections:
 - id: '1'
   title: The short answer
-  chars: 1976
+  chars: 1780
 - id: '2'
   title: What every device reports to the management server
   chars: 1924
 - id: '3'
   title: What the AI security layer collects
-  chars: 4937
+  chars: 4879
 - id: '4'
   title: Session recordings and AI sessions
   chars: 655
@@ -31,7 +31,7 @@ sections:
   chars: 1174
 - id: '8'
   title: Data flows by feature
-  chars: 11055
+  chars: 10982
 ---
 # What Netzilo Collects — Data Handling, Privacy and Security Review
 
@@ -50,7 +50,7 @@ unless it appears here as not collected.
 | Question | Answer |
 |---|---|
 | Does Netzilo see the contents of my network traffic? | No. Traffic between devices is end-to-end encrypted WireGuard. The control plane distributes keys and policy; it does not hold the tunnel keys and cannot decrypt peer traffic. Relayed traffic passes through the relay still encrypted. |
-| Does Netzilo see my AI prompts? | Yes, for governed AI traffic. The Netzilo client (TLS inspection on the device) and the **AI Gateway** record each model call and MCP tool call into an **AI session**: usage facts (who, agent, model, tokens, latency, status; cost on the gateway) and the **captured conversation** — the messages as the caller sent and received them after the guardrails — which administrators read in Activity → AI Sessions and the Agentic Activity window (§3, §8). A matching rule also sends an event with the content that triggered it. Hosts that do not record AI sessions (the browser extension, older clients, any client of an older server) send an event per call with metadata and sizes, and MCP tool call arguments; their prompt and response text leaves only when a rule matches. Through the AI Gateway, prompts and answers traverse the customer's own gateway host on their way to the configured provider. The dashboard's AI assistant is separate: what is typed into it goes to the configured AI provider (§8). |
+| Does Netzilo see my AI prompts? | Yes, for governed AI traffic. The Netzilo client (TLS inspection on the device), the browser extension and the **AI Gateway** record each model call and MCP tool call into an **AI session**: usage facts (who, agent, model, tokens, latency, status; cost on the gateway) and the **captured conversation** — the messages as the caller sent and received them after the guardrails — which administrators read in Activity → AI Sessions and the Agentic Activity window (§3, §8). A matching rule also sends an event with the content that triggered it; a clean call sends no event. Through the AI Gateway, prompts and answers traverse the customer's own gateway host on their way to the configured provider. The dashboard's AI assistant is separate: what is typed into it goes to the configured AI provider (§8). |
 | What does every device report about itself? | Hardware and OS identity, network addresses including MAC, and device posture. Full list in §2. |
 | Where does it go? | To the management server. On self-hosted that is the customer's own server. On Cloud it is Netzilo. |
 | Can any of it be turned off? | Server usage statistics can be disabled. Device metadata and the posture block cannot be disabled; the posture block is reported whether or not any posture check uses it. Only file checks (and Windows registry checks) are limited to what a posture check names. See §2.1 and §6. |
@@ -144,8 +144,8 @@ or the MCP server, and the guardrails run there. The gateway reports to manageme
 
 | Event | What it carries |
 |---|---|
-| An AI request or response passes through | Only from hosts that do not record AI sessions (browser extension, older clients or servers): operation, tool name, server name and URL, request, session and user identifiers, duration, **size in bytes** of input and output, status, the calling process identifier, and tool call arguments |
-| A guardrail rule matches | Everything above, plus the action taken, the rule name, description and severity, the detection count, and a detection record |
+| An AI request or response passes through | No event; the call is recorded in its AI session (§3) |
+| A guardrail rule matches | Operation, tool name, server name and URL, request, session and user identifiers, duration, **size in bytes** of input and output, status, the calling process identifier and tool call arguments, plus the action taken, the rule name, description and severity, the detection count, and a detection record |
 | The detection record | The **content that triggered the match** — the prompt text for prompt rules, the URL for web-request rules — plus the rule pattern that matched, where in the request it matched, and the field path |
 
 A recording client or gateway sends no event for a call no rule matched; the call is in
@@ -265,7 +265,7 @@ say it needs confirmation rather than filling the gap.
 
 | | |
 |---|---|
-| Collected | on the device by the AI security layer; the triggering text when a rule fires. A recording client sends no event for a clean call (it is in the session, next table); a non-recording host sends one with metadata and sizes |
+| Collected | on the device by the AI security layer; the triggering text when a rule fires. No event is sent for a clean call (it is in the session, next table) |
 | Stored | as activity events on the management server |
 | Sent to | the management server, batched about every thirty seconds; event streaming (Integrations → Event Streaming), when configured, copies events to the customer's S3 or MinIO bucket |
 | Retained | like all activity events: until deleted, no automatic limit |

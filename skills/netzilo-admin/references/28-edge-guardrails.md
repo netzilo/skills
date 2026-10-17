@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 26663
+chars: 26512
 sections:
 - id: '1'
   title: Model
-  chars: 2316
+  chars: 2165
 - id: '2'
   title: Field reference (Add / Edit Guardrail)
   chars: 5270
@@ -83,11 +83,9 @@ Start there: find a close match, paste it into **Add Guardrail**, adjust, test (
   in the event; after a block only `redact` and `execute` rules still run; an `allow`
   rule never overrides a block; position in a list has no effect
   (`32-detection-rule-authoring.md`, "Evaluation Order and Verdicts").
-- Verdict events (category AI Edge): **AI allowed** (`ai.allowed`), **AI blocked**
-  (`ai.blocked`), **AI redacted** (`ai.redacted`), **AI redirected** (`ai.redirected`),
-  **AI detected** (`ai.detected`, a report-only match). **AI allowed** comes only from
-  hosts that do not record AI sessions (the browser extension, older clients or
-  servers); current clients and gateways report the other four. Every one carries the rule
+- Verdict events (category AI Edge): **AI blocked** (`ai.blocked`), **AI redacted**
+  (`ai.redacted`), **AI redirected** (`ai.redirected`), **AI detected** (`ai.detected`, a
+  report-only match). Allowed calls are not events; they are in AI sessions. Every one carries the rule
   (`rule_name`, `rule_id`), the filter (`filter_name`), the surface (`llm_request`,
   `llm_response`, `tool_call`, `tool_result`, `http_request`, …), the agent, model or
   tool, the source (`mitm`, `hook`, `extension`, `gateway`) and, when a rule matched

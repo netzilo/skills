@@ -7,6 +7,66 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.6.0 — 2026-10-17
+
+Published applications can carry restrictions enforced inside their pages, in any browser,
+with nothing installed. Minor version: a new capability in `44`, and corrections to how
+scripts authenticate to a published application.
+
+- Restrictions (`44` §4.2): the **Restrictions** tab (Redact Data, Add Watermark, Restrict
+  Clipboard, Restrict Printing, Restrict Downloads, Restrict Uploads, Block URLs, Show Gray
+  Border), the `restrictions` JSON object and its limits, pattern rules (JavaScript regular
+  expressions, nested quantifiers refused), what counts as a download and an upload, how
+  the reverse proxy places its script (end of the head, every signed-in browser including
+  extension users, CSP extended by three paths only, unchanged pass-through otherwise),
+  how changes reach open sessions without a new sign-in, the coverage log line and its
+  reasons, the events (`source: gateway`, *on <url> from <browser>*), and the limits.
+- What users see (`44` §5, §12), symptoms (`44` §11.2), log lines (`44` §10.1), limits
+  (`44` §13); routing rows in `00`, `17`, `39` and the skill index; `26` §5 separates
+  application restrictions from profile domain settings; `34` notes the gateway-sourced
+  browser events.
+- Corrections: the application receives `X-Netzilo-User-Id` and `X-Netzilo-User-Email`
+  (`44` §1). Scripts authenticate with `Authorization: Bearer` or `Proxy-Authorization:
+  Bearer`; `X-Netzilo-Bearer` is no longer read and answers `401` (`44` §6, §11.1, §11.2,
+  §13). `PUT /api/published-apps/{id}` replaces the application: a field left out is
+  cleared (`44` §4). The user's application list never carries restrictions; the access
+  answer does, personalised (`44` §4).
+- `33` regenerated: `restrictions` on the published-application bodies, and three
+  endpoints already in the server's description that `33` lacked
+  (`POST /api/ai-gateway/peer`, `POST /api/aidr/browser/usage`,
+  `POST /api/aidr/browser/content`).
+
+## 4.5.2 — 2026-10-17
+
+Rules and scripts must cover the operating systems they protect. Patch version: reference
+`32` taught rule authoring with macOS/Linux examples only, so a rule written from it loads
+on a Windows host and never fires there.
+
+- Detection rule authoring: new section "OS coverage — paths, names and shells differ" —
+  paths, program names and command lines arrive in the host's own form (drive letters,
+  backslashes, any case, `.exe`, `cmd`/PowerShell/Git Bash), the engine does not translate
+  them, and a rule matches them with both separators, `(?i)` and `(\.exe)?`; a worked
+  scripted rule; each claimed OS spelling is proven (`32`: workflow steps 10 to 12, the
+  pre-ship checklist).
+
+## 4.5.1 — 2026-10-17
+
+AI Edge events are verdicts only, from every source. Patch version: 4.5.0 said that the
+browser extension and hosts that record no AI sessions still send `ai.allowed`; no host
+sends it any more, and the server drops `ai.allowed` and `semantic.event` from older
+clients, gateways and extensions.
+
+- Events: `ai.blocked`, `ai.redacted`, `ai.redirected`, `ai.detected` only; a clean call
+  is in its AI session, never an event. `ai.allowed` (148) and `semantic.event` (127) are
+  no longer recorded; older rows remain until they age out (`08`, `10` §1, §3, §11, `28`,
+  `29`, `30` §1, §6, `34`, `00`).
+- The browser extension (5.2.577 and later) records its calls in AI sessions (point
+  `browser`); an older extension records none and its `ai.allowed` events are dropped
+  (`49` §8, `14` §1, §3).
+- AI Agent Activity report: calls come from AI session usage only, per user and per
+  setup-key peer (the **Agents** tab); events add violations (`30` §2).
+- Privacy: a clean call sends no event on any host (`14` §1, §3).
+
 ## 4.5.0 — 2026-10-15
 
 AI sessions are recorded on devices as well as on the AI Gateway, MCP calls are part of

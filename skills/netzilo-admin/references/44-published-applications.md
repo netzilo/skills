@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 67214
+chars: 82784
 sections:
 - id: '1'
   title: How it works
-  chars: 4614
+  chars: 4877
 - id: '2'
   title: Requirements and support
   chars: 2320
@@ -25,7 +25,7 @@ sections:
   - human-operator
 - id: '4'
   title: Publishing an application
-  chars: 9930
+  chars: 21611
   requires:
   - api
   executable_on:
@@ -34,10 +34,10 @@ sections:
   - human-operator
 - id: '5'
   title: What users see
-  chars: 3071
+  chars: 3662
 - id: '6'
   title: 'Non-interactive access: scripts and services'
-  chars: 2851
+  chars: 2972
 - id: '7'
   title: Where the reverse proxy runs
   chars: 1532
@@ -49,13 +49,13 @@ sections:
   chars: 2880
 - id: '10'
   title: Operating it
-  chars: 8300
+  chars: 8691
 - id: '11'
   title: Troubleshooting
-  chars: 12631
+  chars: 14317
 - id: '12'
   title: Supporting a user who cannot open an application
-  chars: 3425
+  chars: 3904
   requires:
   - api
   executable_on:
@@ -64,7 +64,7 @@ sections:
   - human-operator
 - id: '13'
   title: Limits
-  chars: 1324
+  chars: 1545
 ---
 # Published applications and the Netzilo reverse proxy
 
@@ -78,7 +78,9 @@ extension and the gateway's HTTPS proxy, is `43-clientless-access-gateway.md`.
 Not an nginx replacement: one address is one application, no path routing, no caching,
 no TCP publishing, and nothing is reachable that the user's own tunnel cannot route.
 
-Read §1 first. Turning it on is §3 and §4 (API). Users' questions are §5 and §12.
+Read §1 first. Turning it on is §3 and §4 (API); restrictions inside the application's
+pages (watermark, redaction, clipboard, printing, downloads, uploads, blocked addresses)
+are §4.2. Users' questions are §5 and §12.
 Installing the reverse proxy on a self-hosted server is §7 and §8; Netzilo Cloud
 customers skip those. Logs and health are §10; symptoms are §11.
 
@@ -115,7 +117,7 @@ customers skip those. Logs and health are §10; symptoms are §11.
    a virtual peer of the user, named `vp-<n>-RPROXY`, registered in the account as an
    ephemeral peer, with that user's policies, routes and DNS. The target is dialled
    through that tunnel and nowhere else. The application gets two headers naming the user
-   (`Nz-User-Id`, `Nz-User-Email`), the address it was published under in
+   (`X-Netzilo-User-Id`, `X-Netzilo-User-Email`), the address it was published under in
    `X-Forwarded-Host`, and, when **Forward the user's credential** is on (§4), the user's
    token as `Authorization: Bearer`; redirects and cookies it sets for its internal name are rewritten
    to the published address. Its certificate is never verified (a private service behind
@@ -135,6 +137,9 @@ customers skip those. Logs and health are §10; symptoms are §11.
    (§10.3). A second application
    opened from the same browser needs no new sign-in prompt: the Workplace already has
    the session, and only the cookie for the new address is issued.
+9. An application with **restrictions** (§4.2) gets a small Netzilo script placed in each
+   HTML page the reverse proxy serves to a browser; the script enforces them in the page.
+   An application without restrictions is proxied exactly as before.
 
 **Published never means public.** The address answers only signed-in users the
 application admits; everyone else gets the sign-in redirect or, for an address nobody
@@ -224,8 +229,9 @@ Verify link: `{"configured":true,"matches_gateway":true,"resolves_to":["203.0.11
 
 **Network → Applications** (administrators). The table lists name, **Address**, target,
 groups and an **Active** switch per row; filters All / Active / Inactive and by group; a
-search box. **Add Application** opens a modal with three tabs, **Application** →
-**Posture Checks** → **Name & Description**:
+search box. **Add Application** opens a modal with four tabs, **Application** →
+**Posture Checks** → **Restrictions** → **Name & Description**; **Continue** walks them in
+that order and the two middle tabs may stay empty:
 
 **Application**
 
@@ -244,6 +250,9 @@ the same **All / Any** evaluation switch (`any_check_must_pass`, default false: 
 check must pass). The Applications table shows the count per row, and a check named by an
 application cannot be deleted while it is (the Posture Checks table lists the applications
 using it, with *Go to Applications*). Enforced at every sign-in and re-check, §4.1.
+
+**Restrictions** (third tab): the data-protection rules applied inside the application's
+pages, §4.2.
 
 **Name & Description**: a name, unique within the tenant, shown on the Workplace tile
 and in the activity log; an optional description.
@@ -317,13 +326,14 @@ API (`33-api-request-schemas.md` for the bodies):
 
 ```
 GET    /api/published-apps                     the tenant's applications (administrators)
-POST   /api/published-apps                     {name, description, domain, target, groups, enabled, preserve_host, forward_credential, posture_checks, any_check_must_pass}
-PUT    /api/published-apps/{appId}             same body
+POST   /api/published-apps                     {name, description, domain, target, groups, enabled, preserve_host, forward_credential, posture_checks, any_check_must_pass, restrictions}
+PUT    /api/published-apps/{appId}             same body; it replaces the application: a field left out is cleared (restrictions included)
 DELETE /api/published-apps/{appId}
 GET    /api/published-apps/check?domain=crm.apps.example.com[&except=<appId>]
                                                {available, reason: taken|invalid|domain, dns:{resolves_to, matches_gateway, configured}}
 GET    /api/users/current/published-apps       what the caller may open: id, name, description, domain, url
-                                               (a regular user sees their own list; this is what the Workplace shows)
+                                               (a regular user sees their own list; this is what the Workplace shows;
+                                               never the restrictions, which only the access answer carries, personalised)
 GET    /api/published-apps/exists?domain=      no token: {"published": bool}; what the reverse proxy asks
 ```
 
@@ -338,6 +348,142 @@ source is one of the user's groups, and the policy's posture checks must pass fo
 user's reverse-proxy peer (§10.3). A user admitted to the application whose policies do
 not reach the target sees **Access Failed** (§11.3). Nothing about the reverse proxy
 widens what a policy allows.
+
+### 4.2 Restrictions in the application's pages
+
+Restrictions protect what an application shows, inside its own pages, in any browser,
+with nothing installed: the kinds of rules a profile gives the Netzilo browser extension
+for web domains (`26-profiles-secure-workplace.md`), set per application. The reverse
+proxy places a small script in each HTML page it serves and the script enforces them.
+Nothing else of the traffic is read or changed: no content filtering at the proxy, no
+inspection of API calls, uploads or downloads on the wire.
+
+**The tab** (**Restrictions**, third in the modal) shows one card per restriction with
+**ON** / **OFF**; Redact, Watermark, Downloads, Uploads and Block URLs open a dialog,
+Clipboard, Printing and Gray Border toggle with a click. Saved with the application.
+
+| Card | JSON (`restrictions`) | What it does in the page |
+|---|---|---|
+| **Redact Data** | `redact: [{regex, mask_with, show_last}]` | masks displayed text that matches: `\b4[0-9]{15}\b`, `••••`, `4` → `•••• 1111`. Never form fields, `contenteditable`, code editors (Monaco, Ace, CodeMirror, xterm, ProseMirror), SVG or canvas: a value the user edits and saves is never changed. Matches in text nodes longer than 20 000 characters are not masked |
+| **Add Watermark** | `watermark_text`, `watermark_type: sparse \| dense` | text over every page: sparse = five marks, dense = a tiled, rotated pattern. `%netzilo.username%` (the user's name from the identity provider), `%netzilo.ip%` (public address at sign-in), `%netzilo.region%` (city by geolocation) are filled by management per user in the access answer; `%date%`, `%time%`, `%newline%` by the page (local time, refreshed every minute). Drawn as generated content: not selectable, not copied, not found by the browser's search, hidden from screen readers |
+| **Restrict Clipboard** | `restrict_clipboard` | copy, cut and drags that carry data (selected text, images, links) are blocked before the application's own handlers; `navigator.clipboard.write/writeText` resolve without writing. Paste stays allowed; drags of the application's own items (board cards, columns) carry no data and keep working |
+| **Restrict Printing** | `restrict_printing` | print media shows *Printing is restricted by your organization.*; Ctrl/Cmd+P is prevented (the application still sees the key); Ctrl/Cmd+Shift+P (command palettes) untouched |
+| **Restrict Downloads** | `restrict_downloads: ["all"]` or patterns | a *download* is a link with the `download` attribute, a navigation the browser marks as a download, a `blob:`/`data:` address the page builds, the save-file picker, or a link to the application's own origin whose **path** ends in `.pdf .zip .7z .rar .gz .tgz .tar .bz2 .xz .exe .msi .dmg .pkg .deb .rpm .apk .ipa .iso .doc(x/m) .xls(x/m) .ppt(x) .csv .tsv .rtf .odt .ods .odp .psd .parquet`. `all` blocks those; a pattern blocks those whose file name or address matches. Links to pages, same-page (SPA) navigations and links to other sites are never blocked |
+| **Restrict Uploads** | `restrict_uploads: ["all"]` or patterns on the **file name** | file fields (`input` and `change`, also inside open shadow roots), drop, paste of files, `fetch`/`XMLHttpRequest`/`sendBeacon` bodies that are a `File` or a `FormData` holding one, and the open-file picker. A blocked `fetch` rejects like a network error; a blocked XHR is re-sent to `/.netzilo/dlp/blocked`, which answers `403`, so libraries waiting for `loadend` finish |
+| **Block URLs** | `block_urls: [patterns]` | patterns on the full absolute address of a page of the application. Opened directly: loading stops, *Access restricted* with **Go back**. Inside a single-page application (`pushState`/`replaceState`, back/forward, hash changes) the cover appears synchronously and the page behind is inert; it lifts when the address is allowed again. Links and `window.open` to a blocked address do nothing |
+| **Show Gray Border** | `show_gray_border` | a 4 px gray frame around protected pages |
+
+**Patterns** are JavaScript regular expressions as the browser evaluates them, not RE2.
+Download, upload and URL patterns are case-insensitive; redaction patterns are
+case-sensitive unless written `/pattern/i` (the `/…/flags` form is accepted, flags
+`imsu`; `\p{…}` gets the `u` flag automatically). `all` or `any` means everything. The
+dashboard refuses a pattern the browser cannot compile and one with a nested quantifier
+(`(a+)+`, `(\w+\s?)+`), which can hang a tab: *Not a valid pattern*, **Save** disabled.
+Management does not compile them (the page does); through the API an uncompilable or
+nested pattern is accepted and then **skipped in the page** with a console warning, so
+validate before sending. Limits (`422` otherwise): 50 entries per list, 512 characters per
+pattern, a `mask_with` of 1–16 characters on every redaction rule, `show_last` 0–64,
+watermark 200 characters, type `sparse` or `dense` (default `sparse`). Blank entries are
+dropped; an object with nothing set is dropped (the application has no restrictions).
+
+**API.** `restrictions` is part of the application body (§4): `PUT` replaces it, so
+always send the current object back. Example:
+
+```json
+"restrictions": {
+  "watermark_text": "Confidential %netzilo.username% %date% %time%",
+  "watermark_type": "sparse",
+  "restrict_clipboard": true,
+  "restrict_printing": true,
+  "restrict_downloads": ["all"],
+  "restrict_uploads": ["\\.(exe|zip)$"],
+  "block_urls": ["/admin/"],
+  "redact": [{"regex": "\\b4[0-9]{15}\\b", "mask_with": "••••", "show_last": 4}],
+  "show_gray_border": true
+}
+```
+
+`GET /api/published-apps` returns it for administrators. Regular users never see it in
+their list (§4); the reverse proxy reads the personalised copy from the access answer
+(`POST /api/users/current/published-apps/access`, `app.restrictions`), at sign-in and at
+every re-check.
+
+**How it is applied.**
+
+- Only for an application whose `restrictions` restrict something, only for browser
+  sessions signed in at the Workplace, only for page navigations (`Sec-Fetch-Dest`
+  `document`/`iframe`/`frame`; without fetch metadata, a GET with
+  `Upgrade-Insecure-Requests: 1`, `Accept: text/html` and no `X-Requested-With`). XHR,
+  `fetch`, HTML fragments, assets, WebSockets and SSE pass untouched. Credential
+  callers (§6) never get it.
+- **Extension and Enterprise Browser users get it too.** The extension enforces its
+  profiles' domain rules, not an application's restrictions; both apply.
+- The tag (a JSON policy block and `<script src="/.netzilo/dlp/netzilo.js?v=<hash>">`) goes
+  at the **end of the head**, before a `<meta http-equiv="Content-Security-Policy">` if the
+  head has one; on a page without an explicit head, before its first element. Frameworks
+  that hydrate the whole document (React) tolerate it there. Script, icons
+  (`/.netzilo/dlp/img/`) and reports (`/.netzilo/dlp/event`) are served from the
+  application's own address; the script is the same for everyone and cached a year under
+  its versioned address. The policy block names nobody: only the watermark text, as the
+  administrator wrote it, carries personal data.
+- The decision is taken on the first bytes **before any header leaves**: a page that
+  cannot be tagged safely goes out byte for byte with its own headers. A tagged page loses
+  `Content-Length`, `ETag` and `Last-Modified`, gets `Cache-Control: private, no-cache`
+  (`private, no-store` when the application sent `no-store`), and the request to the
+  target is sent unconditional (no `If-None-Match`/`If-Modified-Since`) and asks for gzip
+  only; a gzip page is decoded, tagged and compressed again. When the page declares its
+  charset only in a meta tag, the header gets it too.
+- **CSP.** Each policy of the application (`,`-joined ones separately, report-only
+  included) is extended by exactly the three paths:
+  `script-src[-elem] <origin>/.netzilo/dlp/netzilo.js`, `connect-src <origin>/.netzilo/dlp/`,
+  `img-src <origin>/.netzilo/dlp/img/`; under `'strict-dynamic'` the script is admitted by a
+  nonce instead. Directives that already allow `'self'`/`https:`/`*` are left alone. A
+  page whose enforced policy says `script-src 'none'` or `sandbox` without
+  `allow-scripts` is served unchanged, unrestricted.
+- **Changes** reach users without a new sign-in: saving changes the application's version,
+  the reverse proxy's watcher (§9) makes sessions re-read it, and the next page the user
+  opens has the new policy — measured 13–26 seconds, within a minute. An open page keeps
+  its policy until reloaded.
+- Same-origin frames that load no page of their own (`about:blank`, `srcdoc`, `blob:`)
+  get the clipboard, print, download and upload listeners from their parent.
+
+**Coverage.** Every 5 minutes the reverse proxy logs, per protected application,
+`gateway: page restrictions at <address>: N page(s) covered, passed through: <reason>=<n> …`
+(§10.1). Reasons: `not-html`, `status`, `attachment`, `range`, `api-session` (expected);
+`csp-none`, `csp-sandbox` (the application forbids scripts); `encoded` (a compression other
+than gzip, or a broken gzip body); `charset`, `xhtml` (UTF-16/32 or NUL bytes, XHTML);
+`slow` (no usable start of the page within 2 seconds); `no-head` (no place found in the
+first 64 KB); `empty`. Persistent `slow`, `no-head` or `encoded` mean real pages run
+without restrictions: escalate with the application name and the line.
+
+**Activity** (`34-event-catalogue.md`): the extension's own browser events, recorded as
+the user, with `source: gateway`, `application`, `domain`, `peer` = the browser as signed
+in (*Chrome 130 on macOS 15.1*) and `url` = the page's address without query or fragment
+(an address outside the application is replaced by its root). The dashboard reads them as
+*Blocked downloading statement.pdf on https://crm.apps.example.com/accounts from Chrome 130
+on macOS 15.1*.
+
+| Event | Code | Meta |
+|---|---|---|
+| Copy/Paste blocked | `browser.data.clipboard.blocked` (87) | `url` |
+| Printing blocked | `browser.data.print.blocked` (86) | `url` |
+| Sensitive data redacted | `browser.data.redacted` (85) | `pattern`; once per rule per page |
+| Download blocked | `browser.download.file` (74) | `file` when known |
+| Upload blocked | `browser.upload.file` (110) | `file` |
+| Blocked URL | `browser.url.blocked` (84) | `pattern` |
+
+The page reports at most 30 events a minute, the reverse proxy relays at most 60 a minute
+per session; reports go to the reverse proxy same-origin with the session cookie, and it
+records them with management with the user's own credential. A page script can report
+what did not happen: these events are the browser's word, as the extension's are.
+
+**Limits — say them plainly.** In-page enforcement deters and records; a user who controls
+the browser can disable the script with developer tools. Screenshots and screen sharing
+are not prevented (that needs the Enterprise Browser or the Workspace, required with a
+posture check, §4.1). Not covered: downloads the server starts without a link the page
+sees (a form post that answers with a file, a redirect), pages a service worker serves
+from its own cache, the page answering a form `POST`, frames from other sites, and
+credential callers. There is no temporary-exception button as in the extension.
 
 ## 5. What users see
 
@@ -377,6 +523,13 @@ widens what a policy allows.
   way: the browser goes to the published address, and the reverse proxy, not the client,
   carries the request.
 - Mobile browsers work the same; nothing is installed.
+- **Restricted applications (§4.2):** a watermark and a gray border may be drawn, matched
+  data shows masked, and a blocked action shows a Netzilo notice at the bottom right for
+  ten seconds: *Your organization restricts copying and dragging content from this
+  application.*, *… printing this content.*, *… downloading files from this application.*,
+  *… uploading files to this application.*, *… access to this address.*, and, the first
+  time something is masked on a page, *… viewing sensitive data on this application.* A
+  blocked address shows *Access restricted* with **Go back**.
 
 The Workplace page itself is not required after the sign-in: the cookie on the
 application's address carries the session, and a bookmark to the application works.
@@ -388,18 +541,20 @@ by presenting a Netzilo credential on every request:
 
 ```bash
 curl https://grafana.apps.example.com/api/health \
-  -H "X-Netzilo-Bearer: nzl_…"                        # the user's personal access token, or an identity-provider token
-  -H "Authorization: Bearer <the application's own token>"   # optional, reaches the application untouched
+  -H "Authorization: Bearer nzl_…"        # the user's personal access token, or an identity-provider token
 ```
 
-- `X-Netzilo-Bearer` is consumed by the reverse proxy and never reaches the application;
-  **`Authorization` and every other header pass through as sent**, so an application that
-  expects a bearer of its own gets it. The Netzilo token may also be presented as
-  `Proxy-Authorization: Bearer <token>` or as `Authorization: Bearer <token>` (the form
-  AI agents and SDKs send; `x-api-key` is **not** a credential and is ignored as one).
-  `Proxy-Authorization` is dropped as hop-by-hop by a TLS-terminating proxy in front
-  (Caddy on self-hosted, most ingress controllers) before the reverse proxy sees it, so
-  prefer `X-Netzilo-Bearer` or `Authorization: Bearer`.
+- The credential is read from `Proxy-Authorization: Bearer <token>` first, then from
+  `Authorization: Bearer <token>` (the form AI agents and SDKs send; `x-api-key` is **not**
+  a credential). A credential taken from `Authorization` is consumed and the application
+  receives no `Authorization` header; one taken from `Proxy-Authorization` leaves the
+  application's own `Authorization` header untouched. `Proxy-Authorization` is dropped as
+  hop-by-hop by a TLS-terminating proxy in front (Caddy on self-hosted, most ingress
+  controllers), so behind one only `Authorization` works and the application cannot get
+  a bearer of its own on the same request.
+- `X-Netzilo-Bearer`, which earlier releases read, is **no longer a credential**: it is
+  stripped (in every spelling) and the request is treated as unauthenticated. Scripts
+  still sending it get `401` and must switch to `Authorization: Bearer`.
 - An **AI Gateway** published this way (`27-ai-gateway.md` §5.3) receives the user's own
   token as `Authorization: Bearer` when **Forward the user's credential** is on (§4), and
   identifies the caller from it; with it off the gateway sees no credential and refuses.
@@ -703,6 +858,8 @@ finds the line.
 | `gateway: <email> at <address>: oldest sign-in dropped, 32 web sessions` | the per-user session cap |
 | `gateway: <ip> blocked for 5m0s after 20 failed logins` | an address guessing credentials, or a job with a stale token |
 | `Posture check '<name>' FAILED at <check>` (tunnel line) | a policy's posture check fails for this user's reverse-proxy peer (§10.3) |
+| `gateway: page restrictions at <address>: N page(s) covered, passed through: <reason>=<n> …` | every 5 minutes per application with restrictions: pages that got the script and why others were served unchanged (§4.2) |
+| `gateway: application at <address> changed: N session(s) will ask again` | the application was saved (restrictions too); its sessions re-read it on their next request |
 
 `--log-level debug` adds every dial and its outcome; put it back to `info` afterwards.
 Logs never contain a credential.
@@ -801,7 +958,7 @@ With a user's token (§6; never paste it into a ticket):
 
 ```bash
 export TOKEN=nzl_...
-curl -sS -o /dev/null -w 'api -> HTTP %{http_code} in %{time_total}s\n' -H "X-Netzilo-Bearer: $TOKEN" "https://$A/"
+curl -sS -o /dev/null -w 'api -> HTTP %{http_code} in %{time_total}s\n' -H "Authorization: Bearer $TOKEN" "https://$A/"
 unset TOKEN
 ```
 
@@ -843,7 +1000,11 @@ curl -sS -H "Authorization: Token $USER_TOKEN" https://<api-host>/api/users/curr
 | the application works for some users only | §11.1 with each user's token; their groups and policies | groups admit them differently, or their policies reach the target differently (§4) |
 | **Peers** show the server's or the ingress's IP for `vp-<n>-RPROXY` | the container's `--publish-trusted-proxies` | it does not cover the proxy in front (compose: `172.20.0.0/24`; Kubernetes: the pod network) |
 | a policy with a posture check never admits the reverse-proxy peer | the check's items | Endpoint items can never pass for it; an OS minimum above what the browser reports (Firefox and Safari freeze the version) blocks it (§10.3) |
-| API client gets `401 credential refused` with a valid token | the token's owner in **Team → Users** | expired, revoked, for another server, or the user is blocked; through a proxy that strips headers, `Proxy-Authorization` was dropped: use `X-Netzilo-Bearer` (§6) |
+| API client gets `401` with a valid token | the header the client sends; the token's owner in **Team → Users** | the token is in `X-Netzilo-Bearer` (no longer read) or in `Proxy-Authorization` behind a proxy that drops it: send `Authorization: Bearer` (§6). Otherwise expired, revoked, for another server, or the user is blocked |
+| a restriction does not apply on a page | the application's `restrictions` (`GET /api/published-apps`); the coverage line (§10.1); the browser's console for *Netzilo: a restriction pattern cannot be used* | not saved, or the page was opened before the change (reload); the page is not HTML or its policy forbids scripts (`csp-none`, `csp-sandbox`); `slow`/`no-head`/`encoded` in the coverage line; a pattern the browser cannot compile or a nested quantifier, skipped (§4.2); a download the server starts itself or a service-worker page (§4.2 limits) |
+| links, buttons or pages stop working on a restricted application | which restriction: the Netzilo notice text; **Block URLs** and **Restrict Downloads** patterns | **Restrict Downloads** blocks links whose path ends in a document or archive extension and matching names; **Block URLs** blocks every address a pattern matches (patterns are unanchored and case-insensitive). Narrow the pattern; prefer patterns to `all` |
+| masked text where it should not be, or a value in a form | the redaction patterns | a pattern matches more than meant: anchor it (`\b…\b`). Form fields and editors are never masked; what looks masked there comes from the application |
+| the watermark shows *Unknown* or the wrong name | the user's name in the identity provider; the access event's `real_ip` | `%netzilo.username%` is the identity provider's display name (service users: their name); `Unknown` when there is none, `%netzilo.ip%` is the public address at sign-in (`Unknown` without one), `%netzilo.region%` the city by geolocation. It is filled at sign-in and each re-check |
 | API client gets `403 not allowed to open this application` | the token owner's groups | the owner is not admitted (§4) |
 | the modal says **Not under an application domain** | **Settings → Permissions → Application domains** | multi-tenant server: add the domain first (§3), or pick a label under an existing one |
 | **Unavailable — already published** for a name nobody in this tenant uses | — | another tenant on the same server holds it (Cloud: the shared `netzilo.app`); choose another label |
@@ -897,6 +1058,8 @@ a browser; nothing on the user's machine is Netzilo's.
 | "It opens but looks broken / logs me out of the app / goes to an internal name" | the application's own configuration (§11.2) | **administrator**: the application's base URL or the Host header option |
 | "Slow the first time" | — | expected: the user's tunnel starts on the first request after an hour (§1) |
 | "Does this work on my phone / without the Netzilo app?" | — | yes, any browser; the application still opens only for signed-in, admitted users |
+| "I can't copy / print / download / upload" or "a watermark is on the page" | the Netzilo notice they saw | the application's restrictions (§4.2), by design. **Administrator** if a legitimate task needs an exception: there is no per-user exception; the administrator narrows the patterns or turns the restriction off |
+| "Part of the page is hidden / *Access restricted*" | the address they opened | **Block URLs** matches it (§4.2); **administrator** if it should be allowed |
 
 The message to the administrator follows `39-end-user-self-service.md` §4: the
 application's address, what the dialog said (*Access Denied* or *Access Failed* and its
@@ -921,4 +1084,7 @@ line), the time, and the user's e-mail.
   first use; a provided certificate must be a wildcard (§8.2).
 - The reverse proxy trusts the proxy in front of it for client addresses and nothing
   else; behind a proxy that does not forward `Proxy-Authorization`, API clients must use
-  `X-Netzilo-Bearer` or `Authorization: Bearer` (§6).
+  `Authorization: Bearer` (§6).
+- Restrictions (§4.2) are enforced inside the page: a deterrent against users who control
+  their browser, no screenshot protection, no coverage of server-started downloads,
+  service-worker pages or form-POST answers, no per-user exceptions.

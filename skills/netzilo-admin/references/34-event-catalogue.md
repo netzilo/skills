@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 10631
+chars: 11419
 sections:
 - id: administration
   title: Administration
@@ -16,7 +16,7 @@ sections:
   chars: 816
 - id: policy-violation
   title: Policy Violation
-  chars: 762
+  chars: 1249
 - id: data-exfiltration
   title: Data Exfiltration
   chars: 497
@@ -28,11 +28,11 @@ sections:
   chars: 79
 - id: ai-edge
   title: AI Edge
-  chars: 1078
+  chars: 1379
 ---
 # Event catalogue — what each activity is called
 
-Generated from Netzilo Server's activity table on 2026-10-15 by
+Generated from Netzilo Server's activity table on 2026-10-17 by
 `scripts/gen-event-codes.py`. 162 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
@@ -201,6 +201,13 @@ rows written before they were retired still show their name.
 | Application access denied by posture | `published_app.access_denied` |
 | Posture check failed | `workspace.posture.check` |
 
+The browser events below (`browser.download.file`, `browser.upload.file`,
+`browser.url.blocked`, `browser.data.clipboard.blocked`, `browser.data.print.blocked`,
+`browser.data.redacted`) come from the Netzilo browser extension and also from a published
+application's restrictions. The latter carry `source: gateway`, `application`, `domain`
+and `peer` = the browser as signed in (*Chrome 130 on macOS 15.1*); say *on <url> from
+<browser>* for them (`44-published-applications.md` §4.2).
+
 ## Data Exfiltration
 
 | Say this | Code |
@@ -233,7 +240,7 @@ rows written before they were retired still show their name.
 
 | Say this | Code |
 |---|---|
-| AI allowed | `ai.allowed` |
+| AI allowed | `ai.allowed` (no longer recorded: allowed calls are in AI sessions; the server drops the event from older hosts, and older rows remain until they age out) |
 | AI blocked | `ai.blocked` |
 | AI content reported | `ai.content` (the captured messages of recorded model and tool calls on their way to the AI sessions; never shown in Activity) |
 | AI detected | `ai.detected` |
@@ -242,5 +249,5 @@ rows written before they were retired still show their name.
 | AI usage reported | `ai.usage` (a device's or gateway's recorded model and tool calls on their way to the AI sessions; never shown in Activity) |
 | AI behavior graph updated | `aidr.graph` (a device's behaviour data on its way to the graph, never stored as an entry; shown as "Session snapshot" only for a browser tab session's first behaviour (and on older device rows), with a session id that opens its graph) |
 | Session trajectory available | `aidr.trajectory` (one per AI session, when its first recorded calls reach the server; meta `session_id`, `agent_name`, `peer`, `point`; opens the session in the Agentic Activity window; `30-activity-reports-and-integrations.md` §3) |
-| Semantic event | `semantic.event` |
+| Semantic event | `semantic.event` (no longer recorded: behaviour observations are in the behaviour graph; the server drops the event from older hosts, and older rows remain until they age out) |
 
