@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 23027
+chars: 23644
 sections:
 - id: '1'
   title: What a regular user can see through the API
@@ -18,7 +18,7 @@ sections:
   chars: 2164
 - id: '3'
   title: The questions a regular user brings, and where each one ends
-  chars: 10738
+  chars: 11355
 - id: '4'
   title: Ending on the administrator's side of the boundary
   chars: 1736
@@ -157,6 +157,7 @@ administrator.
 | "My browser extension says Inactive" / "nothing is redacted in ChatGPT" | the popup: are they signed in (**Login**), what the **Protection** line says; `GET /api/edge/filters?os=browser` — is any endpoint filter with **Browser** among its operating systems in the list; `GET /api/aidr/sources` — does their browser appear with `kind: browser`. No device tools for a browser | Their side: sign in from the popup, update the extension; in Safari enable the **Netzilo Browser** extension and allow it on all websites. **Administrator** when no endpoint filter listing **Browser** targets their groups, or that filter binds no guardrail (`49-browser-extension-aidr.md`) |
 | "The extension says the desktop client governs this browser" | `GET /api/peers` — their device on that computer is connected. Nothing else to check | Expected: the Netzilo client on that device inspects the AI sites itself and the extension stands down; the same rules apply through the client. On Linux the client does not take over the browser, so the extension stays in charge there (`49-browser-extension-aidr.md`) |
 | "Claude Desktop sign-in fails" — "gateway SSO discovery failed: 401", "Gateway returned HTTP 405 … /v1/messages", "gateway SSO metadata invalid: token_endpoint: must be same-origin …", "server does not advertise device_authorization_endpoint", "gateway SSO device init failed: HTTP 400" | the endpoint they typed against the **Anthropic API** address in `ai-access`: it must end in `/anthropic` (401 and 405 mean it does not) | Their side for the address; **administrator** for the other three: the gateway or the server predates the device sign-in and needs an upgrade (`47-agentic-access-workplace.md` §5, `46-ai-gateway-mcp-servers-and-bundles.md` §6) |
+| "My file was refused" / "Netzilo Guardrail: <file name>: …" / "API Error: 400 Netzilo Guardrail: …" in Claude Code | the exact message (it names the file and the reason); which tool and whether it goes through the company gateway (`ai-access`) | By design: a guardrail on files for their groups. Their side: send the next message without the file (a retry with the same request is refused again; a computer-use screenshot needs a new conversation). **Administrator** when the file is needed for their work: the message to the administrator names the file, its kind and why (`50-ai-gateway-file-guardrails.md` §5) |
 | "I approved but Claude still waits" | did the page reach **Access allowed**; how long ago — the sign-in expires 10 minutes after Claude started it and the approval is collected within 5 minutes; a server restart in between drops it | Their side: start again from Claude (**Sign in with your organization**) and approve once more; **administrator** if every attempt ends the same way (`47` §5, `46` §6) |
 | "A token named Claude (MCP) appeared under my Access Tokens — what is it" | `GET /api/users/{their id}/tokens` — a token named **<app> (MCP)**, scope `mcp`, created the moment they pressed **Allow** for that application | Their side, expected: it is the application's sign-in and it renews itself; deleting it signs the application out and nothing else changes (`47` §5, `46` §6) |
 

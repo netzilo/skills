@@ -290,5 +290,10 @@
     "requires": [
       "api"
     ]
+  },
+  "50-ai-gateway-file-guardrails.md": {
+    "requires": [
+      "api"
+    ]
   }
 }

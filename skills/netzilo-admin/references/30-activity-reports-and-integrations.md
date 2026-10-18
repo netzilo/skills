@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 34840
+chars: 35506
 sections:
 - id: '1'
   title: Activity → Events
-  chars: 7012
+  chars: 7397
 - id: 1a-activity-ai-sessions
   title: 1a. Activity → AI Sessions
-  chars: 2360
+  chars: 2641
 - id: '2'
   title: Reports
   chars: 3523
@@ -93,14 +93,18 @@ Event categories and the most useful codes:
 Reading AI Edge rows. Every `ai.*` row has the same shape: "`<agent>` on `<peer>` for
 `<user>`: prompt to `<model>` (`<provider>`) | response from … | tool call `<tool>` on
 `<server>` | tool result … | request to `<host>` | connection to `<host>` | process
-`<tool>` | periodic rule — blocked by rule `<rule>` by filter `<filter>` —
+`<tool>` | periodic rule | file `<name>` (`<EXT>`) to `<model>` | file `<name>` a tool returned to `<model>` — blocked by rule `<rule>` by filter `<filter>` —
 `<reason>` (matched: `<excerpt>`) | redacted | redirected to `<target>` | matched". The
 raw JSON carries `surface` (`llm_request`, `llm_response`, `tool_call`, `tool_result`,
-`prompt`, `sampling`, `http_request`, `connect`, `process_exec`, `periodic`), `engine`
+`prompt`, `sampling`, `http_request`, `connect`, `process_exec`, `periodic`,
+`file_attachment`), `engine`
 (`rules`, `semantic`, `script`, `periodic`, `policy`, `limit`), `source` (`mitm`, `hook`,
 `extension`, `gateway`, `probe`), the rule, filter, provider, model, server, tool, host,
 session and actor fields, and `content` (at most 8 KB, after redaction, with
-`content_truncated`). A limit refused at the AI Gateway is `ai.blocked` with engine
+`content_truncated`). A file event (AI Gateway, `50` §7) adds `file_name`, `file_type`,
+`file_size`, `file_sha256`, `channel` (`llm_attachment` | `tool_result`), `extra` with the
+file's fields, and the file's text as the guardrails left it under **show full file
+text**; the file itself is never stored. A limit refused at the AI Gateway is `ai.blocked` with engine
 `limit`, source `gateway`, surface `llm_request`; a model or provider the user is not
 granted is engine `policy`. Rows written by clients before this release with the retired
 `tool.*` codes render as "UNKNOWN_ACTIVITY"; they are history, not a fault.
@@ -153,7 +157,10 @@ of the whole session); the other columns are not. Default: Last activity, newest
 Paged on the server; a page past the end moves to the last page. Usage of a session
 recorded on a device shows cost $0.00: cost is not computed on devices. Clicking a row
 opens the session in the Agentic Activity window (LLM tab → Trajectory, MCP tab → MCP
-Calls); the kill-chain badge opens it on the graph.
+Calls); the kill-chain badge opens it on the graph. A model call that carried files lists
+them under **Files** (name, type, size, *attached to the request* / *returned by the
+tool*, *not scanned (reason)*, the verdict and rules), and the graph has `FILE_SENT` /
+`FILE_RECEIVED` edges whose popup gives each file's verdict (`50` §7).
 
 **Search** matches the user (e-mail, name), agent, client app, MCP client, gateway, models,
 MCP server names and tools. Text is split into words at anything that is not a letter or

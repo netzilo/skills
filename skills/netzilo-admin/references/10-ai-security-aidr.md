@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 39659
+chars: 40128
 sections:
 - id: '1'
   title: Architecture in one page
@@ -29,7 +29,7 @@ sections:
   chars: 4866
 - id: '7'
   title: The AI Gateway and MCP
-  chars: 2227
+  chars: 2696
 - id: '8'
   title: Writing and testing rules (Guardrails)
   chars: 1886
@@ -393,6 +393,13 @@ binary blobs and shape fields (`type`, `mimeType`) are not judged. A rewrite goe
 the exact place and the result keeps its shape (`isError`, `structuredContent`, item
 order); if the guardrails hand back a different number of texts, the result is refused
 (fail closed). Tool-call arguments are judged too, on the request side.
+
+**Files attached to model requests are judged at the gateway only** (`file_attachment`):
+documents, images, file parts and files a tool returned, read when a file rule applies to
+the user (text, DOCX/XLSX/PPTX, PDF; no OCR). The device engine, hooks, the SDK and the
+browser extension do not judge files as files; text a client extracts from a file
+(Claude Code reading a CSV, Claude Cowork reading any document) is judged as text.
+`50-ai-gateway-file-guardrails.md`.
 
 ---
 

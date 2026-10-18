@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 196080
+chars: 207857
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
@@ -32,7 +32,7 @@ sections:
   chars: 1630
 - id: how-it-works-architecture-overview
   title: How It Works — Architecture Overview
-  chars: 7557
+  chars: 7798
 - id: what-are-rules
   title: What Are Rules?
   chars: 591
@@ -53,10 +53,10 @@ sections:
   chars: 3253
 - id: logsource-category-what-traffic-to-watch
   title: logsource.category — What Traffic to Watch
-  chars: 5403
+  chars: 16682
 - id: detection-what-to-look-for
   title: Detection — What to Look For
-  chars: 9693
+  chars: 9950
 - id: metadata-filtering-moving-when-into-detection
   title: Metadata Filtering — Moving `when:` into Detection
   chars: 790
@@ -508,6 +508,7 @@ All paths feed the same observation log and behaviour graph and publish the same
 | **LLM API calls** | Agent → OpenAI / Anthropic / Azure / Gemini: the full prompt and model response, including `tool_use` and `tool_result` blocks. At the AI Gateway, prompts and answers are evaluated on `/v1/chat/completions`, `/v1/responses` and `/anthropic/v1/messages`, streamed answers included; embeddings and text completions are not evaluated |
 | **HTTP** | Any request the proxy sees (endpoint) or the gateway forwards |
 | **Process / file / connect** | Endpoint only: spawns, file activity, raw connections |
+| **Files attached to model requests** | AI Gateway only: documents, images, file parts and files a tool returned, judged as `file_attachment` — type facts as fields, the file's text as `content`. See [File Attachments](#file-attachments) |
 | **Semantic events** | Synthesized by the classifier: `skill_acquired`, `external_message`, `file_upload`, etc. — see [Semantic Events](#semantic-events) |
 
 ### How guardrails interact
@@ -761,6 +762,7 @@ The `logsource.category` value controls which traffic events the rule evaluates 
 | `llm_request` | agent_events + event_type: llm_request | `llm_request` |
 | `llm_response` | agent_events + event_type: llm_response | `llm_response` |
 | `http_request` | agent_events + event_type: http_request | `http_request` |
+| `file_attachment` | agent_events + event_type: file_attachment — a file a model request carries (AI Gateway only; see [File Attachments](#file-attachments)) | `file_attachment` |
 
 ### Semantic Event Categories
 
@@ -832,6 +834,150 @@ The `logsource.category` value controls which traffic events the rule evaluates 
 | `agent_events` or `all` | Every context above plus all semantic event types |
 | `periodic` | Background Starlark scripts on a 30-second interval (no triggering event: `meta["session"]` is empty) |
 
+### File Attachments
+
+A file a model request carries is judged as its own event, `file_attachment`: its type facts are fields, its text is `content`. **Only the AI Gateway produces these events.** The Netzilo client, hooks, the SDK and the browser extension never do; on those hosts a file rule loads and never fires.
+
+**What arrives as a file.** Every attachment in a request the gateway serves (OpenAI chat, Responses, Anthropic Messages): images, documents, file parts, audio — `channel: llm_attachment` — and files a tool returned to the model, computer-use screenshots included — `channel: tool_result`. **Text a client extracts itself is not a file**: Claude Code sends a PDF it reads and images as files, but a CSV, a log or source code arrives as text in the tool result; Claude Cowork extracts every document in its own workspace and sends text. Those are judged on their own surfaces (`llm_request`, tool results), never as `file_attachment`.
+
+**Target files** with `logsource.category: file_attachment`, or `agent_events` + `event_type: file_attachment`. A broad rule (`agent_events`, `all`, no category) with no `event_type` constraint **also runs on every file** — a PII redaction rule written that way covers prompts and file text alike, and its presence alone makes the gateway read files.
+
+| Field | Value |
+|---|---|
+| `channel` | `llm_attachment` or `tool_result` |
+| `file_name` | the name the request gives; an untitled document sent after a tool call whose arguments name a file (`file_path`, `path` — Claude Code's Read) takes that file's base name; otherwise `document.<ext>`, `image`, `screenshot`, `audio.<format>` |
+| `ext` | extension of `file_name`, lower case, no dot; absent when the name has none |
+| `declared_type` | the MIME type the request declared, lower case |
+| `true_type` | the MIME type sniffed from the bytes — e.g. `application/pdf`, `text/csv`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/vnd.microsoft.portable-executable`, `application/x-elf`, `application/x-mach-binary`; absent when the request holds no bytes |
+| `size` | decoded size in bytes, as a string |
+| `sha256` | hex SHA-256 of the decoded bytes; absent without bytes |
+| `scannable` | `"true"` / `"false"` |
+| `unscannable_reason` | why the text was not read (below); present only when set |
+| `content` | the file's text: text units joined with `\n` (a text file whole; DOCX/XLSX/PPTX paragraphs and strings in part order; a PDF page by page — page text, annotations, form fields — then its metadata). Empty when not read |
+| `provider`, `model`, `agent_name` | of the model request |
+
+`tool`, `tool_name`, `path` and `response` are **not set** on file events: the tool that returned a `tool_result` file is on the reported event, not in the LogEntry. All values are strings and there is **no numeric modifier** — `size|gt: …` silently degrades to `contains`. Compare sizes in a script (`int(meta["size"]) > 10000000`).
+
+**When the text is read.** The gateway reads a file only when at least one rule under the caller's filters applies to `file_attachment` (including broad rules); otherwise the file is judged on its facts with an empty `content`. What is read: text (`text/*`, JSON, XML, YAML, NDJSON, JavaScript, shell, Python, SQL, …; UTF-8 or UTF-16 with BOM), DOCX/XLSX/PPTX, and PDF (page text, annotations, form fields, metadata). Images, audio, video, archives, legacy Office and binaries are facts only. **No OCR, no archive extraction.** Limits: 25 MiB per file, 5 MiB of text, 500 PDF pages, two levels of embedded documents.
+
+| `unscannable_reason` | Meaning |
+|---|---|
+| `unsupported_format` | not text, DOCX/XLSX/PPTX or PDF |
+| `too_large`, `too_much_text`, `too_many_pages`, `too_complex`, `nested_too_deep` | over a limit |
+| `encrypted`, `no_text_layer`, `garbled_text`, `embedded_files` | a PDF with a password, without text (a scan), with undecodable text, with file attachments |
+| `not_unicode`, `malformed`, `undecodable`, `unreadable_embedded_object` | the bytes or their encoding cannot be read |
+| `by_reference` | the request names the file by URL or file id; never fetched |
+| `not_read` | readable, but not now (the gateway's file budget was full): **file analysis fails open** — the file is judged on its facts and sent |
+
+**What each action does to a file:**
+
+- `block` refuses the whole model request (HTTP 400, `netzilo_policy`). The gateway puts the file's name before the reason: `Netzilo Guardrail: <file_name>: <reason>` — so a script reason should say what the file is, not repeat its name. The first refused file ends the check of the request; prompt rules run before file rules.
+- `redact` rewrites the file **in place** (text files; DOCX/XLSX/PPTX paragraphs, strings, comments, properties) in the encoding it came in, and the result is read back before it is sent. **A PDF, a spreadsheet cell value or formula, attribute text and embedded documents are read-only**: a redaction that touches them refuses the request instead (`<file>: the file holds content a guardrail redacts, and it cannot be redacted in place`). A script's `{"action": "redact", "replace": …}` replaces the whole `content`, which is then split back over the units — keep the line structure.
+- `report` changes nothing; it is reported as AI detected.
+- Verdicts are remembered per user, policy and session for 24 h: a retry with the same prompt is refused again; the same file with a newer prompt or later in history is replaced by `[removed by Netzilo Guardrail]` and the conversation continues.
+
+**Scripts** see, besides the usual keys, `meta["channel"]`, `meta["file_name"]`, `meta["ext"]`, `meta["declared_type"]`, `meta["true_type"]`, `meta["size"]`, `meta["sha256"]`, `meta["scannable"]`, `meta["unscannable_reason"]` and the full text in `meta["content"]`. `meta["tool_name"]` is empty. `system_one()` takes at most 512 KiB of `state`: judge a long file on its start and end.
+
+```yaml
+# Type facts alone: refuse executables, whatever their name says
+title: Executables Attached to AI Requests
+id: <uuid4>
+status: stable
+level: high
+description: "Refuses executables and shared libraries sent to a model (AI Gateway)."
+tags: [attack.exfiltration, attack.t1567]
+logsource: {product: ai_agent, category: file_attachment}
+detection:
+  exe:
+    true_type:
+      - application/vnd.microsoft.portable-executable
+      - application/x-elf
+      - application/x-executable
+      - application/x-sharedlib
+      - application/x-mach-binary
+  condition: exe
+action: block
+```
+
+```yaml
+# Judge what the file is, for one team: bind it to the engineering filter only
+title: Files Unrelated to Development Work
+id: <uuid4>
+status: stable
+level: high
+description: "Refuses files that are not development material in engineering AI requests (AI Gateway). Files that cannot be judged are reported."
+tags: [attack.exfiltration, attack.t1567]
+logsource: {product: ai_agent, category: file_attachment}
+detection:
+  uploaded:
+    channel: llm_attachment
+  condition: uploaded
+action: execute
+on_error: report
+on_timeout: report
+script: |
+  ALLOW_FROM = 0.6
+  BLOCK_BELOW = 0.4
+  MAX_TEXT = 200000
+  TAIL = 40000
+  BUSINESS = ["financial records", "HR records", "customer records", "legal documents"]
+  UNJUDGED = ["encrypted", "no_text_layer", "garbled_text", "too_large", "too_much_text", "too_complex", "malformed", "nested_too_deep", "unreadable_embedded_object"]
+  QUESTIONS = {
+      "development_material": {"type": "noul", "instructions":
+          "The state is a file a software developer attached to a request to an AI coding assistant. " +
+          "Probability that it is material a software engineer works with in day-to-day development: " +
+          "source code, logs, configuration, build or deployment files, API or design specifications, " +
+          "tickets, technical documentation, or clearly synthetic test data."},
+      "kind": {"type": "choice", "instructions": "What kind of file is this?", "criteria": {
+          "source code": "program source code or scripts",
+          "logs": "application logs, traces or stack traces",
+          "configuration": "configuration, build, container or deployment files",
+          "technical documentation": "API or design specifications, architecture notes, READMEs",
+          "test data": "synthetic fixtures or sample data made up for testing",
+          "financial records": "bank statements, invoices, transactions, budgets",
+          "HR records": "employee, payroll, salary, hiring or onboarding records",
+          "customer records": "lists or exports of real customers, patients or users with their personal data",
+          "legal documents": "contracts, agreements, NDAs, legal correspondence",
+          "other": "anything else"}},
+  }
+
+  def judge():
+      if meta.get("scannable") != "true":
+          why = meta.get("unscannable_reason", "")
+          if why in UNJUDGED:
+              return {"action": "report", "reason": "could not be judged (%s)" % why}
+          return "allow"                                  # images, binaries: other rules decide
+      text = meta.get("content", "")
+      if not text.strip():
+          return "allow"
+      if len(text) > MAX_TEXT:
+          text = text[:MAX_TEXT - TAIL] + "\n[...]\n" + text[-TAIL:]
+      state = {"file_name": meta.get("file_name", ""), "file_type": meta.get("true_type", ""), "text": text}
+      judged = system_one(state, QUESTIONS)
+      if judged["error"]:
+          return {"action": "report", "reason": "the file could not be judged: " + judged["error"]}
+      dev = judged["answers"]["development_material"]["noul"]
+      kind = judged["answers"].get("kind", {}).get("choice", "other")
+      facts = {"development_material": dev, "kind": kind}
+      if dev >= ALLOW_FROM:
+          return "allow"
+      what = kind + ", not development material" if kind in BUSINESS else "not development material"
+      if dev < BLOCK_BELOW or kind in BUSINESS:
+          return {"action": "block", "metadata": facts, "reason":
+              "%s. Engineering accounts may attach code, logs, configuration, specifications and test data." % what}
+      return {"action": "report", "metadata": facts, "reason": "possibly not development material"}
+
+  result = judge()
+```
+
+Pitfalls specific to files:
+
+- **Starlark `%` has no precision**: `"%.2f" % x` fails the script (→ `on_error`). Use `"%d%%" % int(x * 100)`.
+- A `choice` question's `criteria` must be a dict of label → description.
+- Answer `report`, not `allow`, for a file the rule could not judge, so unread files stay visible; a rule on `unscannable_reason: not_read` makes fail-open visible (`report`) or strict (`block`).
+- Thresholds on a model's score are calibrated, not guessed: run the rule in report mode on representative files of both kinds and read the scores before blocking — keys the script returns in `metadata` are on the event as `execute_<key>`.
+- Replay re-judges recorded files on their facts only (their text is not kept): a content or script rule on files cannot be proven by replay — prove it on a pilot group in report mode.
+
 ---
 
 ## Detection — What to Look For
@@ -875,6 +1021,8 @@ These are the fields available in detection conditions. They are populated autom
 | `system_prompt` | LLM system message | |
 | `source` | How content was loaded — **semantic events only** (`skill_acquired`, `external_message`, …). It does **not** exist on `tool_call`, `llm_request` or HTTP contexts: the engine only creates it by parsing a classifier payload. Pairing `source:` with `event_type: tool_call` in one selection makes that selection false forever, because selections are AND. To scope a rule to a framework or MCP server, use `server:` (e.g. `server: openclaw`). | `http`, `mcp`, `llm` |
 | `agent_name` | Program path of the nearest agent session in the caller's lineage (on the gateway: the agent's name — the `NetziloAgent/<name>` it sends, else the client, e.g. `Claude Code` — on prompts, answers and tool calls alike) | `/usr/bin/cursor`, `DevOps Agent` |
+
+For `file_attachment` events the fields are the file's facts — `channel`, `file_name`, `ext`, `declared_type`, `true_type`, `size`, `sha256`, `scannable`, `unscannable_reason` — and `content` is the file's text (see [File Attachments](#file-attachments)).
 
 For semantic events (`skill_acquired`, `external_message`, etc.), `content` is a `key=value\n` payload. The engine also flattens each pair into its own field, so `skill|contains: '…'`, `host: 'evil.com'`, `platform: 'slack'` and `format: '…'` work directly — you do not have to match against the packed `content` string, though `content|contains: "host=evil.com"` also works.
 

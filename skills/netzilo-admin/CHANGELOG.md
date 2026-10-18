@@ -7,6 +7,31 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.7.0 — 2026-10-18
+
+Guardrails judge the files attached to model requests at the AI Gateway. Minor version: a
+new reference, `50`, and the file context in the rule language.
+
+- New `50-ai-gateway-file-guardrails.md`: what counts as a file (`llm_attachment`,
+  `tool_result`) and what never arrives as one (text a client extracts itself: Claude
+  Code's text reads, every Claude Cowork document), how files are named (an untitled
+  document takes the name of the file the preceding tool call read), when the gateway reads
+  a file (a file rule or a broad rule under the caller's filters), what is read (text,
+  DOCX/XLSX/PPTX, PDF; no OCR, no archives) and the fixed limits, the unscannable reasons,
+  the `file_attachment` fields and example rules, what users see (`Netzilo Guardrail:
+  <file>: <reason>`, redaction in place, PDFs and spreadsheet values refuse instead, the
+  conversation continuing with `[removed by Netzilo Guardrail]`), the memory budgets
+  (`NZ_AI_BODY_BUDGET_MB` → 503, `NZ_AI_FILE_BUDGET_MB` → fail-open `not_read`), the
+  evidence (events, the session's **Files**, `FILE_SENT` / `FILE_RECEIVED` edges, the
+  trajectory API), diagnosis and limits.
+- `32`: the `file_attachment` category and fields, a **File Attachments** section (actions
+  on files, unscannable reasons, script `meta` keys, two rules — type facts and a judged
+  "files unrelated to development work" — and file pitfalls).
+- `27` §1, §9.4 (new: large requests and memory), §10, §11; `28` §1, §8; `10` §7; `30` §1,
+  §1a (file events and the session's files); `14` §3 (files never leave the gateway; the
+  event carries their redacted text); `17` and `39` (a refused file, for end users); routing
+  row in the skill index.
+
 ## 4.6.0 — 2026-10-17
 
 Published applications can carry restrictions enforced inside their pages, in any browser,

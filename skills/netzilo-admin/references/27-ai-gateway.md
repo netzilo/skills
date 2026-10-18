@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 49820
+chars: 51457
 sections:
 - id: '1'
   title: How it works
-  chars: 7388
+  chars: 7646
 - id: '2'
   title: Requirements
   chars: 1514
@@ -52,13 +52,13 @@ sections:
   - human-operator
 - id: '9'
   title: Operating it
-  chars: 3702
+  chars: 4371
 - id: '10'
   title: Troubleshooting
-  chars: 7195
+  chars: 7656
 - id: '11'
   title: Limits to state before a customer discovers them
-  chars: 2320
+  chars: 2569
 ---
 # Admin Skill — The Netzilo AI Gateway (`netzilo-aigw`)
 
@@ -139,7 +139,10 @@ gateway filters that target the user's groups (cached for `--ai-policy-refresh`,
    A rule on a requested tool call sees the agent's name (`agent_name`) and, for a
    scripted judge, the conversation's first prompt and system prompt (`meta["task"]`,
    `meta["instructions"]`), so it can ask System One or an LLM whether the call serves
-   the task (`32`, two-tier judging).
+   the task (`32`, two-tier judging). **Files** the request carries (documents, images,
+   file parts, files a tool returned) are judged too, as `file_attachment` events: a
+   block refuses the request naming the file, a redact rewrites the file in place
+   (`50-ai-gateway-file-guardrails.md`).
 4. **Usage** — one record per model request and per MCP tool call: who, which model,
    tokens, cost, latency, status; MCP records also carry the MCP client's name and
    version (from `initialize`) and the MCP session id. Usage records carry no prompt,
@@ -618,7 +621,18 @@ groups its setup key assigns. If management deletes the peer the process exits s
 service manager restarts it and re-registers (a **new** peer: re-add groups). Two gateways
 with the same `--name` are two peers with one name; tell them apart by id.
 
-### 9.4 Rotating the service token
+### 9.4 Large requests and memory
+
+The gateway admits large request bodies and reads attached files within two budgets
+sized from its memory (the tightest cgroup limit, else the host's): `NZ_AI_BODY_BUDGET_MB`
+(bodies of 64 KiB or more; default memory ÷ 48, 32–512 MiB; full → HTTP 503
+`overloaded_error` *"Netzilo AI Gateway: too many large requests at once; retry shortly"*,
+`Retry-After: 5`) and `NZ_AI_FILE_BUDGET_MB` (files being read; default memory ÷ 256,
+16–128 MiB; full → the file is sent unread, `not_read`). It sets its own soft memory limit
+to 80 % of what it found unless `GOMEMLIMIT` is set. How to set them and what fail-open
+means for files: `50` §6.
+
+### 9.5 Rotating the service token
 
 Create a new token for the service user, run `sudo netzilo-aigw up --service-pat <new>`
 (it saves the token and restarts the service), then revoke the old token. A restart keeps what was applied to the upstream (providers, keys,
@@ -643,6 +657,8 @@ and users are fetched afresh.
 | Every request refused (400 `no model is granted…`) for everyone after a policy change | the filters failed to load (`N failed` in the policy line is about guardrails; a fetch failure shows as `gateway ai: cannot …`) | management reachable from the host? service token still valid (401 in the log)? |
 | 429 / 402 before any real use | a limit's window and counters | `45` §3; counters restart when grants or limits change |
 | Guardrail does not fire for a user | the request went to `/v1/embeddings`, `/v1/completions` or another surface guardrails do not inspect (§1); or the rule is not bound by one of the user's gateway filters; or it needs an endpoint-only context (process, file) | check which path the client calls; `GET /api/edge/filters/effective?type=gateway&user=<id>`; test the rule in report mode through the gateway (`28` §4) |
+| 503 `Netzilo AI Gateway: too many large requests at once; retry shortly` | the body budget is full: many large requests (files) at once | clients retry after 5 s; raise `NZ_AI_BODY_BUDGET_MB` or the gateway's memory (§9.4) |
+| A file the user sent was not blocked or redacted | the client sent text, not a file (Claude Code reading a CSV, Claude Cowork), the file was not read (`not scanned` in the session), or no file rule is bound for the user | `50` §8 |
 | MCP tool answers `Connect <server> in your Workplace…` | the user has no sign-in/header values for that server | `46` §4 and `47` §3 |
 | `Tool execution failed: Blocked by rule: <name>` | a guardrail on the tool result or arguments | expected; the event names the rule |
 | Claude Desktop: `gateway SSO discovery failed: 401` | the endpoint in Claude is `<gateway>/v1`, `<gateway>/openai` or another path: no sign-in is served there (the bare `<gateway>` signs in but then fails with 405 on `/v1/messages`) | set the endpoint to exactly `<gateway>/anthropic` |
@@ -673,6 +689,9 @@ admin, and `netzilo-aigw --version`.
   chat surface, the Responses API and the Anthropic Messages surface (Claude Code, Claude
   Desktop); embeddings, text completions and other request types are identified, limited
   by the virtual key and recorded, not inspected.
+- **Files are judged only as files the client sends** (`50` §1, §9): text a client
+  extracts itself is judged as text; PDFs and spreadsheet values cannot be redacted in
+  place (a redaction refuses); file analysis fails open under memory pressure.
 - **Streamed answers arrive held back.** Text and thinking are released about 1 KB behind
   the model so that a match can be redacted; a streamed tool call's arguments arrive once
   the call is judged. Users see a short delay on long answers.

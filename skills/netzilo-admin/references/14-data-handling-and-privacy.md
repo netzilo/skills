@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 26532
+chars: 27050
 sections:
 - id: '1'
   title: The short answer
@@ -16,7 +16,7 @@ sections:
   chars: 1924
 - id: '3'
   title: What the AI security layer collects
-  chars: 4879
+  chars: 5397
 - id: '4'
   title: Session recordings and AI sessions
   chars: 655
@@ -138,7 +138,13 @@ or the MCP server, and the guardrails run there. The gateway reports to manageme
   (`27` §8.1). Capture is always on; administrators read it in Activity → AI Sessions and
   the Agentic Activity window (`30` §1a, §3). The client captures the same for the traffic
   it inspects on a device (above); traffic neither inspects is not captured;
-- a matching rule's event, as on a device, with the triggering content.
+- a matching rule's event, as on a device, with the triggering content;
+- **files** attached to model requests (documents, images, files a tool returned) are read
+  on the gateway, in memory, when a file rule applies to the user (`50`). The file never
+  goes to management and is not part of the captured conversation (only its text blocks
+  are); its facts (name, type, size, SHA-256, verdict) are recorded in the AI session, and
+  a rule that matches a file sends an event carrying the file's text **as the guardrails
+  left it** (redacted, also when the file was refused), at most 8 KB.
 
 **Sent when something happens:**
 

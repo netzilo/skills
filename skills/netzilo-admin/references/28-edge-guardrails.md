@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 26512
+chars: 27193
 sections:
 - id: '1'
   title: Model
-  chars: 2165
+  chars: 2556
 - id: '2'
   title: Field reference (Add / Edit Guardrail)
   chars: 5270
@@ -32,7 +32,7 @@ sections:
   chars: 3685
 - id: '8'
   title: Limits to state before a customer discovers them
-  chars: 1968
+  chars: 2258
 ---
 # Admin Skill — Edge Guardrails (detection rules)
 
@@ -87,10 +87,15 @@ Start there: find a close match, paste it into **Add Guardrail**, adjust, test (
   (`ai.redacted`), **AI redirected** (`ai.redirected`), **AI detected** (`ai.detected`, a
   report-only match). Allowed calls are not events; they are in AI sessions. Every one carries the rule
   (`rule_name`, `rule_id`), the filter (`filter_name`), the surface (`llm_request`,
-  `llm_response`, `tool_call`, `tool_result`, `http_request`, …), the agent, model or
+  `llm_response`, `tool_call`, `tool_result`, `http_request`, `file_attachment`, …), the agent, model or
   tool, the source (`mitm`, `hook`, `extension`, `gateway`) and, when a rule matched
   content, the matched excerpt and the content as the chain left it (after redaction,
   at most 8 KB). `34-event-catalogue.md`, `30-activity-reports-and-integrations.md` §1.
+- **Files attached to AI requests** are their own context, `file_attachment`, judged at
+  the AI Gateway: type facts as fields, the file's text as `content`; a block refuses the
+  request and names the file, a redact rewrites the file in place (never a PDF: a
+  redaction there refuses). Broad rules (`agent_events`) reach files too.
+  `50-ai-gateway-file-guardrails.md`.
 
 ---
 
@@ -399,6 +404,11 @@ conditions. Prove every exception on a pilot group in report mode (§4).
 and tool-call rules reach the OpenAI chat, Responses and Anthropic Messages surfaces,
 streamed or not (a streamed answer is held about 1 KB behind the model so it can be
 redacted); embeddings and text completions are counted, not scanned.
+
+**Files are judged at the AI Gateway only**, and only files the client sends as files:
+Claude Code's text reads and every Claude Cowork document arrive as text, a PDF or a
+spreadsheet value cannot be redacted in place, and file analysis fails open under memory
+pressure (`50` §1, §3, §6).
 
 **A script is not checked when the guardrail is saved.** The editor validates the YAML,
 not the Starlark in `script:`; a script that fails to parse loads and takes its
