@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 9856
+chars: 9926
 sections:
 - id: '1'
   title: When an identifier belongs in the answer
   chars: 817
 - id: '2'
   title: Areas of the product
-  chars: 5895
+  chars: 5965
 - id: '3'
   title: 'Objects: names, not ids'
   chars: 599
@@ -106,7 +106,7 @@ scanners, catalogue) in this release.
 | **browser source** | the user's browser as an uploader of behaviour: one per user and browser under `GET /api/aidr/sources` with `kind: browser`. Say "Erin's browser" or "the browser on Erin's MacBook", not the source id |
 | **tab session** | the behaviour-graph session of one browser tab on one site (its parent is the browser session); the `session_id` on browser `ai.*` events. Say "the ChatGPT tab" or "that conversation's session" |
 | **Session snapshot** | the Activity entry (`aidr.graph`) that announces the first behaviour of a browser tab session ("… for <program> in the browser"); it opens the session's behaviour graph. Device entries ("… for peer <peer>") are no longer created; old ones stay. Say "the session snapshot for that tab", never the code |
-| **Session trajectory available** | the Activity entry (`aidr.trajectory`) for a new AI session, on a device or the gateway ("Session trajectory is available for <agent> on <peer>"); **View session** opens it. Say "the session entry", never the code |
+| **Session trajectory available** | an Activity entry (`aidr.trajectory`) older servers created for a new AI session ("Session trajectory is available for <agent> on <peer>"); **View session** opens it. Current servers no longer create it: sessions are in Activity → AI Sessions. Say "the session entry", never the code |
 | **AI session** | one conversation of one user (or setup-key peer) with one agent, recorded on the device, the gateway or both; "Seen at" names where a call was recorded |
 | **MCP client** | the program that called an MCP server, by the name it gave when it connected; "Unknown client" when it gave none |
 

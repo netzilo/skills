@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 40128
+chars: 42668
 sections:
 - id: '1'
   title: Architecture in one page
   chars: 4228
 - id: '2'
   title: Rollout runbook
-  chars: 3868
+  chars: 3822
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
-  chars: 4162
+  chars: 4273
 - id: '4'
   title: Coding-agent hooks (`netzilo hook`)
   chars: 2869
@@ -32,10 +32,10 @@ sections:
   chars: 2696
 - id: '8'
   title: Writing and testing rules (Guardrails)
-  chars: 1886
+  chars: 3571
 - id: '9'
   title: Troubleshooting
-  chars: 5634
+  chars: 6424
 - id: '10'
   title: Reporting and evidence
   chars: 1337
@@ -121,7 +121,7 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 5. **Verify on a device:** the client log shows `Filters applied: N` (debug: `Rules
    updated: N loaded, 0 failed, version=mgmt-sync-…`) with no `Failed rules:` line. Use an
    AI app named in Agents; the session appears in Activity → **AI Sessions** within about
-   15 seconds (point `endpoint`) with a **Session trajectory available** event, rules
+   15 seconds (point `endpoint`), rules
    show as **AI detected / blocked / redacted** events, and the peer has observations
    (`/api/aidr/sessions?scope=source:<peer>`). There are no **AI allowed** events.
 6. **Coding agents:** on each dev machine
@@ -171,7 +171,7 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 | Hook evaluation | `toolCall`, `promptRequest`, `promptResponse` synchronous (can block; a redaction cannot be applied by a hook, so the hook acts only on allow/block); `toolResult`, `sessionStart`, `sessionEnd` fire-and-forget; hooks are **fail-open** by default (`NETZILO_HOOK_POLICY=allow`); set `block` for fail-closed |
 | Scan actions | the built-in prompt classifier and the AI judge run through management (15 s timeout on the device); a scan that cannot run is an **error for the rule's `on_error`** (default allow) — not a silent allow, not a block unless `on_error: block` |
 | Posture in filters | none; a failing posture check never blocks AI traffic through a filter. Posture gates policies, profiles and published applications (`21`) |
-| Verdict events | `ai.blocked` (149), `ai.redacted` (150), `ai.redirected` (151), `ai.detected` (152); `ai.allowed` (148) and `semantic.event` (127) are no longer recorded; `aidr.graph` (129, browser tab sessions only); `aidr.trajectory` (171, one per new AI session) |
+| Verdict events | `ai.blocked` (149), `ai.redacted` (150), `ai.redirected` (151), `ai.detected` (152); `ai.allowed` (148) and `semantic.event` (127) are no longer recorded; `aidr.graph` (129, browser tab sessions only); `aidr.trajectory` (171) is no longer recorded by current servers (older ones announced each new AI session with it; open sessions from Activity → AI Sessions) |
 | AI session records | usage and the captured conversation of each model call and HTTP MCP call the proxy inspected, held in memory and sent to management every 15 s, only once management announces it records them (an older server: none). A call sent to the account's AI Gateway is recorded once, by the gateway. Claude Code hooks, SDK runs and the proxy's model calls of the same process land on one session. Not recorded yet: Cursor, Gemini CLI and other Connect-streaming traffic, stdio MCP servers. Cost is 0 on devices |
 | MCP tool results | judged text by text (§7) |
 
@@ -433,6 +433,31 @@ Best practices: report before block; anchor regexes; add exclusions for legitima
 keep `scan` rules narrow (latency); scope graph traversals to the current agent; decide
 per rule whether a scan failure should block (`on_error: block`).
 
+**Background rules and session verdicts.** A scripted rule can run inline (`mode: sync`,
+the default: the call waits for it and it can refuse that call) or in the background
+(`mode: async`: the call goes on at once). What an administrator sees from a background
+rule:
+
+- its `block` or `report` on the call it judged is an **AI detected** event (marked
+  `execute_async`) — that call was already allowed;
+- to stop what follows, the rule sets a **session verdict**: the session's later
+  matching calls are blocked (or reported) before any rule runs on them, with the
+  rule's reason, and each is an **AI blocked** / **AI detected** event naming that rule.
+  The verdict lasts until the session ends or its time runs out; there is no dashboard
+  control to lift it — the rule lifts it, or the user starts a new session;
+- a rule can make the session's next calls wait briefly (at most 2 s, only while
+  background work is pending), so a verdict being computed still applies.
+
+Rules share state within a session (`32`, "Session State"), so one rule can follow a
+session and another decide on it — for example Netzilo's **Agent Intent Chain** (follows
+an agent session in the background and reports when it drifts from what the user asked)
+and **Agent Intent Gate** (judges risky tool calls inline against the session and blocks
+harmful ones); both need a System One provider. `mode`, `timeout_ms` and the session
+builtins need a current engine on the host: an older client, gateway or browser
+extension runs a background rule inline and fails a script that uses the session
+builtins (it takes its `on_error` verdict). Bind such rules only to filters whose hosts
+run a current version.
+
 ---
 
 ## 9. Troubleshooting
@@ -447,6 +472,9 @@ per rule whether a scan failure should block (`on_error: block`).
 | Hook blocks everything when the client is down | `NETZILO_HOOK_POLICY=block` set | expected fail-closed; start the client |
 | Rule never fires | wrong `logsource.category`; content not where expected; a more severe rule already blocks the same events; a gateway filter with an endpoint-only context | reproduce it in report mode and read the event and host log; `28` §4, §7 |
 | Too many false positives | | tighten the regex, add `excl` + `condition: sel and not excl`, switch to `report` |
+| A rule reports a call but does not block it, though its script answers `block` | the rule is `mode: async`: a background rule never refuses the call it judged | expected; it must set a session verdict to stop later calls, or run inline (`32`, "Sync and async rules") |
+| Calls of one session are blocked by a rule that did not match them | a **session verdict** set earlier in the session by that rule (event reason names it) | expected until the session ends or the verdict expires; the user starts a new session, or the rule is changed |
+| Host log `Execute script for rule <id> error: … undefined: session_get` (or another `session_…` name) | the host's engine predates the session builtins | update the client, gateway or extension; until then the rule takes its `on_error` verdict |
 | No AI panel in the guardrail dialog | no model approved for Assistant, or not an admin | Integrations → Artificial Intelligence → approve a model for Assistant (`28` §2.1) |
 | Browser extension stands down ("the desktop client governs this browser") with the client installed | by design on Windows/macOS when the browser executable is in the filter's Agents and the AI hosts are within the client's inspection; events then come with source `mitm` | nothing, unless the client does not inspect the AI sites: then remove the browser from Agents so the extension governs it (`49` §3, §10) |
 | Browser extension **Protection: Inactive** / no browser events | not signed in from the popup; no enabled endpoint filter with OS **Browser** for the user's groups; a failed guardrail | `49` §10; the popup's Debug tab names the cause |

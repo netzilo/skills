@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 11419
+chars: 11447
 sections:
 - id: administration
   title: Administration
@@ -28,7 +28,7 @@ sections:
   chars: 79
 - id: ai-edge
   title: AI Edge
-  chars: 1379
+  chars: 1407
 ---
 # Event catalogue — what each activity is called
 
@@ -248,6 +248,6 @@ and `peer` = the browser as signed in (*Chrome 130 on macOS 15.1*); say *on <url
 | AI redirected | `ai.redirected` |
 | AI usage reported | `ai.usage` (a device's or gateway's recorded model and tool calls on their way to the AI sessions; never shown in Activity) |
 | AI behavior graph updated | `aidr.graph` (a device's behaviour data on its way to the graph, never stored as an entry; shown as "Session snapshot" only for a browser tab session's first behaviour (and on older device rows), with a session id that opens its graph) |
-| Session trajectory available | `aidr.trajectory` (one per AI session, when its first recorded calls reach the server; meta `session_id`, `agent_name`, `peer`, `point`; opens the session in the Agentic Activity window; `30-activity-reports-and-integrations.md` §3) |
+| Session trajectory available | `aidr.trajectory` (no longer created by current servers; rows an older server recorded — one per AI session, meta `session_id`, `agent_name`, `peer`, `point` — still open the session in the Agentic Activity window; `30-activity-reports-and-integrations.md` §3) |
 | Semantic event | `semantic.event` (no longer recorded: behaviour observations are in the behaviour graph; the server drops the event from older hosts, and older rows remain until they age out) |
 

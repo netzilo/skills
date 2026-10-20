@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 18978
+chars: 19649
 sections:
 - id: '1'
   title: Model
@@ -29,7 +29,7 @@ sections:
   chars: 1234
 - id: '7'
   title: The behaviour graph side
-  chars: 2141
+  chars: 2654
 - id: '8'
   title: Events
   chars: 1070
@@ -41,7 +41,7 @@ sections:
   chars: 3493
 - id: '11'
   title: Limits to state before a customer discovers them
-  chars: 1201
+  chars: 1359
 ---
 # Admin Skill — The browser extension as an AI enforcement point
 
@@ -217,8 +217,7 @@ with your browser management.
   one activity entry — `aidr.graph`, shown as **Session snapshot**, "Session snapshot is
   available for <program> in the browser" — with the session id, program, device and
   source `extension`; the row opens the session's behaviour graph. Devices no longer
-  create these entries; their AI sessions are announced by **Session trajectory
-  available** (`aidr.trajectory`).
+  create these entries; their AI sessions are found in Activity → AI Sessions.
 - **Who sees what:** regular users see only their own browser sessions (`GET
   /api/aidr/sources` and `/api/aidr/sessions` answer their own browser sources and their
   own peers); admins see all.
@@ -229,6 +228,13 @@ with your browser management.
   in the future are dropped, and the answer reports the `dropped` counts by cause
   (`kind`, `time`, `foreign`, `new_sessions`). Session snapshot entries are capped at 60,
   then 120 per hour per user; sessions past the cap are stored but not announced.
+- **Rule state:** scripted rules run in the extension as on a device — background
+  (`mode: async`) rules, session verdicts and holds included, and `system_one()` through
+  management. The state rules keep per session (`32`, "Session State") is saved with the
+  extension's own session data, so it survives the browser stopping and restarting the
+  extension's worker — but only while a session's whole rule state is at most **32 KiB**,
+  and for the 32 most recently changed sessions. A larger state is not saved and starts
+  over after a restart.
 - **Retention:** observations are kept **7 days** on management (pruned hourly). The
   account's engine keeps up to 50,000 sessions in memory; older ended sessions are
   reloaded from stored observations when opened.
@@ -330,6 +336,8 @@ skipped rules, capabilities, unmapped counters), the browser and extension versi
 - **The browser is not a peer**: no posture, no network policy, and
   `/api/edge/filters/effective?peer=` does not describe it; judge by groups and `os`.
 - **Observations are kept 7 days**; events are kept like every activity event (`14`).
+- **Rule state over 32 KiB per session is not kept** across the extension worker's
+  restarts (above); rules that follow a session should keep compact state.
 - **Upload pacing is per user** (2/s, burst 20, 64 new sessions per batch, 5000
   observations per batch); a user with many AI tabs sees retries, not loss, unless the
   pace persists.

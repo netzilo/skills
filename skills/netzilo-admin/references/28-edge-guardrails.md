@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 27193
+chars: 28229
 sections:
 - id: '1'
   title: Model
@@ -17,10 +17,10 @@ sections:
   chars: 5270
 - id: '3'
   title: Minimal rule template
-  chars: 3580
+  chars: 3733
 - id: '4'
   title: Testing a rule
-  chars: 4494
+  chars: 4608
 - id: '5'
   title: API
   chars: 2443
@@ -32,7 +32,7 @@ sections:
   chars: 3685
 - id: '8'
   title: Limits to state before a customer discovers them
-  chars: 2258
+  chars: 3027
 ---
 # Admin Skill — Edge Guardrails (detection rules)
 
@@ -197,8 +197,10 @@ Actions: `block`, `allow`, `report`, `redact` (`replace` default `[REDACTED]`,
 `keep_first`, `keep_last`), `scan` (the built-in prompt classifier when `prompt:` is
 empty; an AI judge with the given instruction otherwise; `on_timeout`, `on_error`),
 `blockmodel`, `allowmodel`, `replacemodel`, `redirect`, `inject`, `replace`, `execute`
-(Starlark; `script`, `on_timeout`, `on_error` — an `execute` rule can also judge with
-an LLM or System One, `llm_call()` / `system_one()`, `32`). Default action when omitted: high or
+(Starlark; `script`, `on_timeout`, `on_error`, `mode` = `sync` (default, inline) or
+`async` (in the background, after the call went on), `timeout_ms` — an `execute` rule
+can also judge with an LLM or System One, `llm_call()` / `system_one()`, and share
+state with other rules over a session, `32`). Default action when omitted: high or
 critical → block, else report. `on_error`/`on_timeout` take `block|allow|report` and
 **default to allow (fail-open)**; `on_error: block` makes a scan or script rule
 fail-closed. Field modifiers: `|contains`, `|startswith`, `|endswith`, `|re`, `|all`,
@@ -270,8 +272,10 @@ A rule is tested live, on a small scope, before it blocks anything:
    behaviour graph (the **View** window from the peer page or an activity entry: graph,
    keyword search, Search Results) and in
    `GET /api/aidr/sessions|graph|observations|detections|search?q=&scope=…`; the
-   session itself is in Activity → AI Sessions or behind its **Session trajectory
-   available** entry → **View session** (Trajectory, MCP Calls).
+   session itself is in Activity → AI Sessions → **View session** (Trajectory, MCP
+   Calls). A background rule (`mode: async`) reports the call it judged as **AI
+   detected** a moment after the call; what it blocks are the session's later calls
+   (`10` §8).
 5. Iterate until the intended traffic, and only that, fires; then change the action
    (§6).
 
@@ -417,9 +421,21 @@ run the rule once on a pilot and read the host's log for `Execute script for rul
 error`.
 
 **Judge rules cost a model call per match.** Each `llm_call()` and `system_one()` is a
-paid round trip through management, run synchronously on the matched call: scope the
-detection tightly (an agent, a tool, a context) and let a cheap check or System One
-decide before an `llm_call()`.
+paid round trip through management; in an inline rule the matched call waits for it.
+Scope the detection tightly (an agent, a tool, a context), let a cheap check or System
+One decide before an `llm_call()`, run judges in the background (`mode: async`) unless
+they must stop the call itself, and bound inline judges with `timeout_ms`. A host
+answers a repeated identical `system_one()` call from a 60-second cache.
+
+**Background rules need a current engine.** `mode`, `timeout_ms` and the session
+builtins are ignored or missing on older clients, gateways and browser extensions: a
+background rule then runs inline, and a script using the session builtins fails into its
+`on_error` verdict (`10` §8, §9).
+
+**A session verdict cannot be lifted from the dashboard.** A rule that blocks the rest
+of a session keeps blocking it until the session ends or the verdict expires; the
+dashboard does not show which sessions are under one. The events name the rule and its
+reason.
 
 **Performance is not instrumented for customers.** No overhead figure and no per-rule
 timing are exposed. When AI tools feel slow, narrow the rules and move expensive ones to

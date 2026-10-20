@@ -7,6 +7,43 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.8.0 — 2026-10-20
+
+Rules can now run in the background and share state over a session. Minor version:
+substantive new procedures in the rule-authoring reference, and the session announcement
+event retired.
+
+- `32`:
+  - **Sync and async rules**: `mode: sync | async` and `timeout_ms` on `execute`; what a
+    background rule can and cannot do (it never refuses the call it judged; `on_timeout`
+    and `on_error` do not apply; bounded queue; streamed windows); older engines run it
+    inline.
+  - **Session State**: the `session_*` builtins, scope and lifetime per host, the
+    256 KiB quota and the 32 KiB that survives a browser extension restart, writes that
+    need a session, session verdicts (what `match` compares, how a later event is refused)
+    and holds (set them from an inline rule); session state compared with the rule store.
+  - **Script shape and cost**: the definitions of a conventional script are built once;
+    what makes a script run unsplit; `re` patterns compiled once.
+  - New `meta` keys `tool_call_id`, `task` and `instructions` (now also on tool calls
+    and tool results the client sees in model traffic; at the gateway on tool calls) and
+    `requests` (every user turn); `callid` on intercepted traffic is per HTTP exchange; `meta` iterates in
+    sorted order.
+  - `system_one()` answers are cached on the host for 60 s; at most 4 calls in flight.
+  - A background rule + inline rule pattern, validated on the engine; request path vs
+    background best practices (inline budget, model budgets, decide before writing,
+    regexes without a usable literal); new checklist items; schema block.
+  - Fixtures: `system_one` answers (`when` / `answers`; an unanswered call fails),
+    observation `task` / `instructions` / `requests`, `call_id` → `meta["tool_call_id"]`.
+- `10` §8 (background rules and session verdicts as an administrator sees them, the
+  Agent Intent Gate / Chain pair, engine version), §9 (three new rows), verdict events row;
+  `28` §3, §4, §8 (mode and timeout_ms, the background rule's report, judge cost, engine
+  version, verdicts cannot be lifted from the dashboard); `49` §7, §11 (rule state in the
+  extension).
+- `aidr.trajectory` (**Session trajectory available**) is no longer created by current
+  servers: `08`, `10`, `28`, `30`, `34`, `35`, `49` updated; sessions are opened from
+  Activity → AI Sessions.
+- Routing row in the skill index for stateful and background rules.
+
 ## 4.7.0 — 2026-10-18
 
 Guardrails judge the files attached to model requests at the AI Gateway. Minor version: a

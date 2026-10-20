@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 35506
+chars: 35378
 sections:
 - id: '1'
   title: Activity → Events
-  chars: 7397
+  chars: 7320
 - id: 1a-activity-ai-sessions
   title: 1a. Activity → AI Sessions
   chars: 2641
@@ -26,7 +26,7 @@ sections:
   chars: 7913
 - id: '5'
   title: Procedures
-  chars: 1914
+  chars: 1863
 - id: '6'
   title: Diagnosis
   chars: 4677
@@ -72,8 +72,9 @@ Controls:
 Row anatomy: category icon with +/×/change badge, initiator (name, e-mail; "System" for
 automatic actions; hover for location when known), timestamp, description, copy raw JSON
 (hover). Special rows: `session.recorded` → play the recording; `aidr.trajectory`
-("Session trajectory is available for `<agent>` on `<peer>`") → **View session** (opens it
-in the Agentic Activity window, §3); `aidr.graph` ("Session snapshot") → **View behavior
+("Session trajectory is available for `<agent>` on `<peer>`", only on rows an older server
+recorded; current servers no longer create it) → **View session** (opens it in the
+Agentic Activity window, §3); `aidr.graph` ("Session snapshot") → **View behavior
 graph** (now created for browser tab sessions only; device rows from earlier stay);
 events with a kill chain → **View kill chain**; `ai.insight` → AI answer with citation
 cards.
@@ -88,7 +89,7 @@ Event categories and the most useful codes:
 | Policy Violation | `browser.download.file`, `browser.upload.file`, `browser.url.blocked`, `browser.isolation.*.required`, `browser.posture.check`, `workspace.posture.check`, `browser.data.code.redacted`, `browser.exception.request`, `published_app.access_denied` |
 | Suspicious | `workspace.selfdefense.activated`, `workspace.injection.detected`, `browser.data.prompt.injection.blocked`, `user.failedlogin` |
 | Investigation | `ai.insight` |
-| AI Edge | `ai.blocked`, `ai.redacted`, `ai.redirected`, `ai.detected` (a report-only match), `aidr.graph` ("Session snapshot"), `aidr.trajectory` ("Session trajectory available": one per new AI session, when its first recorded calls reach the server — seconds after the first call, not at the end; initiator = the user, none for a setup-key peer's session; target = the device or the account; meta `session_id`, `agent_name`, `peer`, `point`) |
+| AI Edge | `ai.blocked`, `ai.redacted`, `ai.redirected`, `ai.detected` (a report-only match), `aidr.graph` ("Session snapshot"), `aidr.trajectory` ("Session trajectory available": no longer created by current servers; older rows remain — AI sessions are found in Activity → AI Sessions) |
 
 Reading AI Edge rows. Every `ai.*` row has the same shape: "`<agent>` on `<peer>` for
 `<user>`: prompt to `<model>` (`<provider>`) | response from … | tool call `<tool>` on
@@ -124,7 +125,7 @@ reads "`<agent>` on `<peer>` for `<user>`". A redacted conversation reload is an
 available for `<program>` in the browser" — one per tab session the first time it shows
 behaviour, with the session id, program, device and source `extension` in the JSON;
 "Session snapshot is available for peer `<peer>`" is the device form (no longer created;
-a device's AI session is announced by `aidr.trajectory`).
+a device's AI sessions are listed in Activity → AI Sessions).
 
 API: `GET /api/events/paginated?limit=100&offset=0&date_from=<ISO>&date_to=<ISO>&user=<email>&code=<code>&code=<code>&q=<text>` →
 `{events[], pagination{total,limit,offset,has_more,total_pages}}`. Omit `order` when
@@ -432,8 +433,7 @@ if it does, the dashboard is out of date.
 - **Investigate an AI incident**: Events → category AI Edge → read the `ai.*` rows for
   the user or peer (the raw JSON names the surface, engine, source, rule and filter);
   find the session in Activity → AI Sessions (search the user, agent, tool or server;
-  the MCP tab for tool calls) or from its **Session trajectory available** row → **View
-  session**; read Trajectory, MCP Calls and a tool row's Source (Seen at); list the
+  the MCP tab for tool calls) → **View session**; read Trajectory, MCP Calls and a tool row's Source (Seen at); list the
   behaviour sessions with `GET /api/aidr/sessions?scope=source:<peer-id>` — for a browser, the source id of the
   user's browser from `GET /api/aidr/sources` (`kind: browser`), so
   `scope=source:<browser-source-id>`; a regular user sees only their own browser

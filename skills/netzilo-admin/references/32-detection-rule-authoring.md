@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 207857
+chars: 229098
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
@@ -17,16 +17,16 @@ sections:
   chars: 2616
 - id: how-you-think-about-rule-design
   title: How You Think About Rule Design
-  chars: 2863
+  chars: 3325
 - id: scripted-rule-patterns-use-these
   title: Scripted Rule Patterns — Use These
-  chars: 8223
+  chars: 12072
 - id: false-positive-prevention-non-negotiables
   title: False Positive Prevention — Non-Negotiables
   chars: 1268
 - id: rule-authoring-workflow
   title: Rule Authoring Workflow
-  chars: 3596
+  chars: 3911
 - id: what-you-produce
   title: What You Produce
   chars: 1630
@@ -62,7 +62,7 @@ sections:
   chars: 790
 - id: actions-what-to-do
   title: Actions — What to Do
-  chars: 56597
+  chars: 63961
 - id: sessions-and-the-observation-log
   title: Sessions and the Observation Log
   chars: 9871
@@ -72,9 +72,12 @@ sections:
 - id: rule-store-per-rule-persistent-storage
   title: Rule Store — Per-Rule Persistent Storage
   chars: 1428
+- id: session-state-shared-across-rules
+  title: Session State — Shared Across Rules
+  chars: 5616
 - id: best-practices-for-advanced-scripted-rules
   title: Best Practices for Advanced Scripted Rules
-  chars: 12814
+  chars: 15365
 - id: the-behaviour-graph-complete-reference
   title: The Behaviour Graph — complete reference
   chars: 12697
@@ -92,10 +95,10 @@ sections:
   chars: 233
 - id: complete-schema-reference
   title: Complete Schema Reference
-  chars: 9188
+  chars: 9417
 - id: examples-standard-traffic
   title: Examples — Standard Traffic
-  chars: 11102
+  chars: 11957
 ---
 # Authoring Detection Rules — The AI Threat Response Engineer Role
 
@@ -148,6 +151,8 @@ Two layers are always available in a script. The **behaviour graph** (`graph()`,
 **`allow` is not an exemption mechanism.** An `allow` rule records a match and changes nothing else; it cannot lift another rule's block. To exempt known-safe traffic, narrow the rule's own conditions with a `filter` selection.
 
 **Prefer `report` for novel detection.** When you are first deploying a rule for a newly identified threat pattern, start with `action: report` to measure false positive rate before escalating to `block`.
+
+**Keep thinking off the request path.** A rule that keeps state across a session or asks a model belongs in the background (`mode: async`): the event goes on at once and the rule's verdict applies to the session's later events. Only the decision that must stop *this* event runs inline, and it should be cheap. With hundreds of rules, inline scripts that think are what makes agents slow. See [Sync and async rules](#sync-and-async-rules--mode-and-timeout_ms).
 
 **Declare what the rule needs.** A rule that reads process lineage or file activity only makes sense on a host that records processes and files. `requires:` lists those capabilities; a host that lacks one does not load the rule, instead of running it against an empty graph and silently answering `allow`.
 
@@ -375,6 +380,85 @@ def run():
 result = run()
 ```
 
+**Background rule + inline rule over shared session state** (follow the session off the request path; decide inline only where it matters). The background rule records what it learns about the session; the inline rule reads it and spends a model call only on the few calls that need one:
+
+```yaml
+# Rule A — background: note that the session took in content from outside
+title: Session Took In External Content
+id: netzilo-example-external-content-001
+level: low
+logsource: {product: ai_agent, category: agent_events}
+requires: [tool]
+detection:
+  sel: {event_type: tool_response, content|re: '.'}
+  condition: sel
+action: execute
+mode: async
+timeout_ms: 2000
+script: |
+  EXTERNAL = ["web", "fetch", "browse", "mail", "calendar", "slack", "chat"]
+
+  def run():
+      if not meta.get("session"):
+          return "allow"                       # no session: nothing to remember
+      tool = meta.get("tool_name", "").lower()
+      if [w for w in EXTERNAL if w in tool]:
+          session_set("external_at", int(meta.get("event_ts", "0")))
+      return "allow"
+
+  result = run()
+```
+
+```yaml
+# Rule B — inline: before an outbound send in such a session, ask whether it serves the request
+title: Outbound Send After External Content
+id: netzilo-example-send-after-external-001
+level: high
+logsource: {product: ai_agent, category: agent_events}
+requires: [tool]
+detection:
+  sel: {event_type: tool_call, content|re: '.'}
+  condition: sel
+action: execute
+timeout_ms: 4000
+on_error: allow
+on_timeout: report
+script: |
+  SEND = ["send", "email", "post", "upload", "publish", "share"]
+  QUESTIONS = {"off_request": {"type": "noul", "instructions":
+      "Probability that the pending tool call does something the user's `requests` did not ask for."}}
+
+  def decide():
+      tool = meta.get("tool_name", "").lower()
+      if not [w for w in SEND if w in tool]:
+          return "allow"                       # most calls end here: a few string checks
+      if session_get("external_at", rule="netzilo-example-external-content-001") == None:
+          return "allow"                       # one map lookup
+      requests = json.decode(meta.get("requests", "") or "[]")
+      if not requests:
+          return "report"                      # no visible request to compare against
+      state = {"requests": requests, "tool": meta.get("tool_name", ""), "arguments": meta.get("content", "")[:2000]}
+      a = system_one(state, QUESTIONS)
+      if a["error"]:
+          return "report"
+      p = a["answers"]["off_request"]["noul"]
+      if p >= 0.8:
+          return {"action": "block", "reason": "Send outside the user's request after the session read external content (%s)" % p}
+      return "allow"
+
+  def run():
+      if not meta.get("session"):
+          return "allow"
+      verdict = decide()                       # decide first, write after
+      if session_usage()["free"] > 1024 and session_flag("hold_set"):
+          session_hold(1500, match={"context_type": "tool_input"})   # once per session
+      return verdict
+
+  result = run()
+```
+
+Rule A costs the agent nothing. Rule B costs a few string checks on every tool call, a session-state read on sends, and a model call only on sends in sessions that read external content. Rule B sets a hold on the session's first tool call, so every later tool call waits — at most 1.5 s, and only while Rule A still has work queued for the session — and Rule B never reads a state one step behind. The hold must come from the inline rule: a hold the background rule sets is not in place for the event that races its own job. Netzilo's **Agent Intent Gate** / **Agent Intent Chain** rule pair is this pattern at full size: the chain rule keeps the session's calls and results and judges the chain with System One in the background; the gate labels every call without a model and judges inline only risky calls.
+
 ## False Positive Prevention — Non-Negotiables
 
 Before shipping any `block` rule, you must be able to answer **all** of the following:
@@ -399,7 +483,7 @@ When asked to create a rule:
 4. **Declare `requires:`** — the capabilities the rule depends on (`process_exec`, `file_activity`, `llm`, `tool`, `http`, `connect`, `skill`, `session`). Derive them from the contexts the rule triggers on and the edge kinds / builtins the script uses. The linter tells you what is missing.
 5. **For scripted rules**: anchor on `session()`, decide the scope (the session, its lineage, its children), identify which event kinds are evidence, write the `events()` / `edges()` calls, define the decision threshold, then wire the verdict and the kill chain.
 6. **For content rules**: draft the detection conditions — start strict. Run it mentally against three legitimate payloads before including it. Write a `filter` selection with `condition: selection and not filter`.
-7. **Choose the action** — `block` only when confident; `report` when uncertain; `redact` for PII. Scripts use `on_error: allow` unless the rule is critical enough to justify fail-closed.
+7. **Choose the action** — `block` only when confident; `report` when uncertain; `redact` for PII. Scripts use `on_error: allow` unless the rule is critical enough to justify fail-closed. For a script, also choose **where it runs**: inline (`mode: sync`, the default) only when it must stop the triggering event itself; everything that keeps state or asks a model runs in the background (`mode: async`) and enforces through a session verdict. Give every inline script that calls a model a `timeout_ms`.
 8. **Assign level** — match the actual risk of a true positive, not the desired priority of the rule. When `action:` is absent, `level: critical`/`high` → block, `level: medium`/`low` → report.
 9. **Name the rule** — use a `title:` prefixed by threat category: `MCP Config Write`, `Credential File Access`, etc. The `id:` should be a UUID4 (or `<uuid>-p` for a periodic companion, or `netzilo-<kebab-slug>-NNN` for a Netzilo-authored rule). The filename should be `ai_agent_<kebab_description>.yml`.
 10. **Decide the OS coverage** — which of macOS, Linux and Windows the rule must protect, and write it for them (see *OS coverage — paths, names and shells differ* below). A rule written only with `/` paths and `bash` command words loads on a Windows host and never fires there.
@@ -1525,12 +1609,47 @@ if event_ts > 0 and s0_ts > 0 and (event_ts - s0_ts) > LOOK_BACK_NS:
 #### Execution model
 
 - **Language:** Starlark — a deterministic, sandboxed dialect of Python (version 0.21).
-- **Isolation:** Every script runs in its own thread. No shared mutable state between rules or calls.
-- **Timeout:** 30 seconds wall-clock for event-triggered runs, 25 seconds for periodic runs (respects the request context deadline). Exceeded scripts are cancelled; `on_timeout` determines the fallback verdict.
+- **Isolation:** Every run has its own thread and its own local variables. Rules share nothing implicitly: the only state that outlives a run is what a rule writes on purpose — to the session ([Session State](#session-state--shared-across-rules), shared with every rule) or to its own store ([Rule Store](#rule-store--per-rule-persistent-storage)).
+- **Timeout:** `timeout_ms` when the rule sets it; otherwise 30 seconds wall-clock for event-triggered runs and 25 seconds for periodic runs (an inline run also respects the request's own deadline). Exceeded scripts are cancelled; for an inline rule `on_timeout` determines the fallback verdict.
+- **Where it runs:** inline on the request path (`mode: sync`, the default) or in the background after the event went on (`mode: async`). See [Sync and async rules](#sync-and-async-rules--mode-and-timeout_ms).
 - **Print output:** `print()` statements are captured and stored as the `execute_reason` field on the security event that is published to the management audit log. They do **not** write to the netzilo client log file, do not appear in the debug UI, and do not affect the verdict. Use `print()` to annotate why a verdict was reached — the text is visible in the management dashboard alongside the rule name, verdict, and severity.
 - **Fail-open by default:** If the script raises an exception (including a call to a builtin that does not exist), does not assign `result`, or `result` is not a recognised verdict string, the engine defaults to `"allow"`. Use `on_error: block` for fail-closed enforcement.
-- **Script structure:** All logic should live inside a `def run():` function to avoid top-level `for`-loop restrictions. Assign `result = run()` at the bottom.
+- **Script structure:** All logic should live inside a `def run():` function to avoid top-level `for`-loop restrictions. Assign `result = run()` at the bottom. Keep this shape: constants, tables and `def`s at the top level, `result = run()` last — the engine then builds the definitions once and reuses them on every run ([Script shape and cost](#script-shape-and-cost--definitions-are-built-once)).
 - **Kill chain is required for every behavioral detection.** Any script that reads the graph or the log and returns `"block"` or `"report"` **must** build a kill chain and include it as `"chain"` in the dict result. This is how the dashboard, audit log, and downstream systems show investigators what happened. A plain string `"block"` is only acceptable for trivial content-matching rules that do not touch the graph.
+
+#### Sync and async rules — `mode` and `timeout_ms`
+
+```yaml
+action: execute
+mode: async          # sync (default) | async
+timeout_ms: 5000     # bound for one run; default 30000 (periodic 25000)
+```
+
+| | `mode: sync` (default) | `mode: async` |
+|---|---|---|
+| When it runs | inline, before the event goes on; the caller waits | after the event went on, on a background worker |
+| Order | the event's inline rules one after another | one session's events in order; different sessions in parallel |
+| Can stop the triggering event | yes (`block`, `redact`, …) | **no** — the event already passed |
+| What `block` / `report` does | refuses or reports the event | publishes an **AI detected** event (marked `execute_async`) for the rule; nothing is refused. To stop later events, set a [session verdict](#session-state--shared-across-rules) |
+| `on_timeout` / `on_error` | apply | ignored (the failure is logged on the host) |
+| Effect on latency | adds the script's run time to every matching event | none, unless a later event waits on a `session_hold` |
+
+**Use async for** anything that keeps state across a session (labels, counters, taint), anything that asks a model (`system_one`, `llm_call`), and anything that reads a lot of history. **Use sync for** the one decision that must stop this event — and keep it cheap: a few string checks, a session-state read, and a model call only on the few events that need one. A common split is a pair: an async rule that follows the session and records what it learns, and a sync rule that reads it and decides on the risky calls (pattern in [Scripted Rule Patterns](#scripted-rule-patterns--use-these)).
+
+**What async does not promise.** The background queue is bounded per host: when it is full, an async rule's run for that event is skipped and counted, never waited for. A streamed answer's held-back windows queue nothing; async rules judge the finished answer once. Never make a must-block check async alone; pair it with an inline rule or a session verdict that is already in place.
+
+**`timeout_ms`** bounds one run of the rule, sync or async. Set it on every inline rule that calls a model: a judge that hangs holds the agent's call until the bound, then `on_timeout` decides. The model calls themselves have their own bound (about 30 s); `timeout_ms` is the one the rule controls.
+
+**Older engines.** A host whose engine predates these fields ignores `mode` and `timeout_ms` — the rule runs inline with the 30-second bound — and has no `session_*` builtins, so a script that calls one fails and takes its `on_error` verdict. Choose `on_error` with that in mind, and confirm the hosts that load the rule run a current client, gateway or browser extension.
+
+#### Script shape and cost — definitions are built once
+
+A script of the conventional shape — constants, tables and `def`s at the top level, then `result = run()` as the **last** statement — is split by the engine: the definitions are built once, frozen and reused, and each run only calls the entry. A gate script that would rebuild its tables on every event costs a fraction as much this way. A script that does not fit the shape still runs, just slower, because its whole top level is executed on every run:
+
+- **Top level: definitions only.** No call to a builtin or to your own functions at the top level, no read of `meta`/`subject` there (that work would happen once, not per event). Compute per-event values inside `run()`.
+- **Module values are read-only at run time.** A function that appends to, or assigns into, a module-level list or dict would carry state from one event to the next; the engine detects it and runs the script unsplit. Build working copies inside the function (`seen = {}`), and keep cross-event state in the session or the store.
+- **Default parameter values** must be plain constants: not a mutable literal (`def f(x=[])`), not a call or a `meta` read.
+- **`re` patterns are compiled once per engine** and reused (up to 4,096 distinct patterns). Keep patterns literal; a pattern built from event data is compiled on every call.
 
 #### Starlark is not Python — four differences that break scripts
 
@@ -1700,7 +1819,7 @@ result = run()
 | `re.find_all` | `re.find_all(pattern, s, n=-1)` | `list[str]` | All matches (up to n) |
 | `re.replace` | `re.replace(pattern, s, repl)` | `str` | Replace all matches |
 | `re.split` | `re.split(pattern, s, n=-1)` | `list[str]` | Split by pattern |
-| `re.compile` | `re.compile(pattern)` | Regexp | Returns object with `.match()`, `.find()`, `.find_all()`, `.replace()`, `.split()`, `.pattern` |
+| `re.compile` | `re.compile(pattern)` | Regexp | Returns object with `.match()`, `.find()`, `.find_all()`, `.replace()`, `.split()`, `.pattern`. Every `re` function compiles a pattern once per engine and reuses it (up to 4,096 patterns) |
 | `json.encode` / `json.decode` / `json.indent` | `json.encode(x)`, `json.decode(s)`, `json.indent(s, prefix="", indent="\t")` | `str` / value / `str` | The standard Starlark `json` module. Use it to decode tool arguments (`json.decode(meta["content"])` — `content` is a JSON string for tool calls) and to encode state for `llm_call`. `json.decode` raises on invalid JSON. |
 | `http` | `http(method, url, body="", headers={}, timeout_ms=10000)` | `dict` | HTTP request; returns `{status, body, error}` |
 | `webhook` | `webhook(url, payload)` | `dict` | JSON-encodes payload, POSTs to url; returns `{status, body, error}` |
@@ -1710,7 +1829,7 @@ result = run()
 | `step` | `step(edge, stage_id="", stage_desc="", activity=None)` | `dict` | Annotates an edge dict with a stage label and description for inclusion in a kill chain. Pass `activity` (an entry from `fs_activity()`) for FILE edges to name the exact file and its timestamp. |
 | `scan_prompt` | `scan_prompt(text, scan_type="", identifier="")` | `dict` | Runs the built-in ML prompt-injection classifier on `text`. Returns `{"allowed": bool, "label": str, "confidence": float, "reason": str, "error": str, "model": str}` (`model` is empty for the classifier). Fast, no AI model required. On a classifier error it returns `allowed=True` with `label="error"` and the error text — check `error`. Undefined on a host with no scan service: a script that calls it takes `on_error`. |
 | `llm_call` | `llm_call(text, instruction, scan_type="", identifier="", model="")` | `dict` | Sends `text` to the AI judge with a custom `instruction`. Same return shape as `scan_prompt`; `model` names the provider and model that answered (`"OpenAI/gpt-5"`). Without `model` the judge is the model approved for Threat Analysis under Integrations → Artificial Intelligence. With `model` it is that model, written `"model-id"`, `"provider-name/model-id"` or `"provider-id/model-id"`; it may be any model an enabled text provider of the account lists, approved for Threat Analysis or not (never a System One model). A model the account cannot use returns `allowed=True`, `label="error"` and an `error` that names the model and says why — the call never falls back to another model. `instruction` is **required** and must be non-empty — raises an error otherwise (use `scan_prompt` for the ML classifier). On any error it returns `allowed=True`, `label="error"`. A management server older than the `model` argument ignores it and answers on the Threat Analysis model. |
-| `system_one` | `system_one(state, questions, model="")` | `dict` | Asks the account's **System One** model (TypeSafe; Integrations → Artificial Intelligence, protocol `typesafe-systemone`) typed questions about `state`. `state` is any JSON-serializable value (a string or a dict). `questions` is a dict of question objects exactly as the System One API takes them, e.g. `{"in_scope": {"type": "noul", "instructions": "..."}}` (`noul` = probability 0..1 that the statement holds; `choice` with `criteria`; `score`). Returns `{"answers": {name: answer}, "model": str, "error": str}` — each answer is the object System One wrote, e.g. `{"type": "noul", "noul": 0.93}`. `model` (argument) picks a model listed by an enabled System One provider (`"jev-preview"`, `"TypeSafe/jev-preview"`); empty = the highest-priority System One provider's first model. **Never raises for a service failure**: no System One provider, an unknown model, a timeout or an endpoint error returns `{"answers": {}, "model": "", "error": "..."}` — check `error` before reading `answers`. Raises only for invalid arguments (`questions` not a non-empty dict of dicts, `state` is `None`). Cost and latency: one paid round trip through management to TypeSafe per call, billed to the account's System One key, which never leaves management; all questions in one call are answered together, so ask everything you need in one call. Answers are numbers, not text — cheaper and faster than `llm_call`, and the right first pass. Bounded like `llm_call`. Undefined on a host with no scan service, exactly like `llm_call`; a management server or endpoint client older than `system_one` returns an `error`. |
+| `system_one` | `system_one(state, questions, model="")` | `dict` | Asks the account's **System One** model (TypeSafe; Integrations → Artificial Intelligence, protocol `typesafe-systemone`) typed questions about `state`. `state` is any JSON-serializable value (a string or a dict). `questions` is a dict of question objects exactly as the System One API takes them, e.g. `{"in_scope": {"type": "noul", "instructions": "..."}}` (`noul` = probability 0..1 that the statement holds; `choice` with `criteria`; `score`). Returns `{"answers": {name: answer}, "model": str, "error": str}` — each answer is the object System One wrote, e.g. `{"type": "noul", "noul": 0.93}`. `model` (argument) picks a model listed by an enabled System One provider (`"jev-preview"`, `"TypeSafe/jev-preview"`); empty = the highest-priority System One provider's first model. **Never raises for a service failure**: no System One provider, an unknown model, a timeout or an endpoint error returns `{"answers": {}, "model": "", "error": "..."}` — check `error` before reading `answers`. Raises only for invalid arguments (`questions` not a non-empty dict of dicts, `state` is `None`). Cost and latency: one paid round trip through management to TypeSafe per call, billed to the account's System One key, which never leaves management; all questions in one call are answered together, so ask everything you need in one call. Answers are numbers, not text — cheaper and faster than `llm_call`, and the right first pass. Bounded like `llm_call`. Undefined on a host with no scan service, exactly like `llm_call`; a management server or endpoint client older than `system_one` returns an `error`. **Cached on the host:** a call with the same `state`, `questions` and `model` as one answered in the last 60 seconds gets that answer without a new round trip (up to 1,024 answers; failures are never cached), and at most 4 calls per host are in flight at once — the rest wait. A state that grows with the session (a chain of calls) rarely repeats, so budget calls in the rule (`session_incr`). |
 | `store_set` | `store_set(key, value)` | `True` | Persist a JSON-serializable `value` under `key` in this rule's private store. **Raises an error** (`quota exceeded`) if the write would exceed the rule's 1 MB cap — call `store_usage()` first to avoid it. See **Rule Store** below. |
 | `store_get` | `store_get(key)` | `value \| None` | Read a value previously stored by **this rule**. `None` if absent. Large integers are preserved exactly. |
 | `store_delete` | `store_delete(key)` | `True` | Remove one key (frees its quota). |
@@ -1718,9 +1837,10 @@ result = run()
 | `store_keys` | `store_keys()` | `list[str]` | All keys this rule has stored. |
 | `store_usage` | `store_usage()` | `dict` | `{"bytes": used, "limit": 1048576, "free": remaining}` — check before a large `store_set`. |
 | `set_integrity_level` | `set_integrity_level(level)` | `None` | Set the agent/host **integrity level** (an int, ordered worst→best): `0`=breached, `1`=low, `2`=medium (**default**), `3`=high. Raises an error if out of range. The level is published in the agent's posture metadata; self-posture's **device-integrity check treats `0` (breached) exactly like a debugger being attached** (fails the check). Levels `1`/`2`/`3` are informational for now (sent and stored, no posture action). In SDK/embedded mode this is the *only* integrity signal evaluated (no host probing). |
+| `session_get` … `session_hold` | see [Session State](#session-state--shared-across-rules) | | State shared by every rule over one session: `session_get`, `session_set`, `session_append`, `session_incr`, `session_flag`, `session_delete`, `session_keys`, `session_usage`, `session_verdict`, `session_clear_verdict`, `session_hold`. |
 | `get_integrity_level` | `get_integrity_level()` | `int` | Returns the agent's current integrity level (`0`=breached … `3`=high; `2`/medium by default). |
 
-In `tool_call` events from the AI Gateway, `meta["task"]` is the conversation's first user prompt and `meta["instructions"]` is its system prompt, each capped at 8 KB — the context a judge needs to decide whether a tool call serves the task.
+In tool calls at the AI Gateway, and in tool calls and tool results the Netzilo client sees in an agent's model traffic, `meta["task"]` is the conversation's first user prompt, `meta["instructions"]` its system prompt (each capped at 8 KB) and `meta["requests"]` every user turn so far — the context a judge needs to decide whether a tool call serves what the user asked. See [`meta` keys](#meta-keys).
 
 ##### Two-tier judging: System One first, `llm_call` second
 
@@ -1880,7 +2000,7 @@ This produces a chain like:
 
 #### `meta` keys
 
-`meta` is a frozen (read-only) dict injected before the script runs. All keys and values are strings.
+`meta` is a read-only mapping injected before the script runs; it behaves like a frozen dict (`meta[k]`, `meta.get(k, default)`, `k in meta`, `len(meta)`, `keys()`/`values()`/`items()`, `json.encode(meta)`) and iterates its keys in sorted order. All keys and values are strings.
 
 | Key | Available in | Value |
 |---|---|---|
@@ -1908,7 +2028,11 @@ This produces a chain like:
 | `protocol` | `connects` context | Transport protocol: `"tcp"` or `"udp"` |
 | `header_<name>` | HTTP contexts | Individual request header value, key lowercased (e.g. `meta["header_authorization"]`, `meta["header_x-tenant-id"]`). Synthetic keys: `header_authorization-jwt` (decoded JWT payload) and `header_authorization-basic` (decoded Basic credentials) are also injected when present. |
 | `agent_name` | all | Program path of the nearest agent session in the caller's lineage; on the AI Gateway, the agent's name (`NetziloAgent/<name>`, else the client). Display and scoping only — use `session` for attribution. Empty string if unknown. |
-| `callid` | event-triggered runs | The **reporting-call id** of the event that triggered this rule run (see **Call ID** below). Empty for `periodic` rules. `events(callid=meta["callid"])` returns exactly the triggering event once it is logged. |
+| `callid` | event-triggered runs | The **reporting-call id** of the event that triggered this rule run (see **Call ID** below). Empty for `periodic` rules. `events(callid=meta["callid"])` returns exactly the triggering event once it is logged. On the Netzilo client's interception of model traffic it is one id per HTTP exchange: the tool calls of one model answer share it, and a tool's result arrives with another — pair a call with its result by `tool_call_id`. |
+| `tool_call_id` | `tool_input`, `tool_output` | The agent's own id of the tool call (the model's `tool_use`/`tool_call` id, a hook's call id). The call and its result carry the same value, so a rule can pair them. Empty when the host does not know it. |
+| `task` | tool calls (gateway, client interception) and tool results (client interception) | The conversation's first user prompt, capped at 8 KB. |
+| `instructions` | as `task` | The conversation's system prompt, capped at 8 KB. |
+| `requests` | as `task` | Every user turn so far as a **JSON list of strings** — decode with `json.decode(meta.get("requests", "") or "[]")`. The user's own text only (`<system-reminder>` blocks an agent adds are removed), the first turn and the latest six, each capped at 1 KiB and 4 KiB in all (over the budget the oldest after the first go first). Use it when the request can change during a session: a user who widens the task in a later turn is not drift. |
 
 #### The `subject` dict
 
@@ -1940,10 +2064,10 @@ def run():
 
 Both accept `allow` (default), `block`, or `report`.
 
-- **`on_timeout`** — fires when the script deadline is exceeded (30 seconds for event-triggered runs, 25 seconds for periodic runs).
+- **`on_timeout`** — fires when the script deadline is exceeded (`timeout_ms`, else 30 seconds for event-triggered runs and 25 seconds for periodic runs).
 - **`on_error`** — fires when the script raises an exception, fails to parse, calls a builtin that does not exist, or the runner is unavailable.
 
-Use `on_error: block` for fail-closed enforcement of critical rules. Default `allow` is fail-open — which is why a script broken by a removed builtin looks exactly like "no attack happened".
+Use `on_error: block` for fail-closed enforcement of critical rules. Default `allow` is fail-open — which is why a script broken by a removed builtin looks exactly like "no attack happened". Both apply to inline (`mode: sync`) rules only: an async rule's event has already gone on, so its timeout or error is logged on the host and changes nothing.
 
 ---
 
@@ -2408,6 +2532,50 @@ def run():
 
 ---
 
+## Session State — Shared Across Rules
+
+Every session has an in-memory **state** that all rules share: one rule records what it learned (a label, a counter, a flag, the calls so far), another reads it on a later event. Each rule writes only under its own name (its `id`) and can read every rule's entries, so rules compose without overwriting each other. Writes are atomic per session, so concurrent events of one session never lose an update.
+
+| Builtin | Returns | What it does |
+|---|---|---|
+| `session_get(key, rule="", session="")` | value or `None` | Reads `key` written by `rule` (default: this rule) in `session` (default: the triggering one). |
+| `session_set(key, value)` | `True` | Writes `value` under this rule's `key`. |
+| `session_append(key, value, max_len=50)` | new length | Appends to the list under `key`, keeping the last `max_len` items. |
+| `session_incr(key, n=1)` | new value | Adds `n` to the integer under `key` (missing = 0). |
+| `session_flag(key)` | `bool` | Sets `key` to `True`; returns `True` only for the call that set it — a once-per-session switch. |
+| `session_delete(key)` | `True` | Removes this rule's `key`. |
+| `session_keys(rule="")` | `list[str]` | The keys `rule` wrote; with no argument, every rule's keys as `"rule/key"`. In no particular order. |
+| `session_usage()` | `dict` | `{"bytes", "limit", "free"}` for the whole session (all rules together). |
+| `session_verdict(action, reason="", match={}, ttl_s=0)` | `True` | Decides for the **rest of the session**: later events that match get `action` (`"block"` or `"report"`). |
+| `session_clear_verdict()` | `True` | Removes this rule's session verdict. |
+| `session_hold(deadline_ms, match={}, ttl_s=0)` | `True` | Makes later matching events wait for the session's background work (below). |
+
+**Values** are JSON-like: `None`, booleans, integers, floats, strings, lists and dicts with string keys (a tuple is stored as a list). Integers read back as integers. Keep entries small and compact — labels, ids, short excerpts — not whole payloads.
+
+**Scope and lifetime.**
+
+- One state per session **per host engine**: a device, a gateway and a browser extension each keep their own; a session seen by two of them has two states.
+- It follows the session when the engine merges or renames it, and it is dropped with the session (after it ended and went idle). Nothing is written to disk on devices and gateways: a restart starts empty.
+- In the **browser extension** a session's state is saved so it survives the extension's worker restarts — only while the whole state of that session is at most **32 KiB**, and for the 32 most recently changed sessions. A larger state is not saved and is lost at the next restart.
+- **Quota:** 256 KiB per session, all rules together, counted from an estimate of the values' JSON size. A write past it raises `session state quota exceeded for <session>`; check `session_usage()["free"]` before large writes.
+
+**Writes need a session.** On an event with no session (no known subject) or in a periodic run, `session_set`, `session_append`, `session_incr`, `session_flag`, `session_verdict` and `session_hold` raise an error — and the rule takes its `on_error` verdict. Guard with `if not meta.get("session"): ...`. Reads return `None`. In the held-back windows of a streamed answer (`meta["stream_phase"] == "window"`), reads work and writes answer as if they happened but change nothing; the finished answer writes.
+
+**Session verdicts.** `session_verdict` is how a background rule enforces: the verdict is applied to every later event of the session whose fields equal every entry of `match`, **before any rule runs on that event** — one lookup, no script. `match` keys: `context_type` (`tool_input`, `tool_output`, `llm_request`, …), `tool_name`, `server_name`, `host`, `method`, `path`, `provider`, `model`, `agent_name`; values are compared exactly; an empty `match` covers every event. `"block"` refuses the event with `reason` (default `session verdict by rule <id>`); `"report"` reports it. The event published names the rule, its severity and filter, so it reads like any other block or detection. One verdict per rule and session (a newer one replaces it); `ttl_s=0` keeps it until the session ends. `session_clear_verdict()` lifts it — for example when the user confirms.
+
+**Holds.** A background rule's verdict reaches the next event only if it is ready in time. `session_hold(deadline_ms, match)` makes a later matching event wait while the session still has background (`mode: async`) work queued or running — up to `deadline_ms`, capped by the host (2 s) and by the request's own deadline — and then read the verdicts. With nothing pending, a held event does not wait at all. One hold per rule and session; `ttl_s=0` keeps it until the session ends. Hold only the events a pending verdict could stop (`match={"context_type": "tool_input"}`), never every event. Set the hold from an **inline** rule (once per session, `session_flag`): a hold a background rule sets in its own job is not in place yet for the event that races that job.
+
+**Session state or rule store?**
+
+| | Session state (`session_*`) | Rule store (`store_*`) |
+|---|---|---|
+| Scope | one session; every rule reads, each rule writes its own | one rule, all sessions |
+| Lifetime | the session; in memory | durable on the host until deleted |
+| Limit | 256 KiB per session (32 KiB to survive a browser extension restart) | 1 MB per rule |
+| Use for | what this session did: labels, taint, counters, the calls so far, verdicts | what the rule learned across sessions: baselines, seen-sets, caches |
+
+---
+
 ## Best Practices for Advanced Scripted Rules
 
 This is the authoritative checklist for `action: execute` behavioral rules. It encodes the design that achieves **zero false positives, maximum accuracy, and bounded cost**. Treat each item as a gate: a rule that violates one is not ready to ship as `block`.
@@ -2484,6 +2652,14 @@ script: |
 
 16. **`on_timeout: allow` / `on_error: allow` for high-volume triggers.** A slow or broken script must never block an unrelated connection. Fail open on the busy path; reserve `on_error: block` for low-volume, critical checks.
 
+### Request path vs background — `mode`, state and cost
+
+- **Inline only what must stop this event.** Every inline script runs on every event its detection matches, and every matching rule's time adds up on the agent's call. Narrow the detection (`event_type`, `tool_name|re`) so the script only runs where it can matter, and keep the script's common path to string checks and a session-state read.
+- **State and models go to the background.** Labelling, counting, following a chain and asking `system_one`/`llm_call` belong in a `mode: async` rule; enforce with `session_verdict`, and set a `session_hold` on the events the verdict must reach.
+- **Budget model calls per session.** Ask every question in one `system_one` call, and count calls with `session_incr`; past a budget, decide without the model (report, or keep the last answer).
+- **Decide first, write after.** A session write can raise (quota, no session); compute the verdict before writing, so a failed write never turns a `block` into the `on_error` default. Store fixed-size records (a ring of keys such as `s0`…`s29` instead of an ever-growing list) and keep the state under 32 KiB per session if the rule runs in the browser extension.
+- **Regexes without a literal are expensive.** The engine skips a `|re` pattern when a literal it needs is absent from the content; a pattern with no usable literal (a leading `.{0,40}`, a large `(?i)` alternation of short words, broad character-class ranges) runs over the whole content of every event in its category — milliseconds per event on large tool arguments. Give each pattern a distinctive literal, anchor it, and scope it with `event_type`.
+
 ### Determinism & the kill chain
 
 17. **Build the kill chain instance-accurately.** Use edges from `edges(session_id, …)` where the merged edge is the evidence, and `ev_edge(row)` for event rows and the hand-built trigger stage. Root it at the run's owner session (`new_chain(agent_root)` or `new_chain(lineage_[-1]["id"])`). The serializer prepends owner and spawn ancestry; your evidence steps (with `stage_id`) carry the proof.
@@ -2546,6 +2722,11 @@ script: |
 - [ ] No local variable named after a builtin (`session`, `lineage`, `children`, `sessions`, `programs`, `events`).
 - [ ] Degraded (`session() == None`, no agent in lineage) returns `allow`/`report`, never a guessed block.
 - [ ] `on_timeout`/`on_error` fail open on high-volume triggers.
+- [ ] `mode` is chosen on purpose: inline only for the decision that must stop the triggering event; state and model calls run in the background and enforce with `session_verdict` (and a `session_hold` where the next event must wait).
+- [ ] Inline rules that call a model set `timeout_ms`, and the verdict on a model error is stated (`report`, or a deliberate fail-closed).
+- [ ] Session writes are guarded (no session → skip), happen after the verdict is decided, are bounded (`session_usage()`), and stay under 32 KiB per session for rules that run in the browser extension.
+- [ ] A rule that reads another rule's state names it by its `id` and still answers sensibly when that rule is not loaded (`session_get` returns `None`).
+- [ ] The script has the conventional shape (definitions, then `result = run()` last; no module values modified at run time), so its definitions are built once.
 - [ ] Returns a kill chain; every dict passed to `step()` has real `from`/`to` (event rows and hand-built triggers went through `ev_edge`); `SPAWNED` steps use `parent_session` for `from`.
 - [ ] Proof: one attack scenario with the expected verdict and chain, one near-miss benign scenario that comes out `allow` — as fixtures for the public library, or reproduced on a pilot group in report mode for an account rule.
 
@@ -3808,8 +3989,10 @@ script: |             # required; Starlark script
   def run():
       return "allow"
   result = run()
-on_timeout: block | allow | report   # default: allow
-on_error:   block | allow | report   # default: allow
+mode: sync | async                    # default: sync (inline); async runs after the event went on
+timeout_ms: 5000                      # bound for one run; default 30000 (periodic 25000)
+on_timeout: block | allow | report   # default: allow (inline rules only)
+on_error:   block | allow | report   # default: allow (inline rules only)
 
 # For action: blockmodel
 reason: string        # optional; shown in audit logs
@@ -4017,9 +4200,10 @@ Its benign twin (`….benign.yml`) is the same session doing the same credential
 | `rule` | the rule file (default: derived from the fixture's file name) |
 | `capabilities` | the host's capabilities (default: all — an endpoint). Set `[session, llm, tool, http, skill]` to run the scenario as the AI Gateway. When the rule's `requires:` is not covered, the fixture **fails** with `skipped: …` — the rule would not be loaded on that host |
 | `subjects.<name>` | `session`, `aliases`, `parent`, `program`, `name`, `agent`, `actors` (`kind` user/agent, `id`, `name`, `email`, `groups`), `device`, `source` |
-| `observations[]` | `kind` (`session_start`, `session_end`, `spawn`, `llm_request`, `llm_response`, `tool_call`, `tool_result`, `http_request`, `http_response`, `connect`, `skill_acquired`, `file_read`, `file_write`, `file_create`, `file_delete`, `file_rename`), `subject`, `at_ms` (offset from the base time; default = index in ms), and the kind's fields: `cmdline`; `provider`, `model`, `request_id`, `body`; `server`, `server_url`, `tool`, `call_id`, `args`, `output`; `url`, `method`, `content_type`, `status`; `host`, `protocol`, `port`; `path`, `old_path`; `skill_name`, `skill_source`, `content`; `headers` (become `header_<name>` meta); `context_type` (override for scan-only contexts such as `tool_description`) |
+| `observations[]` | `kind` (`session_start`, `session_end`, `spawn`, `llm_request`, `llm_response`, `tool_call`, `tool_result`, `http_request`, `http_response`, `connect`, `skill_acquired`, `file_read`, `file_write`, `file_create`, `file_delete`, `file_rename`), `subject`, `at_ms` (offset from the base time; default = index in ms), and the kind's fields: `cmdline`; `provider`, `model`, `request_id`, `body`; `server`, `server_url`, `tool`, `call_id`, `args`, `output`; `url`, `method`, `content_type`, `status`; `host`, `protocol`, `port`; `path`, `old_path`; `skill_name`, `skill_source`, `content`; `headers` (become `header_<name>` meta); `context_type` (override for scan-only contexts such as `tool_description`); on tool events `call_id` becomes `meta["tool_call_id"]`, and `task`, `instructions` and `requests` (a list of strings) become the conversation keys of the same names |
 | `trigger` | index of the observation the rule fires on; `-1` runs it as periodic; omitted = the last observation (or periodic for a periodic rule) |
-| `triggers` | run the rule at each listed index in order, in one engine — for rules that accumulate state in their store; the result is the last run's |
+| `triggers` | run the rule at each listed index in order, in one engine — for rules that accumulate state in their store or in the session state; the result is the last run's |
+| `system_one` | answers for the rule's `system_one()` calls: a list of `{when, answers}`. The first entry whose `when` text occurs in the call's `state` (as JSON text) answers with `answers`, written as the System One API writes them (`{harm: {noul: 0.9}, goal: {choice: exfiltration}}`); an entry without `when` answers any call. **A call no entry answers fails the fixture** |
 | `expect` | `action` (required), `reason_contains`, `output_contains` (list), `chain_min` |
 
 Netzilo runs every fixture in the public rule library through its engine's fixture harness before a rule ships. Write fixtures in this format when you contribute a rule to the library. For a rule you keep in your own account, the equivalent proof is a pilot group with the rule in report mode (`action: report`, `28-edge-guardrails.md` §6): the attack you can reproduce must produce an **AI detected** event with the expected chain, and the closest benign run must produce none.
@@ -4030,6 +4214,7 @@ Writing good fixtures:
 - **Space observations realistically** with `at_ms` when the rule has a window: put a stale stage outside the window in a variant and expect `allow`.
 - **Use the subject kinds the real hosts produce**: `pid/…` sessions with `source: probe` for endpoint process chains, `agent/…` with `source: hook` for hook-driven agents, `source: gateway` and no device for gateway traffic.
 - **Assert the chain** (`chain_min`) on every blocking fixture, so a refactor that drops evidence steps fails.
+- **Pin every model answer.** A rule that calls `system_one()` gets its answers from the fixture's `system_one` entries; give each a `when` that names the pending call (its tool name), so an extra or changed call fails the fixture instead of reusing an answer meant for another step.
 
 ---
 
