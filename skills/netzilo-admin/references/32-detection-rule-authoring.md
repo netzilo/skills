@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 229098
+chars: 229099
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
@@ -20,7 +20,7 @@ sections:
   chars: 3325
 - id: scripted-rule-patterns-use-these
   title: Scripted Rule Patterns — Use These
-  chars: 12072
+  chars: 12073
 - id: false-positive-prevention-non-negotiables
   title: False Positive Prevention — Non-Negotiables
   chars: 1268
@@ -457,7 +457,7 @@ script: |
   result = run()
 ```
 
-Rule A costs the agent nothing. Rule B costs a few string checks on every tool call, a session-state read on sends, and a model call only on sends in sessions that read external content. Rule B sets a hold on the session's first tool call, so every later tool call waits — at most 1.5 s, and only while Rule A still has work queued for the session — and Rule B never reads a state one step behind. The hold must come from the inline rule: a hold the background rule sets is not in place for the event that races its own job. Netzilo's **Agent Intent Gate** / **Agent Intent Chain** rule pair is this pattern at full size: the chain rule keeps the session's calls and results and judges the chain with System One in the background; the gate labels every call without a model and judges inline only risky calls.
+Rule A costs the agent nothing. Rule B costs a few string checks on every tool call, a session-state read on sends, and a model call only on sends in sessions that read external content. Rule B sets a hold on the session's first tool call, so every later tool call waits — at most 1.5 s, and only while Rule A still has work queued for the session — and Rule B never reads a state one step behind. The hold must come from the inline rule: a hold the background rule sets is not in place for the event that races its own job. Netzilo's **Cruise Control Gate** / **Cruise Control Patrol** rule pair is this pattern at full size: the patrol keeps the session's calls and results and judges the chain with System One in the background; the gate labels every call without a model and judges inline only risky calls.
 
 ## False Positive Prevention — Non-Negotiables
 

@@ -7,6 +7,14 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.8.1 — 2026-10-20
+
+Patch: Netzilo's agent intent rule pair is renamed.
+
+- `10` §8 and `32`: the pair is now **Cruise Control Gate** (inline; was Agent Intent
+  Gate) and **Cruise Control Patrol** (background; was Agent Intent Chain). Rule ids are
+  unchanged; bind the two as a pair.
+
 ## 4.8.0 — 2026-10-20
 
 Rules can now run in the background and share state over a session. Minor version:

@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 42668
+chars: 42732
 sections:
 - id: '1'
   title: Architecture in one page
@@ -32,7 +32,7 @@ sections:
   chars: 2696
 - id: '8'
   title: Writing and testing rules (Guardrails)
-  chars: 3571
+  chars: 3635
 - id: '9'
   title: Troubleshooting
   chars: 6424
@@ -449,10 +449,11 @@ rule:
   background work is pending), so a verdict being computed still applies.
 
 Rules share state within a session (`32`, "Session State"), so one rule can follow a
-session and another decide on it — for example Netzilo's **Agent Intent Chain** (follows
-an agent session in the background and reports when it drifts from what the user asked)
-and **Agent Intent Gate** (judges risky tool calls inline against the session and blocks
-harmful ones); both need a System One provider. `mode`, `timeout_ms` and the session
+session and another decide on it — for example Netzilo's **Cruise Control Patrol**
+(follows an agent session in the background and reports when it drifts from what the user
+asked) and **Cruise Control Gate** (judges risky tool calls inline against the session and
+blocks harmful ones); both need a System One provider. Bind them as a pair: the gate reads
+what the patrol keeps. `mode`, `timeout_ms` and the session
 builtins need a current engine on the host: an older client, gateway or browser
 extension runs a background rule inline and fails a script that uses the session
 builtins (it takes its `on_error` verdict). Bind such rules only to filters whose hosts
