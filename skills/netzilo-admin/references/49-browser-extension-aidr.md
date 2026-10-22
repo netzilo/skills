@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 19649
+chars: 20956
 sections:
 - id: '1'
   title: Model
   chars: 2355
 - id: '2'
   title: How policy reaches it
-  chars: 1529
+  chars: 2097
 - id: '3'
   title: Sign-in and the stand-down rule
   chars: 1788
@@ -23,13 +23,13 @@ sections:
   chars: 714
 - id: '5'
   title: What users see
-  chars: 1459
+  chars: 1754
 - id: '6'
   title: Browsers and distribution
   chars: 1234
 - id: '7'
   title: The behaviour graph side
-  chars: 2654
+  chars: 2647
 - id: '8'
   title: Events
   chars: 1070
@@ -38,7 +38,7 @@ sections:
   chars: 1146
 - id: '10'
   title: Diagnosis
-  chars: 3493
+  chars: 3944
 - id: '11'
   title: Limits to state before a customer discovers them
   chars: 1359
@@ -114,6 +114,14 @@ stands down (§3).
   guardrail, ask the user to press Refresh and read the popup's filters count and rules
   version (§10) rather than waiting.
 
+- **Response actions** (isolation, the AI Kill Switch, and inspection;
+  `51-ai-response-actions.md`) reach the extension separately from the filters: a
+  signed-in extension **5.2.578** or later fetches the actions covering its user every
+  30 s and at sign-in, keeps them across restarts, and enforces an isolation **even when
+  no browser filter applies to the user**. An older extension ignores them. Agents in an
+  action match the site (`chatgpt.com`, `claude.ai`, …); a device action does not cover
+  the browser (it is not a peer) — isolate the user instead.
+
 Confirm the dashboard label before quoting it: in the filter dialog's **Operating
 Systems** picker the entry is shown as **Browser**; a customer's build may word it
 differently, and theirs wins.
@@ -175,6 +183,7 @@ force-install policy, §6). There is no dashboard field for it.
 | **Redact** | the matched text is replaced by the rule's `replace` token (for example `[CARD-REDACTED]`) — in the prompt as it is sent, in the model's answer as it is shown, and in the copies the app renders from (history, re-renders) |
 | **Block** on a prompt | a refusal in the chat. ChatGPT shows an error with the rule's reason; claude.ai and Gemini show the answer **"Netzilo Guardrail: Blocked by rule: <rule name>"** — the model is asked to say exactly that, and the engine enforces the refusal in the answer whatever the model does |
 | **Detect** | nothing in the page; an `ai.detected` event |
+| **Isolation** (a response action) | every chat on a covered AI site is refused like a block, with "Response action: AI access is isolated by an administrator. Reason: … Reference: …" (or "…by a guardrail…"); an `ai.blocked` event with engine `control`. Lifting frees the browser within 30 s |
 | **Streamed answers** | the engine releases streamed text about **1 KB behind** the model so a match can be redacted before it is shown: long answers appear with a short delay, short answers appear at once at the end. The same holds on the client and the gateway |
 | **Reload** of a signed-in ChatGPT conversation | the messages are briefly hidden until the governed history has loaded, then shown redacted where a rule matches |
 | **Reload** of a **logged-out** ChatGPT conversation | **known gap:** the server renders the page and the extension cannot redact it; new prompts and answers in that conversation are governed |
@@ -217,7 +226,7 @@ with your browser management.
   one activity entry — `aidr.graph`, shown as **Session snapshot**, "Session snapshot is
   available for <program> in the browser" — with the session id, program, device and
   source `extension`; the row opens the session's behaviour graph. Devices no longer
-  create these entries; their AI sessions are found in Activity → AI Sessions.
+  create these entries; their AI sessions are found in Edge → Sessions.
 - **Who sees what:** regular users see only their own browser sessions (`GET
   /api/aidr/sources` and `/api/aidr/sessions` answer their own browser sources and their
   own peers); admins see all.
@@ -317,6 +326,8 @@ table.
 | Events show `source: mitm`, not `extension`, for browser prompts | the desktop client governs the browser (stand-down) | expected on Windows/macOS when the browser is in Agents |
 | Works in Chrome, nothing in Safari | the Netzilo Browser extension not enabled or not allowed on all websites | Safari → Settings → Extensions |
 | User sees "Netzilo Guardrail: Blocked by rule: …" as the AI's answer | a block verdict | expected; the rule name is in the text and in the event |
+| User sees "Response action: AI access is isolated …" | an isolation covers the user, their group, the site or the session | expected; lift it under Edge → Governance → Actions when the cause is gone (`51` §4) |
+| An isolation is in force but the browser still chats, and its sessions show no **Under Isolation** badge | extension older than 5.2.578, not signed in, or not refreshed yet (30 s) | update the extension; sign in; wait 30 s (`51` §11) |
 
 Before escalating: the popup's status screen (state, rules version, filters, failed and
 skipped rules, capabilities, unmapped counters), the browser and extension version, one

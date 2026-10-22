@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12697
+chars: 12683
 sections:
 - id: '0'
   title: What the admin sees first
@@ -32,13 +32,13 @@ sections:
   chars: 710
 - id: phase-7-ai-security-in-report-mode-first
   title: Phase 7 — AI security, in report mode first
-  chars: 944
+  chars: 937
 - id: phase-7b-clientless-access-if-browsers-without
   title: Phase 7b — Clientless access, if browsers without the client need access
   chars: 1185
 - id: phase-7c-the-ai-gateway
   title: Phase 7c — The AI Gateway
-  chars: 2932
+  chars: 2925
 - id: phase-8-roll-out-to-everyone
   title: Phase 8 — Roll out to everyone
   chars: 639
@@ -190,7 +190,7 @@ changed.
    governed AI apps are recorded and readable by administrators (`14` §3), before the
    first block.
 
-**Exit test:** a pilot device's AI app shows up as a session in Activity → AI Sessions
+**Exit test:** a pilot device's AI app shows up as a session in Edge → Sessions
 (point `endpoint`), a week of events with an acceptable false-positive rate, and a named
 owner for tuning.
 
@@ -257,7 +257,7 @@ the Workplace.
    text completions are limited and counted only (`27` §1).
 
 **Exit test:** a pilot user's agent completes a request through the gateway, the request
-shows under Dashboard → Agentic Activity, in Activity → AI Sessions (LLM tab) and in an
+shows under Dashboard → Agentic Activity, in Edge → Sessions (LLM tab) and in an
 AI Usage report, an ungranted model is
 refused with the exact 400 text, and the limit refuses with 429/402 when its window is
 exhausted.

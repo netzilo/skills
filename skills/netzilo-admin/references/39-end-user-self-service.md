@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 23644
+chars: 24429
 sections:
 - id: '1'
   title: What a regular user can see through the API
@@ -18,10 +18,10 @@ sections:
   chars: 2164
 - id: '3'
   title: The questions a regular user brings, and where each one ends
-  chars: 11355
+  chars: 12062
 - id: '4'
   title: Ending on the administrator's side of the boundary
-  chars: 1736
+  chars: 1814
 - id: '5'
   title: What not to do
   chars: 866
@@ -158,6 +158,7 @@ administrator.
 | "The extension says the desktop client governs this browser" | `GET /api/peers` — their device on that computer is connected. Nothing else to check | Expected: the Netzilo client on that device inspects the AI sites itself and the extension stands down; the same rules apply through the client. On Linux the client does not take over the browser, so the extension stays in charge there (`49-browser-extension-aidr.md`) |
 | "Claude Desktop sign-in fails" — "gateway SSO discovery failed: 401", "Gateway returned HTTP 405 … /v1/messages", "gateway SSO metadata invalid: token_endpoint: must be same-origin …", "server does not advertise device_authorization_endpoint", "gateway SSO device init failed: HTTP 400" | the endpoint they typed against the **Anthropic API** address in `ai-access`: it must end in `/anthropic` (401 and 405 mean it does not) | Their side for the address; **administrator** for the other three: the gateway or the server predates the device sign-in and needs an upgrade (`47-agentic-access-workplace.md` §5, `46-ai-gateway-mcp-servers-and-bundles.md` §6) |
 | "My file was refused" / "Netzilo Guardrail: <file name>: …" / "API Error: 400 Netzilo Guardrail: …" in Claude Code | the exact message (it names the file and the reason); which tool and whether it goes through the company gateway (`ai-access`) | By design: a guardrail on files for their groups. Their side: send the next message without the file (a retry with the same request is refused again; a computer-use screenshot needs a new conversation). **Administrator** when the file is needed for their work: the message to the administrator names the file, its kind and why (`50-ai-gateway-file-guardrails.md` §5) |
+| "Every AI request fails with 'Response action: AI access is isolated …'" (coding agent, desktop app, web chat) | the exact message: the **Reason** and the **Reference**, and "by an administrator" or "by a guardrail"; `GET /api/ai/sessions` — their own sessions carry `control` (`effect` `kill` = isolation, `probation` = inspection, with the reason) when an action holds them | **Administrator**, always: an isolation is a deliberate response action (`51-ai-response-actions.md`). Nothing on the device lifts it and retrying is refused the same way; do not suggest working around it. The message to the administrator gives the Reference, the reason shown, the tool and session, and why access is needed |
 | "I approved but Claude still waits" | did the page reach **Access allowed**; how long ago — the sign-in expires 10 minutes after Claude started it and the approval is collected within 5 minutes; a server restart in between drops it | Their side: start again from Claude (**Sign in with your organization**) and approve once more; **administrator** if every attempt ends the same way (`47` §5, `46` §6) |
 | "A token named Claude (MCP) appeared under my Access Tokens — what is it" | `GET /api/users/{their id}/tokens` — a token named **<app> (MCP)**, scope `mcp`, created the moment they pressed **Allow** for that application | Their side, expected: it is the application's sign-in and it renews itself; deleting it signs the application out and nothing else changes (`47` §5, `46` §6) |
 
@@ -178,7 +179,8 @@ What the device shows: <concrete lines: the route that matched, the probe result
 Please: <the one change asked for, in the administrator's words — "add me to the
          group that can reach <resource>", "review the posture check <name> for
          macOS", "reset my login expiry", "grant my group the model <name> on the
-         AI gateway <name>" or "raise the limit <name> that refuses my requests">
+         AI gateway <name>", "raise the limit <name> that refuses my requests" or
+         "review the response action <Reference> that isolates my AI access">
 ```
 
 For a gateway grant, add what `GET /api/users/current/ai-access` showed (the gateways

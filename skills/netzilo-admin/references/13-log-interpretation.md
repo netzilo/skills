@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 69937
+chars: 69930
 sections:
 - id: '1'
   title: Method
@@ -23,7 +23,7 @@ sections:
   chars: 40098
 - id: '5'
   title: The management log
-  chars: 19667
+  chars: 19660
 - id: '6'
   title: Correlating client and server
   chars: 1548
@@ -644,7 +644,7 @@ unreachable or the token is refused (records are kept and retried); `… N recor
 dropped: …` when the server rejected a batch as malformed. Successful uploads are logged at
 debug level only, so a quiet log is the healthy state; usage missing from the dashboard
 with none of these lines is the hourly snapshot (or the window's 15-minute build), not the
-gateway — **Refresh** on Agentic Activity builds both now; Activity → AI Sessions reads
+gateway — **Refresh** on Agentic Activity builds both now; Edge → Sessions reads
 sessions live. A `kept, upload failed` with
 HTTP 403 means the service token's user lacks the Admin role.
 

@@ -7,17 +7,17 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 10936
+chars: 12470
 sections:
 - id: '1'
   title: Before you touch anything
   chars: 707
 - id: '2'
   title: What each action actually does
-  chars: 1934
+  chars: 2455
 - id: '3'
   title: Suspected compromised device
-  chars: 1279
+  chars: 1272
 - id: '4'
   title: Suspected compromised or leaked credential
   chars: 1292
@@ -29,10 +29,10 @@ sections:
   chars: 2060
 - id: '7'
   title: Suspicious AI activity
-  chars: 1750
+  chars: 2593
 - id: '8'
   title: After the incident
-  chars: 488
+  chars: 665
 ---
 # Incident Response and Recovery — Containment, Revocation, Getting Back In
 
@@ -74,6 +74,7 @@ believing the problem is contained.
 | **Delete an access token** | That token stops working immediately | Does not affect the user's own login |
 | **Remove from all groups** | Policies stop matching, so access stops | Device stays connected and enrolled |
 | **Disable a route** | The published network stops being reachable through it | Does not remove the routing peer |
+| **Isolate AI activity** (the AI Kill Switch: a response action on a session, user, group, device, agent or everything) | Every covered AI call is refused on every device, browser and AI Gateway that carries it, with the reason shown: a connected device at once, the gateway within 2 s, a browser within 30 s. Holds across restarts and offline. Reversible with Lift (`51-ai-response-actions.md`) | Does not disconnect devices, block sign-in or touch network access; does not stop AI that does not pass through Netzilo |
 | **Disable a guardrail** | Devices drop it on their next sync, gateways within their policy refresh (60 s) | Does not remove it from the filters that bind it |
 | **Revoke a user's gateway access** | Remove the user from the gateway filter's group (grants vanish at the next refresh), lower or add a **limit**, delete their `mcp`-scoped tokens (Profile Settings → Access Tokens, or `DELETE /api/users/{id}/tokens/{tokenId}`), disconnect their MCP sign-ins (`DELETE /api/users/current/mcp-connections/{serverId}` by the user; `DELETE /api/edge/mcp-servers/{id}/credential` for the admin's shared one) | A revoked token can be honoured at the gateway door for up to a minute (its cache); blocking the user is faster and covers every token |
 
@@ -94,7 +95,7 @@ Contain in this order.
    as connected. Confirm from the server side rather than from the device.
 5. **Collect evidence** from the device if you still have access, then rebuild it.
 6. **Review what it reached** in Activity, filtered to that peer, for the period in
-   question. For AI activity use Activity → AI Sessions (filtered to the user) and the AI
+   question. For AI activity use Edge → Sessions (filtered to the user) and the AI
    Agent Activity report; for usage on devices and through the gateway, the AI Usage
    report.
 
@@ -196,15 +197,25 @@ Owner must do it. This is not a fault.
    (who called which model or MCP tool, when, how much), `gateway.credential_refused`
    events for tokens the gateway turned away, and the device's behaviour graph
    (`/api/aidr/…`) for what an agent actually did.
-2. **Contain** on the side the activity came from. Device: remove the device's group
-   from the endpoint filter, or block the user. Gateway: remove the user from the gateway
-   filter's group, add or lower a limit, delete their `mcp`-scoped tokens, disconnect
-   their MCP sign-ins (§2). Disabling a guardrail applies on the next sync; a token the
-   gateway has cached works for up to a minute after deletion. Blocking the user is the
-   fastest single action on either side.
+2. **Contain with an isolation first** — the AI Kill Switch. Edge → Governance →
+   **Actions** → **Add Action** → Isolation, applied to the session, the user, the group,
+   the agent (an ID or a pattern) or, in an emergency, all AI activity, with a reason the
+   stopped person will read; or, from the session in Edge → Sessions, **Response Action**
+   → Isolate session / Isolate user / Isolate agent. It stops that AI on every device,
+   browser and gateway at once, keeps the evidence, and is lifted with one click
+   (`51-ai-response-actions.md` §10). Netzilo may already have isolated the session on its
+   own (**Response action applied by a guardrail**). Do **not** contain by removing a
+   device's group from an endpoint filter: that ends governance on the device and lets its
+   AI traffic through unjudged. If the account or device itself is compromised, also block
+   the user (§3, §4). On the gateway side, also remove the user from the gateway filter's
+   group, add or lower a limit, delete their `mcp`-scoped tokens or disconnect their MCP
+   sign-ins (§2); a token the gateway has cached works for up to a minute after
+   deletion.
 3. **Confirm enforcement changed** by checking that new events show the action you
-   expect rather than the previous one — a refused gateway call shows as `ai.blocked`
-   with engine `policy` (grant) or `limit`, source `gateway`.
+   expect rather than the previous one — a call refused by an isolation shows as
+   `ai.blocked` with engine `control` and the response-action reason, and the covered
+   sessions show **Under Isolation** once their hosts applied it; a refused gateway call
+   shows engine `policy` (grant) or `limit`, source `gateway`.
 4. **Preserve the evidence.** Events carry the content that triggered a detection, which
    is what an investigator needs. Export before pruning anything.
 5. **Tighten the rule** only after containment, so you are not changing detection logic
@@ -216,6 +227,8 @@ Owner must do it. This is not a fault.
 
 - Write down what was revoked and when, in UTC. Activity is the authoritative record.
 - Restore anything you blocked that turned out to be legitimate.
+- Lift the response actions you applied (Edge → Governance → Actions → Lift, with a
+  reason) and review those Netzilo applied on its own; rule-raised ones expire after 7 days.
 - Remove temporary access you granted yourself, including any token the customer created
   for you.
 - If the cause is unclear and the answer needs the product's internals, build the package

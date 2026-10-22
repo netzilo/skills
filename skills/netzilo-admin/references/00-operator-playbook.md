@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 31778
+chars: 31823
 sections:
 - id: '1'
   title: Rules of engagement
@@ -17,7 +17,7 @@ sections:
   chars: 3301
 - id: '3'
   title: 'Triage: route the request'
-  chars: 7714
+  chars: 7759
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
@@ -193,10 +193,10 @@ it not applying" diagnosis) — load the one matching the dashboard page in ques
 | Team → Users / Agents; Settings (tabs Authentication, Groups, Permissions, Plans & Billing, Tenant) | `25-users-groups-and-account-settings.md` |
 | Endpoint → Profiles (Workspace, Enterprise Browser, Disposable Browser, Extension) | `26-profiles-secure-workplace.md` |
 | Edge → Providers | `45-ai-gateway-providers-and-limits.md` §1 |
-| Edge → MCP (tabs MCP Servers \| MCP Bundles) | `46-ai-gateway-mcp-servers-and-bundles.md` |
-| Edge → Guardrails | `28-edge-guardrails.md` |
-| Edge → Limits | `45-ai-gateway-providers-and-limits.md` §2 |
-| Edge → Filters (endpoint and gateway) | `29-edge-filters.md` |
+| Edge → Providers (tabs MCP Servers \| MCP Bundles) | `46-ai-gateway-mcp-servers-and-bundles.md` |
+| Edge → Governance → Guardrails | `28-edge-guardrails.md` |
+| Edge → Governance → Limits | `45-ai-gateway-providers-and-limits.md` §2 |
+| Edge → Governance → Filters (endpoint and gateway) | `29-edge-filters.md` |
 | The AI gateway itself (`netzilo-aigw`: install, doors, refusals, logs) | `27-ai-gateway.md` |
 | Workplace → Agentic Access (what users see) | `47-agentic-access-workplace.md` |
 | Activity → Events / Reports, Dashboard home, Integrations | `30-activity-reports-and-integrations.md` |

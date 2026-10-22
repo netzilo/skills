@@ -6,32 +6,32 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 27050
+chars: 27034
 sections:
 - id: '1'
   title: The short answer
-  chars: 1780
+  chars: 1773
 - id: '2'
   title: What every device reports to the management server
   chars: 1924
 - id: '3'
   title: What the AI security layer collects
-  chars: 5397
+  chars: 5390
 - id: '4'
   title: Session recordings and AI sessions
-  chars: 655
+  chars: 648
 - id: '5'
   title: Server usage statistics
   chars: 858
 - id: '6'
   title: Answers to the questions reviewers actually ask
-  chars: 3751
+  chars: 3757
 - id: '7'
   title: Preparing for a security review
   chars: 1174
 - id: '8'
   title: Data flows by feature
-  chars: 10982
+  chars: 10981
 ---
 # What Netzilo Collects — Data Handling, Privacy and Security Review
 
@@ -50,7 +50,7 @@ unless it appears here as not collected.
 | Question | Answer |
 |---|---|
 | Does Netzilo see the contents of my network traffic? | No. Traffic between devices is end-to-end encrypted WireGuard. The control plane distributes keys and policy; it does not hold the tunnel keys and cannot decrypt peer traffic. Relayed traffic passes through the relay still encrypted. |
-| Does Netzilo see my AI prompts? | Yes, for governed AI traffic. The Netzilo client (TLS inspection on the device), the browser extension and the **AI Gateway** record each model call and MCP tool call into an **AI session**: usage facts (who, agent, model, tokens, latency, status; cost on the gateway) and the **captured conversation** — the messages as the caller sent and received them after the guardrails — which administrators read in Activity → AI Sessions and the Agentic Activity window (§3, §8). A matching rule also sends an event with the content that triggered it; a clean call sends no event. Through the AI Gateway, prompts and answers traverse the customer's own gateway host on their way to the configured provider. The dashboard's AI assistant is separate: what is typed into it goes to the configured AI provider (§8). |
+| Does Netzilo see my AI prompts? | Yes, for governed AI traffic. The Netzilo client (TLS inspection on the device), the browser extension and the **AI Gateway** record each model call and MCP tool call into an **AI session**: usage facts (who, agent, model, tokens, latency, status; cost on the gateway) and the **captured conversation** — the messages as the caller sent and received them after the guardrails — which administrators read in Edge → Sessions and the Agentic Activity window (§3, §8). A matching rule also sends an event with the content that triggered it; a clean call sends no event. Through the AI Gateway, prompts and answers traverse the customer's own gateway host on their way to the configured provider. The dashboard's AI assistant is separate: what is typed into it goes to the configured AI provider (§8). |
 | What does every device report about itself? | Hardware and OS identity, network addresses including MAC, and device posture. Full list in §2. |
 | Where does it go? | To the management server. On self-hosted that is the customer's own server. On Cloud it is Netzilo. |
 | Can any of it be turned off? | Server usage statistics can be disabled. Device metadata and the posture block cannot be disabled; the posture block is reported whether or not any posture check uses it. Only file checks (and Windows registry checks) are limited to what a posture check names. See §2.1 and §6. |
@@ -135,7 +135,7 @@ or the MCP server, and the guardrails run there. The gateway reports to manageme
   context, thinking, answers, tool calls and their results, **as the caller sent and
   received them after the guardrails** — what a guardrail redacted arrives redacted, a tool
   call the guardrails held back or refused is not sent, and a message is cut past 32 KB
-  (`27` §8.1). Capture is always on; administrators read it in Activity → AI Sessions and
+  (`27` §8.1). Capture is always on; administrators read it in Edge → Sessions and
   the Agentic Activity window (`30` §1a, §3). The client captures the same for the traffic
   it inspects on a device (above); traffic neither inspects is not captured;
 - a matching rule's event, as on a device, with the triggering content;
@@ -183,7 +183,7 @@ inspected at all.
 ## 4. Session recordings and AI sessions
 
 Where Enterprise Workspace or Enterprise Browser session recording is enabled, recordings
-are produced and are viewable from Activity. AI sessions (Activity → AI Sessions; the
+are produced and are viewable from Activity. AI sessions (Edge → Sessions; the
 Agentic Activity window) hold the trajectory — the captured conversation, the MCP calls,
 and the processes, files and network connections the agent caused on the device — and
 the behaviour graph; browser tab sessions keep their behaviour graph per browser source.
@@ -217,7 +217,7 @@ it has stopped.
 |---|---|
 | Can Netzilo staff read our traffic? | Not peer network traffic: it is end-to-end encrypted and the control plane holds no tunnel keys. On Cloud, Netzilo hosts the account's data — device metadata, activity and AI events including triggering content, assistant sessions (§8). |
 | Can our own admins read employee traffic? | Not network traffic. Admins can see AI security events including triggering content, the conversations and MCP calls of AI agents governed by the Netzilo client or the AI Gateway (after the guardrails), session recordings where enabled, all activity events, and every AI assistant session in the account as a read-only audit log (§8). |
-| Is anything sent to a third party? | Self-hosted sends Netzilo the usage counts in §5 (nothing if disabled), and an escalation only when an admin approves it (§8). Every AI feature of management itself — the assistant (including the guardrail editor's AI panel), smart search, the AI judge inside a scanning rule — calls the AI provider the account configured under Integrations → Artificial Intelligence, with the account's own credentials; what it sends that provider is described in §8. The **AI Gateway** is the other third-party path: users' prompts and MCP tool calls go from the customer's gateway host to the upstream providers and MCP servers the admin configured under Edge → Providers and Edge → MCP, with the keys and sign-ins stored for them; management receives usage facts and the captured conversations (§3, §8). |
+| Is anything sent to a third party? | Self-hosted sends Netzilo the usage counts in §5 (nothing if disabled), and an escalation only when an admin approves it (§8). Every AI feature of management itself — the assistant (including the guardrail editor's AI panel), smart search, the AI judge inside a scanning rule — calls the AI provider the account configured under Integrations → Artificial Intelligence, with the account's own credentials; what it sends that provider is described in §8. The **AI Gateway** is the other third-party path: users' prompts and MCP tool calls go from the customer's gateway host to the upstream providers and MCP servers the admin configured under Edge → Providers and Edge → Providers, with the keys and sign-ins stored for them; management receives usage facts and the captured conversations (§3, §8). |
 | Where is data stored? | Self-hosted: on the customer's server, in their database and volumes. Cloud: in Netzilo's hosted environment. |
 | How long is it kept? | Activity events are retained until deleted; there is no automatic retention limit and no configurable retention period. Account statistics are pruned after ninety days. AI data (usage and sessions from devices and gateways, captured conversations, the sessions' search words, behaviour observations) is deleted by the AI data retention job: 90 days for records, conversations and the observations of AI sessions, 400 days for hourly totals, 7 days for other device and browser observations by default (`02-server-operations.md` §20). Plan database growth accordingly. Per-feature retention is in §8. |
 | Can we export or delete a person's data? | Deleting a user removes the user, their devices (peers) and their access tokens, and records a deletion event. It does **not** delete their activity history: events they initiated or that name them stay in the audit trail. Do not promise otherwise. Activity can be exported from the dashboard a page at a time or through the API. |
@@ -319,7 +319,7 @@ browser, the extension stands down and reports nothing (`49` §3).
 |---|---|
 | Collected | on the customer's gateway host: the prompt, the answer, MCP tool calls and results pass through it and are evaluated by the guardrails there |
 | Stored | not on the gateway's disk. On the management server: the **captured conversation** of each model call and of each MCP tool call (arguments and result; after the guardrails, §3), each text once, with the session it belongs to; and a matching rule's activity event with the triggering content, as on a device |
-| Sent to | the upstream provider (OpenAI, Anthropic, Azure, …) or MCP server the admin configured under Edge → Providers / Edge → MCP, with the credentials stored for it; the captured conversation and detections to the management server. Administrators read every session's conversation in Activity → AI Sessions and the Agentic Activity window; through the API a user can read only their own sessions (`09` §2) |
+| Sent to | the upstream provider (OpenAI, Anthropic, Azure, …) or MCP server the admin configured under Edge → Providers / Edge → Providers, with the credentials stored for it; the captured conversation and detections to the management server. Administrators read every session's conversation in Edge → Sessions and the Agentic Activity window; through the API a user can read only their own sessions (`09` §2) |
 | Retained | captured conversations: as long as the usage records (90 days by default; a message's text one day longer); detection events: like all activity events |
 | Deleted | conversations and sessions by the AI data retention job (`02` §20) and with the account; events as in §6 |
 

@@ -7,29 +7,29 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 35378
+chars: 37104
 sections:
 - id: '1'
   title: Activity → Events
-  chars: 7320
-- id: 1a-activity-ai-sessions
-  title: 1a. Activity → AI Sessions
-  chars: 2641
+  chars: 7840
+- id: 1a-edge-sessions-ai-sessions
+  title: 1a. Edge → Sessions (AI sessions)
+  chars: 3682
 - id: '2'
   title: Reports
   chars: 3523
 - id: '3'
   title: Dashboard home
-  chars: 6455
+  chars: 6448
 - id: '4'
   title: Integrations
   chars: 7913
 - id: '5'
   title: Procedures
-  chars: 1863
+  chars: 2036
 - id: '6'
   title: Diagnosis
-  chars: 4677
+  chars: 4676
 ---
 # Admin Skill — Activity Events, Reports, Dashboard Home and Integrations
 
@@ -89,17 +89,19 @@ Event categories and the most useful codes:
 | Policy Violation | `browser.download.file`, `browser.upload.file`, `browser.url.blocked`, `browser.isolation.*.required`, `browser.posture.check`, `workspace.posture.check`, `browser.data.code.redacted`, `browser.exception.request`, `published_app.access_denied` |
 | Suspicious | `workspace.selfdefense.activated`, `workspace.injection.detected`, `browser.data.prompt.injection.blocked`, `user.failedlogin` |
 | Investigation | `ai.insight` |
-| AI Edge | `ai.blocked`, `ai.redacted`, `ai.redirected`, `ai.detected` (a report-only match), `aidr.graph` ("Session snapshot"), `aidr.trajectory` ("Session trajectory available": no longer created by current servers; older rows remain — AI sessions are found in Activity → AI Sessions) |
+| AI Edge | `ai.blocked`, `ai.redacted`, `ai.redirected`, `ai.detected` (a report-only match), `aidr.graph` ("Session snapshot"), `aidr.trajectory` ("Session trajectory available": no longer created by current servers; older rows remain — AI sessions are found in Edge → Sessions); response actions: `ai.control.created` (Response action applied), `ai.control.raised` (Response action applied by a guardrail — Netzilo isolated or inspected a session on its own; initiator Netzilo System), `ai.control.updated`, `ai.control.lifted`, `ai.control.deleted`; `ai.session.deleted` (AI session deleted) (`51-ai-response-actions.md` §9) |
 
 Reading AI Edge rows. Every `ai.*` row has the same shape: "`<agent>` on `<peer>` for
 `<user>`: prompt to `<model>` (`<provider>`) | response from … | tool call `<tool>` on
 `<server>` | tool result … | request to `<host>` | connection to `<host>` | process
 `<tool>` | periodic rule | file `<name>` (`<EXT>`) to `<model>` | file `<name>` a tool returned to `<model>` — blocked by rule `<rule>` by filter `<filter>` —
-`<reason>` (matched: `<excerpt>`) | redacted | redirected to `<target>` | matched". The
+`<reason>` (matched: `<excerpt>`) | redacted | redirected to `<target>` | matched". A call
+refused by a response action is `ai.blocked` with engine `control` and the reason
+"Response action: AI access is isolated by an administrator. Reason: … Reference: …". The
 raw JSON carries `surface` (`llm_request`, `llm_response`, `tool_call`, `tool_result`,
 `prompt`, `sampling`, `http_request`, `connect`, `process_exec`, `periodic`,
 `file_attachment`), `engine`
-(`rules`, `semantic`, `script`, `periodic`, `policy`, `limit`), `source` (`mitm`, `hook`,
+(`rules`, `semantic`, `script`, `periodic`, `policy`, `limit`, `control`), `source` (`mitm`, `hook`,
 `extension`, `gateway`, `probe`), the rule, filter, provider, model, server, tool, host,
 session and actor fields, and `content` (at most 8 KB, after redaction, with
 `content_truncated`). A file event (AI Gateway, `50` §7) adds `file_name`, `file_type`,
@@ -125,7 +127,7 @@ reads "`<agent>` on `<peer>` for `<user>`". A redacted conversation reload is an
 available for `<program>` in the browser" — one per tab session the first time it shows
 behaviour, with the session id, program, device and source `extension` in the JSON;
 "Session snapshot is available for peer `<peer>`" is the device form (no longer created;
-a device's AI sessions are listed in Activity → AI Sessions).
+a device's AI sessions are listed in Edge → Sessions).
 
 API: `GET /api/events/paginated?limit=100&offset=0&date_from=<ISO>&date_to=<ISO>&user=<email>&code=<code>&code=<code>&q=<text>` →
 `{events[], pagination{total,limit,offset,has_more,total_pages}}`. Omit `order` when
@@ -133,11 +135,12 @@ using `q` (relevance ranking).
 
 ---
 
-## 1a. Activity → AI Sessions
+## 1a. Edge → Sessions (AI sessions)
 
-`/ai-sessions`; navigation Activity → Events, **AI Sessions**, Reports; admins and owners
-only (other users see the restricted-access page and read their own sessions through the
-API). Title "AI Sessions (n)", "Here you can see all recorded AI sessions." A session is
+`/ai-edge/sessions` (the older `/ai-sessions` address redirects there); navigation Edge →
+**Sessions**; admins and owners only (other users see the restricted-access page and read
+their own sessions through the API). Title "Sessions", "Here you can see all recorded AI
+sessions." A session is
 one conversation of one user (or setup-key peer) with one agent, recorded on the device,
 the AI Gateway or both (`point` `endpoint`, `gateway`, `endpoint,gateway`).
 
@@ -150,6 +153,7 @@ and sort.
 | Search box | Enter searches; Ctrl/⌘+K focuses it; "Ranked by relevance" while searching with no column sort |
 | Date range | default last 14 days, remembered per tab in the browser; lists sessions active in the range (last activity on or after its start, started on or before its end) |
 | User | All Users, or one user |
+| Status | **Any Status**, **Under Isolation**, **Under Inspection** — sessions a response action holds as their hosts applied it (`51-ai-response-actions.md` §8) |
 | Rows per page, refresh, **Reset filters** | Reset filters appears when something is filtered |
 
 Columns are the Agentic Activity window's session lists (§3). Sortable on the server:
@@ -170,8 +174,19 @@ digit (`alice@corp.example` → alice, corp, example; `search_docs` → search, 
 any order, case-insensitive. The middle of a word does not match (`orvex` does not find
 `qorvex`); provider names are not searched; a query of punctuation alone finds nothing.
 
+**Response actions on sessions.** A session shows **Under Isolation** or **Under
+Inspection** only once the host carrying it (device, gateway or browser) applied the
+action — the badge is enforcement, not intent — and a status **Active**, **Idle** or
+**Finished**. A row's **⋯** menu has **Isolate**, **Inspect**, **Lift** and **Delete**
+("The session and all its data are permanently deleted."; recorded as **AI session
+deleted**); selecting rows offers the same in bulk. The session's view has a **Response
+Action** menu: Isolate session, Inspect session, Isolate user, Isolate agent, Lift
+action. `51-ai-response-actions.md` §4.3, §8.
+
 API: `GET /api/ai/sessions` with the same filters, sort and paging (`09-api-and-automation.md`
-§2); a regular user gets only their own sessions.
+§2), plus `control=kill|probation|any` and `state=active|idle|finished|ended`; each
+session carries `control` (the action its host applied) and `action` (the action in force
+now), `status` and `status_source`; a regular user gets only their own sessions.
 
 ---
 
@@ -257,7 +272,7 @@ one agent session. The title names the level; the back arrow or **Escape** goes 
    Violations, and a **Trajectory** badge — **Model + MCP** when the session also made
    model calls, **MCP only** when it made none. Violations are blocked + redacted +
    detected of the whole session. Newest first; the kill-chain badge opens the session on
-   its graph; **Search** by name, agent or model. Activity → AI Sessions (§1a) lists the
+   its graph; **Search** by name, agent or model. Edge → Sessions (§1a) lists the
    same sessions with server-side search and sort.
 4. **A session** — tabs **Trajectory**, **Behavior Graph** and, when the session has MCP
    calls, **MCP Calls**. **Trajectory**: a timeline (lanes Input, Model, Tools, Host, and
@@ -430,9 +445,11 @@ if it does, the dashboard is out of date.
   `/api/events/paginated` with `limit=1000`.
 - **Prove who reached what**: `peer.access.granted` (names the policy) and
   `peer.access.target` events per user.
-- **Investigate an AI incident**: Events → category AI Edge → read the `ai.*` rows for
+- **Investigate an AI incident**: contain first with an isolation if the activity may
+  still be running (the session's **Response Action** menu, or Edge → Governance →
+  Actions; `51-ai-response-actions.md` §10). Events → category AI Edge → read the `ai.*` rows for
   the user or peer (the raw JSON names the surface, engine, source, rule and filter);
-  find the session in Activity → AI Sessions (search the user, agent, tool or server;
+  find the session in Edge → Sessions (search the user, agent, tool or server;
   the MCP tab for tool calls) → **View session**; read Trajectory, MCP Calls and a tool row's Source (Seen at); list the
   behaviour sessions with `GET /api/aidr/sessions?scope=source:<peer-id>` — for a browser, the source id of the
   user's browser from `GET /api/aidr/sources` (`kind: browser`), so
@@ -453,18 +470,18 @@ if it does, the dashboard is out of date.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| No events for a device | client not connected; nothing matched a policy/filter/profile; AI events are verdicts only, so clean AI traffic is in Activity → AI Sessions, not in events | `netzilo status`; check bindings; look in AI Sessions |
+| No events for a device | client not connected; nothing matched a policy/filter/profile; AI events are verdicts only, so clean AI traffic is in Edge → Sessions, not in events | `netzilo status`; check bindings; look in AI Sessions |
 | `user.login` events missing (self-hosted) | login-event import from the identity provider requires the built-in provider and the service account roles created at install | verify identity provider health (`04` §9) |
 | CSV export incomplete | only the current page is exported | raise rows per page or use the API |
 | AI Smart Search greyed / AI Insights Disabled | no model approved for Log Analysis | Integrations → Artificial Intelligence → approve a model |
 | Assistant button missing from the header | no model approved for `assistant` | Integrations → Artificial Intelligence → approve a model |
 | "The model … cannot serve Assistant" | approval withdrawn while a chat was open | re-approve it, or pick another model in the chat's picker |
-| No AI panel in the guardrail dialog (Edge → Guardrails) | no model approved for Assistant (the header's Assistant button is missing too), or the user is not an admin | Integrations → Artificial Intelligence → approve a model for Assistant (`28-edge-guardrails.md` §2.1) |
+| No AI panel in the guardrail dialog (Edge → Governance → Guardrails) | no model approved for Assistant (the header's Assistant button is missing too), or the user is not an admin | Integrations → Artificial Intelligence → approve a model for Assistant (`28-edge-guardrails.md` §2.1) |
 | Report empty | date range / groups; users not in the selected groups | widen |
 | AI Agent Activity report lists peers under **Agents** | setup-key peers (no user) | expected; shown per peer |
 | AI Agent Activity violation shows "—" under **Blocked By** | the report was generated before reports recorded what refused a call (limit or model/MCP grant), or the event came from a client or gateway that does not report its engine | generate the report again for the same period |
 | AI Usage report empty although devices produce `ai.*` events | the device's client or the server predates session recording; the app is not intercepted (hooks only, the browser extension); or the traffic is Cursor, Gemini CLI or Connect-streaming (not recorded yet) | upgrade client and server; use the AI Agent Activity report for that traffic |
-| AI Agent Activity report shows a setup-key peer's verdicts but none of its clean calls | the **Agents** tab counts events, and a current client sends no event for a clean call | read the peer's sessions in Activity → AI Sessions (user = the peer's name) |
+| AI Agent Activity report shows a setup-key peer's verdicts but none of its clean calls | the **Agents** tab counts events, and a current client sends no event for a clean call | read the peer's sessions in Edge → Sessions (user = the peer's name) |
 | Agentic Activity on the home page empty although the gateway works | the snapshot is computed hourly; the AI Usage report reads live data | wait for the next run, or generate the report |
 | Tokens tile zero | no recorded usage (gateway or device) that day | — |
 | My device's sessions do not show up in AI Sessions | client or server older than session recording (the client records only once management announces it); the app is not intercepted (not in an endpoint filter's Agents; on Linux not pointed at the proxy); Cursor, Gemini CLI, Connect-streaming or stdio MCP (not recorded yet); the call went to the account's AI Gateway (recorded once, as point `gateway`) | upgrade both; fix Agents (`10-ai-security-aidr.md` §2); look for the gateway session |

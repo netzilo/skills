@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 51457
+chars: 51450
 sections:
 - id: '1'
   title: How it works
@@ -43,7 +43,7 @@ sections:
   - human-operator
 - id: '8'
   title: Usage telemetry
-  chars: 3154
+  chars: 3147
   requires:
   - api
   executable_on:
@@ -571,7 +571,7 @@ are held **in memory only**, never on disk: up to 64 MB wait during an outage (t
 go first, `gateway ai: content: N call(s) dropped, the buffer is full`), and those waiting
 when the gateway stops are lost. Capture is always on. Management stores each text once,
 shows it only to administrators, in the session's **Trajectory** and **MCP Calls** tabs
-(Activity → AI Sessions, the Agentic Activity window, `30` §1a, §3), and deletes it with
+(Edge → Sessions, the Agentic Activity window, `30` §1a, §3), and deletes it with
 the rest of the AI data (`14` §8). The Netzilo client captures the same on devices
 (`14` §3); both land in the same sessions.
 

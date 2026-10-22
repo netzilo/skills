@@ -295,5 +295,10 @@
     "requires": [
       "api"
     ]
+  },
+  "51-ai-response-actions.md": {
+    "requires": [
+      "api"
+    ]
   }
 }

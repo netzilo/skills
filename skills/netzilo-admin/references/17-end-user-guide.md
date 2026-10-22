@@ -6,17 +6,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 18727
+chars: 19857
 sections:
 - id: '1'
   title: Tell people before you install, not after
   chars: 1073
 - id: '2'
   title: The page to publish
-  chars: 9134
+  chars: 9940
 - id: '3'
   title: Translating what the employee says
-  chars: 6914
+  chars: 7238
 - id: '4'
   title: What to tell an employee who asks what is monitored
   chars: 1013
@@ -142,6 +142,17 @@ and **Inactive** when it is not. If you also run the Netzilo app, the extension 
 report that the desktop client governs this browser: the app is doing the same checks
 itself and nothing is wrong.
 
+**If your AI tools say "Response action: AI access is isolated".** Your company's
+security team — or Netzilo itself, when it detects that an AI session is being misused —
+can stop AI activity for a session, a person, a team or an AI tool while they look into
+something. Every AI request covered is then refused with a message like *Response action:
+AI access is isolated by an administrator. Reason: … Reference: …*, in your coding agent,
+desktop AI app or web chat alike. This is deliberate, not a fault: nothing on your device
+fixes it, and retrying gives the same answer. Read the reason; if you need AI access back
+for your work, send your administrator the **Reference** from the message and what you
+were doing. Access returns on its own when they lift it (within about half a minute in a
+browser).
+
 **Signing in Claude Desktop with your organization.** If your company grants you an AI
 gateway, Claude Desktop can sign in through it with **Sign in with your organization**.
 The address to enter is the **Anthropic API** address on your Agentic Access page — it
@@ -210,6 +221,7 @@ When an admin forwards a complaint, this maps it to a cause and the file that fi
 | "My AI assistant stopped working" (through the company gateway: a refusal names the gateway, or the tool is configured with the Agentic Access address) | A gateway refusal: no model granted to the user, a limit reached (429/402), an MCP server that needs a new sign-in, or an expired access token (401) | `47-agentic-access-workplace.md` §5 |
 | "My file was refused" / "Netzilo Guardrail: <file name>: …" (Claude Code, a chat app, through the company gateway) | A file guardrail, working as configured: the message names the file and why; the conversation continues without it | `50-ai-gateway-file-guardrails.md` §5 |
 | "ChatGPT shows [SOMETHING-REDACTED]" / "my answer was cut" / "Claude answered Netzilo Guardrail: Blocked by rule …" | A guardrail redaction or block in the browser, working as configured: the bracketed token is the rule's replacement text, the refusal names the rule, and a reloaded chat shows the redacted version | `49-browser-extension-aidr.md` |
+| "Every AI tool I use says 'Response action: AI access is isolated'" | A response action (isolation, the AI Kill Switch) covers the user, their group, the agent or the session — set by an administrator, or by Netzilo itself when a guardrail contained the session ("…by a guardrail") | `51-ai-response-actions.md` §7, §10 |
 | "Claude Desktop says gateway SSO …" (metadata invalid, no device_authorization_endpoint, discovery failed 401, device init failed) | The endpoint is not the gateway's `/anthropic` address, or the gateway or server is too old for the device sign-in | `47-agentic-access-workplace.md` §5 |
 | "The approval page asks me for a code" / "is this code right?" | The device sign-in's approval page; the code must be the one the application shows. Compare, then Allow | §2 "Signing in Claude Desktop", `47-agentic-access-workplace.md` §5 |
 | "Everything is slow since this was installed" | Relayed connection, or an inspection rule doing too much work | `11-connectivity-diagnosis.md`, `10-ai-security-aidr.md` |

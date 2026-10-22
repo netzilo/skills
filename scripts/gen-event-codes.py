@@ -45,9 +45,32 @@ NOTES = {
     "semantic.event": "no longer recorded: behaviour observations are in the behaviour "
     "graph; the server drops the event from older hosts, and older rows remain until they "
     "age out",
-    "aidr.trajectory": "one per AI session, when its first recorded calls reach the server; "
-    "meta `session_id`, `agent_name`, `peer`, `point`; opens the session in the Agentic "
-    "Activity window; `30-activity-reports-and-integrations.md` §3",
+    "aidr.trajectory": "no longer created by current servers; rows an older server recorded "
+    "— one per AI session, meta `session_id`, `agent_name`, `peer`, `point` — still open the "
+    "session in the Agentic Activity window; `30-activity-reports-and-integrations.md` §3",
+    "ai.control.created": "an administrator isolated or inspected AI activity; meta `effect` "
+    "(`kill` = isolation, `probation` = inspection), `reason`, `scope`, `origin`, `expires_at`; "
+    "`51-ai-response-actions.md` §4",
+    "ai.control.raised": "Netzilo isolated or inspected one AI session on its own, by the guardrail "
+    "named in `origin` (`rule:<rule id>`); initiator Netzilo System; expires after 7 days unless "
+    "lifted; `51-ai-response-actions.md` §2",
+    "ai.control.updated": "an administrator changed a response action's effect, scope, reason or expiry",
+    "ai.control.lifted": "an administrator lifted a response action; meta `lift_reason` when one was given",
+    "ai.control.deleted": "an administrator deleted a response action; it stops applying at once",
+    "ai.controls.report": "a host's report of the response actions it applied; consumed by the "
+    "server, never shown in Activity",
+    "ai.session.deleted": "an administrator deleted an AI session and everything it recorded; meta "
+    "`session`, `agent`, `user`, `started_at`, `last_activity` and the counts removed",
+}
+
+# Prose printed after a category's table, verbatim.
+CATEGORY_AFTER = {
+    "Policy Violation": "The browser events below (`browser.download.file`, `browser.upload.file`,\n"
+    "`browser.url.blocked`, `browser.data.clipboard.blocked`, `browser.data.print.blocked`,\n"
+    "`browser.data.redacted`) come from the Netzilo browser extension and also from a published\n"
+    "application's restrictions. The latter carry `source: gateway`, `application`, `domain`\n"
+    "and `peer` = the browser as signed in (*Chrome 130 on macOS 15.1*); say *on <url> from\n"
+    "<browser>* for them (`44-published-applications.md` §4.2).",
 }
 
 CATEGORY_ORDER = [
@@ -109,6 +132,8 @@ def main(path: str) -> None:
                 code += " (" + "; ".join(extra) + ")"
             out.append(f'| {r["name"]} | {code} |')
         out.append("")
+        if category in CATEGORY_AFTER:
+            out += [CATEGORY_AFTER[category], ""]
     print("\n".join(out))
 
 

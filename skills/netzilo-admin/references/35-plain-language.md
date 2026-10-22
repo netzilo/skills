@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 9926
+chars: 10625
 sections:
 - id: '1'
   title: When an identifier belongs in the answer
   chars: 817
 - id: '2'
   title: Areas of the product
-  chars: 5965
+  chars: 6664
 - id: '3'
   title: 'Objects: names, not ids'
   chars: 599
@@ -76,14 +76,15 @@ dashboard; if a customer's build shows a different label, theirs wins.
 | a user; a service account ("agent") | Team → Users; Team → Agents | `/api/users` |
 | account settings, groups, permissions, the plan, the tenant | Settings (tabs Authentication, Groups, Permissions, Plans & Billing (Netzilo Cloud only), Tenant) | `/api/accounts`, `/api/groups`, `/api/tenant` |
 | a provider (the gateway's model catalogue) | Edge → Providers | `/api/edge/providers` |
-| an MCP server | Edge → MCP → MCP Servers tab | `/api/edge/mcp-servers` |
-| an MCP bundle | Edge → MCP → MCP Bundles tab | `/api/edge/virtual-mcps` |
-| a guardrail (detection rule) | Edge → Guardrails | `/api/edge/guardrails` |
-| a limit (spend, token or request quota) | Edge → Limits | `/api/edge/limits` |
-| a filter — an endpoint filter (devices) or a gateway filter (users) | Edge → Filters | `/api/edge/filters` |
+| an MCP server | Edge → Providers → MCP Servers tab | `/api/edge/mcp-servers` |
+| an MCP bundle | Edge → Providers → MCP Bundles tab | `/api/edge/virtual-mcps` |
+| a guardrail (detection rule) | Edge → Governance → Guardrails tab | `/api/edge/guardrails` |
+| a limit (spend, token or request quota) | Edge → Governance → Limits tab | `/api/edge/limits` |
+| a filter — an endpoint filter (devices) or a gateway filter (users) | Edge → Governance → Filters tab | `/api/edge/filters` |
+| a response action — an isolation (the AI Kill Switch) or an inspection | Edge → Governance → Actions tab; a session's **Response Action** menu | `/api/ai/controls` |
 | the user's gateways and MCP servers, their AI Gateway token | Workplace → Agentic Access | `/api/users/current/ai-access` |
 | an event / the activity log | Activity → Events | `/api/events`, `/api/events/paginated` |
-| an AI session (a recorded agent conversation, LLM or MCP) | Activity → AI Sessions; the home page's Agentic Activity, **View** | `/api/ai/sessions` |
+| an AI session (a recorded agent conversation, LLM or MCP) | Edge → Sessions; the home page's Agentic Activity, **View** | `/api/ai/sessions` |
 | a report | Activity → Reports | `/api/reports` |
 | an integration; the AI the dashboard itself uses | Integrations; Integrations → Artificial Intelligence | `/api/integrations`; `/api/ai/providers` |
 
@@ -106,8 +107,9 @@ scanners, catalogue) in this release.
 | **browser source** | the user's browser as an uploader of behaviour: one per user and browser under `GET /api/aidr/sources` with `kind: browser`. Say "Erin's browser" or "the browser on Erin's MacBook", not the source id |
 | **tab session** | the behaviour-graph session of one browser tab on one site (its parent is the browser session); the `session_id` on browser `ai.*` events. Say "the ChatGPT tab" or "that conversation's session" |
 | **Session snapshot** | the Activity entry (`aidr.graph`) that announces the first behaviour of a browser tab session ("… for <program> in the browser"); it opens the session's behaviour graph. Device entries ("… for peer <peer>") are no longer created; old ones stay. Say "the session snapshot for that tab", never the code |
-| **Session trajectory available** | an Activity entry (`aidr.trajectory`) older servers created for a new AI session ("Session trajectory is available for <agent> on <peer>"); **View session** opens it. Current servers no longer create it: sessions are in Activity → AI Sessions. Say "the session entry", never the code |
+| **Session trajectory available** | an Activity entry (`aidr.trajectory`) older servers created for a new AI session ("Session trajectory is available for <agent> on <peer>"); **View session** opens it. Current servers no longer create it: sessions are in Edge → Sessions. Say "the session entry", never the code |
 | **AI session** | one conversation of one user (or setup-key peer) with one agent, recorded on the device, the gateway or both; "Seen at" names where a call was recorded |
+| **response action** | an action on AI activity that every host enforces: **Isolation** (badge **Under Isolation**, verb Isolate) refuses every covered AI call — the **AI Kill Switch**; **Inspection** (**Under Inspection**, Inspect) makes guardrails judge a session strictly. Say "Netzilo isolated the session" for one a guardrail applied (Applied by "Guardrail <name>"), "you isolated the Finance group" for an administrator's; never "kill" or "probation", which are API values |
 | **MCP client** | the program that called an MCP server, by the name it gave when it connected; "Unknown client" when it gave none |
 
 ## 3. Objects: names, not ids
@@ -129,7 +131,7 @@ detected"), `activity_code` (the stable identifier — `workspace.injection.dete
 `activity_category` ("Suspicious"). The display name is already in the response you are
 reading. Quote it.
 
-The full list is `references/34-event-catalogue.md`: 162 activities with their display
+The full list is `references/34-event-catalogue.md`: 169 activities with their display
 names, codes and categories. Use it when you are choosing a `code=` filter, and use it in
 reverse when a code turns up in a log or a rule and you need to say what it means.
 

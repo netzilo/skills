@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 17190
+chars: 17176
 sections:
 - id: '1'
   title: Model
@@ -23,7 +23,7 @@ sections:
   chars: 1807
 - id: '5'
   title: Diagnosis — "the filter is not applying"
-  chars: 4523
+  chars: 4509
 ---
 # Admin Skill — Edge Filters (binding AI policy to devices and to gateway users)
 
@@ -232,7 +232,7 @@ rule bound in the baseline reaches everyone.
    events name the filter and rule (source `mitm` from the client, `extension` from the
    browser); the peer's or the browser's behaviour graph (`/api/aidr/…`) proves the
    engine sees traffic. Clean traffic from a current client shows as a session in
-   Activity → AI Sessions (point `endpoint`), not as events.
+   Edge → Sessions (point `endpoint`), not as events.
 
 ### 5.2 Gateway filter, for a user
 
@@ -249,7 +249,7 @@ rule bound in the baseline reaches everyone.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| No events at all from a device | §5.1 steps 1–4; or no rule matched: AI events are verdicts only (expected) | as above; check Activity → AI Sessions |
+| No events at all from a device | §5.1 steps 1–4; or no rule matched: AI events are verdicts only (expected) | as above; check Edge → Sessions |
 | Events but nothing blocked | guardrails in report mode | change actions |
 | Chrome not intercepted although in Agents | path mismatch (env var casing, install dir); another browser | use `%ProgramFiles%\…` and `%LocalAppData%\…` variants |
 | Works on Windows, not on Linux | Linux lacks per-app steering | hooks/SDK/proxy env; for the browser, the extension (OS **Browser**) |

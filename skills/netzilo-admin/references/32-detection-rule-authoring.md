@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 229099
+chars: 235318
 sections:
 - id: your-identity-and-mission
   title: Your Identity and Mission
@@ -32,7 +32,7 @@ sections:
   chars: 1630
 - id: how-it-works-architecture-overview
   title: How It Works — Architecture Overview
-  chars: 7798
+  chars: 7929
 - id: what-are-rules
   title: What Are Rules?
   chars: 591
@@ -44,7 +44,7 @@ sections:
   chars: 2008
 - id: requires-capabilities-the-rule-needs
   title: '`requires:` — Capabilities the Rule Needs'
-  chars: 2255
+  chars: 2367
 - id: severity-always-set-it
   title: Severity — always set it
   chars: 518
@@ -62,7 +62,7 @@ sections:
   chars: 790
 - id: actions-what-to-do
   title: Actions — What to Do
-  chars: 63961
+  chars: 64434
 - id: sessions-and-the-observation-log
   title: Sessions and the Observation Log
   chars: 9871
@@ -75,9 +75,12 @@ sections:
 - id: session-state-shared-across-rules
   title: Session State — Shared Across Rules
   chars: 5616
+- id: response-actions-session-control-and-raise
+  title: Response Actions — `session_control` and `raise_control`
+  chars: 5327
 - id: best-practices-for-advanced-scripted-rules
   title: Best Practices for Advanced Scripted Rules
-  chars: 15365
+  chars: 15528
 - id: the-behaviour-graph-complete-reference
   title: The Behaviour Graph — complete reference
   chars: 12697
@@ -86,7 +89,7 @@ sections:
   chars: 1554
 - id: evaluation-order-and-verdicts
   title: Evaluation Order and Verdicts
-  chars: 5416
+  chars: 5429
 - id: semantic-events
   title: Semantic Events
   chars: 19655
@@ -570,6 +573,7 @@ A host declares the capabilities it produces. A rule declares the capabilities i
 | `http` | HTTP requests and responses | ✅ | ✅ |
 | `connect` | raw outbound TCP/UDP connections | ✅ | — |
 | `skill` | `skill_acquired` semantic events | ✅ | ✅ |
+| `controls` | the account's response actions: `session_control()`, `raise_control()` (the browser extension has it too) | ✅ | ✅ |
 
 An endpoint with the probe, the proxy and the hooks produces every capability. The gateway governs LLM traffic on the OpenAI chat, Responses and Anthropic Messages surfaces and every MCP call it serves; it never sees processes, files or raw connections, so rules that require `process_exec`, `file_activity` or `connect` are never loaded there.
 
@@ -710,6 +714,7 @@ requires:
 | `http` | triggers on `http_request`, or reads `HTTP_REQUEST`/`HTTP_RESPONSE` |
 | `connect` | triggers on `connects`, or reads `CONNECTS` |
 | `skill` | triggers on `skill_acquired`, or reads `ACQUIRED_SKILL` |
+| `controls` | calls `session_control()` or `raise_control()` — hosts without response-action support skip it |
 
 Rules of thumb:
 
@@ -1838,6 +1843,8 @@ result = run()
 | `store_usage` | `store_usage()` | `dict` | `{"bytes": used, "limit": 1048576, "free": remaining}` — check before a large `store_set`. |
 | `set_integrity_level` | `set_integrity_level(level)` | `None` | Set the agent/host **integrity level** (an int, ordered worst→best): `0`=breached, `1`=low, `2`=medium (**default**), `3`=high. Raises an error if out of range. The level is published in the agent's posture metadata; self-posture's **device-integrity check treats `0` (breached) exactly like a debugger being attached** (fails the check). Levels `1`/`2`/`3` are informational for now (sent and stored, no posture action). In SDK/embedded mode this is the *only* integrity signal evaluated (no host probing). |
 | `session_get` … `session_hold` | see [Session State](#session-state--shared-across-rules) | | State shared by every rule over one session: `session_get`, `session_set`, `session_append`, `session_incr`, `session_flag`, `session_delete`, `session_keys`, `session_usage`, `session_verdict`, `session_clear_verdict`, `session_hold`. |
+| `session_control` | `session_control(session="")` | `str` | The response action holding the session: `"kill"` (isolation), `"probation"` (inspection) or `""`. See [Response Actions](#response-actions--session_control-and-raise_control). |
+| `raise_control` | `raise_control(effect, reason="")` | `bool` | Applies a response action (`"kill"` or `"probation"`) to the triggering session as the running rule; `True` when the host took it. Needs `controls` in `requires:`. |
 | `get_integrity_level` | `get_integrity_level()` | `int` | Returns the agent's current integrity level (`0`=breached … `3`=high; `2`/medium by default). |
 
 In tool calls at the AI Gateway, and in tool calls and tool results the Netzilo client sees in an agent's model traffic, `meta["task"]` is the conversation's first user prompt, `meta["instructions"]` its system prompt (each capped at 8 KB) and `meta["requests"]` every user turn so far — the context a judge needs to decide whether a tool call serves what the user asked. See [`meta` keys](#meta-keys).
@@ -2576,6 +2583,60 @@ Every session has an in-memory **state** that all rules share: one rule records 
 
 ---
 
+## Response Actions — `session_control` and `raise_control`
+
+A rule can read the **response action** holding a session and apply one itself: put the session it judged **Under Inspection** or **isolate** it. A response action is not a verdict on one call: management records it, every host that carries the session enforces it (the Netzilo client, the AI Gateway, the browser extension), the session shows **Under Inspection** / **Under Isolation**, and an administrator sees it under Edge → Governance → **Actions** as applied by the guardrail and can lift it (`51-ai-response-actions.md`).
+
+| Builtin | Returns | What it does |
+|---|---|---|
+| `session_control(session="")` | `"kill"`, `"probation"` or `""` | The action holding `session` (default: the triggering session) on this host now — an administrator's or a rule's: `"kill"` = isolation, `"probation"` = inspection, `""` = none (also on a host without response-action support). Isolation wins over inspection. |
+| `raise_control(effect, reason="")` | `bool` | Applies a response action to the **triggering session**, as the running rule: `effect` is `"kill"` (isolate) or `"probation"` (inspect); any other value raises an error. `reason` is shown in every refusal and in the dashboard. Returns `True` when the host took it — it enforces it at once and reports it to management. Returns `False` when this rule already raised the same action on this session, when an administrator lifted it, for an event that is not in an AI session, on a host without response-action support, and in an evaluation without effects (the held-back windows of a streamed answer). |
+
+What to know before using them:
+
+- **Declare `controls` in `requires:`.** Hosts older than this release do not have the builtins; the capability keeps them from loading the rule (the linter warns when the script uses them and `controls` is missing).
+- **One session, by the rule.** A raise covers the triggering session only, never a user, group or agent. Its origin is the rule's `id`, which must be the `id` of one of the account's guardrails — management refuses a raise from any other. The action's id is derived from the rule, the effect and the session, so the same raise on another host, or again later, is the same action.
+- **An administrator's lift is final.** Once an administrator lifts the action, the same raise for that session returns `False` on every host. Rule-raised actions expire after 7 days. `reason` is cut at 1000 characters; keep it to one sentence a stopped user can read.
+- **An isolated session never reaches the rules.** The host refuses its calls before any rule runs, so a rule sees `session_control() == "kill"` only when it asks about another session. Inspection does reach them: that is what it is for — read `session_control() == "probation"` and judge strictly.
+- **Raise once, decide first.** Guard the raise with session state (`session_flag`, or `session_set("raised", True)` before the call) so a session is raised once; decide on the evidence, then raise.
+- **Escalate in two steps.** Inspect on the first finding, isolate on the second while the session is under inspection — the pattern of Netzilo's **Cruise Control Inspection** (`netzilo-intent-probation-001`, inspects a session Patrol flags) and **Cruise Control Containment** (`netzilo-intent-containment-001`, isolates a session under inspection when Gate blocks another of its tool calls). Containment keeps the Gate decisions it saw before the session was put under inspection as a baseline, so only a later block counts as the second strike.
+
+```yaml
+title: Credential Access — Inspect, Then Isolate
+id: netzilo-example-credential-response-001
+status: experimental
+level: high
+description: "Blocks tool calls that touch cloud or SSH credentials. The first puts the session Under Inspection; a second while it is under inspection isolates the session on every host. POSIX and Windows paths."
+tags: [attack.credential-access, attack.t1552.001]
+logsource: {product: ai_agent, category: agent_events}
+requires: [tool, controls]
+detection:
+  sel:
+    event_type: tool_call
+    content|re: '(?i)[\\/]\.aws[\\/]credentials|[\\/]\.ssh[\\/]id_'
+  condition: sel
+action: execute
+on_error: allow
+script: |
+  def run():
+      if not meta.get("session"):
+          return {"action": "block", "reason": "Tool call touches a credential file"}
+      tool = meta.get("tool_name", "") or "a tool"
+      control = session_control()
+      if control == "" and session_flag("inspected"):
+          raise_control("probation", "Tool call touched a credential file (" + tool + ")")
+      elif control == "probation" and session_flag("isolated"):
+          if raise_control("kill", "Second credential access while Under Inspection (" + tool + ")"):
+              return {"action": "block", "reason": "Response action: AI access is isolated by a guardrail. Reason: second credential access while Under Inspection."}
+      return {"action": "block", "reason": "Tool call touches a credential file"}
+
+  result = run()
+```
+
+The call that triggers the isolation is refused by the rule itself; the session's later calls are refused by the host before any rule runs. An administrator who lifts the inspection or the isolation decides for the session: the flags stay set, so the rule only blocks the matching calls from then on.
+
+---
+
 ## Best Practices for Advanced Scripted Rules
 
 This is the authoritative checklist for `action: execute` behavioral rules. It encodes the design that achieves **zero false positives, maximum accuracy, and bounded cost**. Treat each item as a gate: a rule that violates one is not ready to ship as `block`.
@@ -2726,6 +2787,7 @@ script: |
 - [ ] Inline rules that call a model set `timeout_ms`, and the verdict on a model error is stated (`report`, or a deliberate fail-closed).
 - [ ] Session writes are guarded (no session → skip), happen after the verdict is decided, are bounded (`session_usage()`), and stay under 32 KiB per session for rules that run in the browser extension.
 - [ ] A rule that reads another rule's state names it by its `id` and still answers sensibly when that rule is not loaded (`session_get` returns `None`).
+- [ ] A rule that applies response actions declares `controls`, raises once per session, writes a reason a stopped user can read, and inspects before it isolates.
 - [ ] The script has the conventional shape (definitions, then `result = run()` last; no module values modified at run time), so its definitions are built once.
 - [ ] Returns a kill chain; every dict passed to `step()` has real `from`/`to` (event rows and hand-built triggers went through `ev_edge`); `SPAWNED` steps use `parent_session` for `from`.
 - [ ] Proof: one attack scenario with the expected verdict and chain, one near-miss benign scenario that comes out `allow` — as fixtures for the public library, or reproduced on a pilot group in report mode for an account rule.
@@ -3067,7 +3129,7 @@ The supported ways to exempt traffic, most targeted first:
    ```
 
 2. **Scope the rule with filters.** A rule applies only to devices (endpoint filters) or users (gateway filters) matched by a filter that binds its guardrail. To exempt a population, bind the rule in the filters for the groups that need it and give the exempt group a filter without it. A device matched by *any* filter that binds the rule, including a baseline filter for `All`, still gets the rule, because rules from all matching filters accumulate.
-3. **Disable the rule** (Edge → Guardrails → the guardrail → Enable Guardrail off) to exempt everyone.
+3. **Disable the rule** (Edge → Governance → Guardrails → the guardrail → Enable Guardrail off) to exempt everyone.
 
 Verify every exception in both of these ways before relying on it:
 

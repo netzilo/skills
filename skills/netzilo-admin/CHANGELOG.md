@@ -7,6 +7,36 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.9.0 — 2026-10-22
+
+AI response actions: Netzilo isolates a hijacked AI session on its own, and administrators
+stop AI activity anywhere with the AI Kill Switch (Netzilo Server, client and AI Gateway
+v5.3.590, browser extension 5.2.578, Agent SDK 5.2.2). Minor version: a new runbook.
+
+- New `51-ai-response-actions.md`: isolation (the AI Kill Switch) and inspection; autonomous
+  response by Cruise Control Inspection and Containment (second strike, an administrator's
+  lift wins, 7-day expiry); scopes (all, users, groups, devices, agents with glob patterns,
+  sessions); Edge → Governance → **Actions** and a session's **Response Action** menu; the
+  `/api/ai/controls` API with bodies and answers (`hosts`, `applied`); delivery and timing
+  per host; what a stopped person or agent sees; session badges as real enforcement;
+  activity events; the incident playbook; troubleshooting and limits.
+- `32`: `session_control()` and `raise_control()` (builtins table, new Response Actions
+  section with an inspect-then-isolate example), the `controls` capability in `requires:`
+  and the host table, a checklist item.
+- `10` §1 (the Edge navigation: Providers with MCP tabs; Governance with Filters,
+  Guardrails, Limits, Actions; Sessions), §8 (rules that respond on their own), §9 (two
+  rows); `15` §2, §7, §8 (isolation as the first containment step; never contain by
+  removing a filter); `28` (guardrails that apply response actions; the Guardrails tab of
+  Governance); `30` §1, §1a (response-action events, engine `control`, Edge → Sessions
+  with its status filter, badges, row menu and session deletion), §5; `49` §2, §5, §10
+  (extension 5.2.578 enforces isolations even without a browser filter); `17`, `39` (what
+  a user sees when their AI access is isolated, and what to send the administrator);
+  `09` §2, `08`, `35` §2, §2.1 (response actions, the new navigation names).
+- `34` regenerated: 169 activities, with `ai.control.created|raised|updated|lifted|deleted`,
+  `ai.controls.report` and `ai.session.deleted`. `scripts/gen-event-codes.py` now carries
+  the notes and the browser-events paragraph that were hand-edited before.
+- Skill index: a routing row for stopping AI now.
+
 ## 4.8.1 — 2026-10-20
 
 Patch: Netzilo's agent intent rule pair is renamed.

@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14367
+chars: 14380
 sections:
 - id: '1'
   title: Providers
@@ -17,7 +17,7 @@ sections:
   chars: 2635
 - id: '3'
   title: Procedures
-  chars: 1309
+  chars: 1322
 - id: '4'
   title: Diagnosis
   chars: 1923
@@ -198,7 +198,7 @@ requests_max, requests_reset`).
 ## 3. Procedures
 
 - **First provider:** Edge → Providers → Add Provider → type, credential, Models →
-  Refresh → tick the models → Name → save. Then Edge → Filters → a **gateway** filter →
+  Refresh → tick the models → Name → save. Then Edge → Governance → Filters → a **gateway** filter →
   Models → **Browse Models** → the models or "All models" of the provider → save. Then
   check `GET /api/edge/filters/effective?type=gateway&user=<id>` lists the filter for a
   member and `GET <gateway>/v1/models` with that user's token lists the models.

@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 42732
+chars: 44905
 sections:
 - id: '1'
   title: Architecture in one page
-  chars: 4228
+  chars: 4947
 - id: '2'
   title: Rollout runbook
-  chars: 3822
+  chars: 3860
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
-  chars: 4273
+  chars: 4266
 - id: '4'
   title: Coding-agent hooks (`netzilo hook`)
   chars: 2869
@@ -32,10 +32,10 @@ sections:
   chars: 2696
 - id: '8'
   title: Writing and testing rules (Guardrails)
-  chars: 3635
+  chars: 4443
 - id: '9'
   title: Troubleshooting
-  chars: 6424
+  chars: 7039
 - id: '10'
   title: Reporting and evidence
   chars: 1337
@@ -86,9 +86,19 @@ Ways traffic enters the device-side engine:
 | **SDK** (`pip install netzilo`, `npm install netzilo`, 5.0) | the whole client embedded in the agent process; `is_allowed()`/`wrapTool()`/framework adapters; optional **advanced governance** (Linux only) adds in-process TLS interception and a syscall probe | agents you build (CrewAI, LangGraph, Strands/AgentCore, LangChain, AutoGen, …) |
 | **Browser extension** ("Netzilo Secure Browser") | the same engine built for the browser: governs the web AI apps (ChatGPT signed-in and logged-out, claude.ai, Gemini, Perplexity), direct API calls from pages and MCP over WebMCP, keeps a network log (no bodies) and uploads tab sessions to the behaviour graph; reads the endpoint filters whose Operating Systems include **Browser** (`/api/edge/filters?os=browser`) for the signed-in user's groups; stands down when the desktop client on the device governs the browser (`49-browser-extension-aidr.md`) | browser AI use on managed or BYOD devices, and the only browser enforcement point on Linux |
 
-Central policy objects (Dashboard → **Edge**, in this order): **Providers** (`45`),
-**MCP** servers and bundles (`46`), **Guardrails** (`28`), **Limits** (`45`),
-**Filters** (`29`). Users meet the gateway side at Workplace → **Agentic Access** (`47`).
+Central policy objects (Dashboard → **Edge**): **Providers** (`45`), with **MCP
+Servers** and **MCP Bundles** as its tabs (`46`); **Governance**, with the tabs
+**Filters** (`29`), **Guardrails** (`28`), **Limits** (`45`) and **Actions** (`51`);
+**Sessions** (`30` §1a). The earlier addresses (`/ai-edge/guardrails`, `/ai-edge/filters`,
+`/ai-edge/limits`, `/ai-edge/mcp`, `/ai-sessions`) redirect there. Users meet the gateway
+side at Workplace → **Agentic Access** (`47`).
+
+**Response actions** (`51-ai-response-actions.md`) sit on top of both enforcement points
+and the browser extension: an **isolation** — the AI Kill Switch — refuses every AI call
+of a session, user, group, device, agent or the whole account on every host at once; an
+**inspection** makes guardrails judge a session strictly. Netzilo applies them on its own
+(Cruise Control Inspection and Containment), and administrators apply and lift them under
+Edge → Governance → **Actions** or from a session.
 
 What no longer exists, so you never look for it: approved and discovered **Tools**, the
 global catalogue of premium rules, posture checks inside filters, the client's local MCP
@@ -110,9 +120,9 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
    (LLM-as-judge) use the same providers: `llm_call()` on the Threat Analysis model or a
    model the rule names, and `system_one()` on a **System One** provider (`32`). This is
    not the gateway's provider list (`45`).
-3. **Guardrails:** Edge → Guardrails → Add Guardrail; start from the public library
+3. **Guardrails:** Edge → Governance → Guardrails → Add Guardrail; start from the public library
    (`github.com/netzilo/aidr-sigma`) in report mode (`28` §6).
-4. **Create an endpoint Filter** (Edge → Filters → Add Filter → Filter Type Endpoint):
+4. **Create an endpoint Filter** (Edge → Governance → Filters → Add Filter → Filter Type Endpoint):
    groups `ai-users`, OS (Windows, Darwin…); **Agents**: process paths to intercept,
    wildcards and env vars allowed (`%PROGRAMFILES%\Google\Chrome\Application\chrome.exe`,
    `~/.cursor/**`, `/Applications/Claude.app/**`, `$HOME/.local/bin/claude`; empty = no
@@ -141,8 +151,8 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
    it where callers can reach it: inside the network (tunnel door) and/or published at an
    address (`27` §5).
 2. **Providers:** Edge → Providers → Add Provider (type, credential, Refresh models) (`45`).
-3. **(Optional) MCP servers and bundles:** Edge → MCP (`46`).
-4. **(Optional) Limits:** Edge → Limits (`45` §2).
+3. **(Optional) MCP servers and bundles:** Edge → Providers (`46`).
+4. **(Optional) Limits:** Edge → Governance → Limits (`45` §2).
 5. **Create a gateway Filter** (Filter Type Gateway): groups, **Models** (Browse Models;
    at least one required), Limits, **MCP**, **Gateways** (the address users paste — the
    tab is not on the Continue path, open it), Guardrails (optional; recommended), name.
@@ -150,7 +160,7 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
    `curl <gateway>/v1/models -H "Authorization: Bearer <user token>"` lists the models;
    the Workplace shows the card **Online**; a chat completion appears in Dashboard →
    Agentic Activity after the hourly snapshot (or at once with **Refresh**), and in
-   Activity → AI Sessions and the AI Usage report at once.
+   Edge → Sessions and the AI Usage report at once.
 7. **Tell users** (`47` §6).
 
 ---
@@ -171,7 +181,7 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
 | Hook evaluation | `toolCall`, `promptRequest`, `promptResponse` synchronous (can block; a redaction cannot be applied by a hook, so the hook acts only on allow/block); `toolResult`, `sessionStart`, `sessionEnd` fire-and-forget; hooks are **fail-open** by default (`NETZILO_HOOK_POLICY=allow`); set `block` for fail-closed |
 | Scan actions | the built-in prompt classifier and the AI judge run through management (15 s timeout on the device); a scan that cannot run is an **error for the rule's `on_error`** (default allow) — not a silent allow, not a block unless `on_error: block` |
 | Posture in filters | none; a failing posture check never blocks AI traffic through a filter. Posture gates policies, profiles and published applications (`21`) |
-| Verdict events | `ai.blocked` (149), `ai.redacted` (150), `ai.redirected` (151), `ai.detected` (152); `ai.allowed` (148) and `semantic.event` (127) are no longer recorded; `aidr.graph` (129, browser tab sessions only); `aidr.trajectory` (171) is no longer recorded by current servers (older ones announced each new AI session with it; open sessions from Activity → AI Sessions) |
+| Verdict events | `ai.blocked` (149), `ai.redacted` (150), `ai.redirected` (151), `ai.detected` (152); `ai.allowed` (148) and `semantic.event` (127) are no longer recorded; `aidr.graph` (129, browser tab sessions only); `aidr.trajectory` (171) is no longer recorded by current servers (older ones announced each new AI session with it; open sessions from Edge → Sessions) |
 | AI session records | usage and the captured conversation of each model call and HTTP MCP call the proxy inspected, held in memory and sent to management every 15 s, only once management announces it records them (an older server: none). A call sent to the account's AI Gateway is recorded once, by the gateway. Claude Code hooks, SDK runs and the proxy's model calls of the same process land on one session. Not recorded yet: Cursor, Gemini CLI and other Connect-streaming traffic, stdio MCP servers. Cost is 0 on devices |
 | MCP tool results | judged text by text (§7) |
 
@@ -419,7 +429,7 @@ legacy). Evaluation order: most severe `level` first, then rule `id`; the most s
 matching rule decides and is named as the blocker; after a block only `redact` and
 `execute` rules still run; an `allow` rule is not an exemption; position has no effect.
 
-Authoring in the dashboard: Edge → Guardrails → **Add Guardrail** → YAML editor (name and
+Authoring in the dashboard: Edge → Governance → Guardrails → **Add Guardrail** → YAML editor (name and
 description sync from `title`/`description`); the AI panel beside the editor is the AI
 Assistant (shown when a model is approved for Assistant): it writes the whole rule into
 the editor from a prose description, in guardrail authoring threads the admin starts or continues,
@@ -459,6 +469,17 @@ extension runs a background rule inline and fails a script that uses the session
 builtins (it takes its `on_error` verdict). Bind such rules only to filters whose hosts
 run a current version.
 
+**Rules that respond on their own.** Two more Netzilo rules turn the pair's findings into
+**response actions** an administrator sees and can lift: **Cruise Control Inspection**
+puts a session Patrol flags **Under Inspection**, and **Cruise Control Containment**
+isolates a session under inspection when Gate blocks another of its tool calls — the
+second strike. The session shows **Under Isolation** on Edge → Sessions, the action is
+listed under Edge → Governance → **Actions** as applied by the guardrail, and an
+administrator's lift is final for that session. Bind all four rules together; hosts older
+than v5.3.590 (browser extension 5.2.578) skip the two that apply actions
+(`51-ai-response-actions.md` §2; rule builtins `session_control()` / `raise_control()` in
+`32`, Response Actions).
+
 ---
 
 ## 9. Troubleshooting
@@ -483,6 +504,8 @@ run a current version.
 | Events with source `extension` and agent = a site (`chatgpt.com`, `claude.ai`, …) | events from the browser extension; Activity reads "<site> in the browser for <user>" | normal |
 | An agent gets 400 (`netzilo_policy`)/401/405/429 from the **gateway** | `27` §6 and `47` §5 | |
 | A user has no **Agentic Access** tab | no gateway filter grants them an address or MCP server | `29` §5.2 |
+| Every AI call of a user, agent or session fails with "Response action: AI access is isolated by an administrator (or a guardrail). Reason: … Reference: …" | an isolation (the AI Kill Switch) covers it; **AI blocked** events with engine `control` | expected while it holds; find it under Edge → Governance → Actions by its reason and lift it when the cause is gone (`51` §4, §11) |
+| An isolation was added but calls still pass on a device or in a browser | the host has not applied it: offline, or older than v5.3.590 (extension 5.2.578, Agent SDK 5.2.2); the app is not inspected on that device | `51` §6, §11 |
 
 **Degradation lines in the client log.** Each means a part of AI governance is running in
 a reduced mode. None stops the client; each has a specific fix.

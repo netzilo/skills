@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 11447
+chars: 12701
 sections:
 - id: administration
   title: Administration
@@ -28,12 +28,12 @@ sections:
   chars: 79
 - id: ai-edge
   title: AI Edge
-  chars: 1407
+  chars: 2661
 ---
 # Event catalogue — what each activity is called
 
-Generated from Netzilo Server's activity table on 2026-10-17 by
-`scripts/gen-event-codes.py`. 162 activities.
+Generated from Netzilo Server's activity table on 2026-10-22 by
+`scripts/gen-event-codes.py`. 169 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
 name), `activity_code` (the stable identifier) and `activity_category`. **Say the
@@ -243,9 +243,16 @@ and `peer` = the browser as signed in (*Chrome 130 on macOS 15.1*); say *on <url
 | AI allowed | `ai.allowed` (no longer recorded: allowed calls are in AI sessions; the server drops the event from older hosts, and older rows remain until they age out) |
 | AI blocked | `ai.blocked` |
 | AI content reported | `ai.content` (the captured messages of recorded model and tool calls on their way to the AI sessions; never shown in Activity) |
+| Response action applied | `ai.control.created` (an administrator isolated or inspected AI activity; meta `effect` (`kill` = isolation, `probation` = inspection), `reason`, `scope`, `origin`, `expires_at`; `51-ai-response-actions.md` §4) |
+| Response action deleted | `ai.control.deleted` (an administrator deleted a response action; it stops applying at once) |
+| Response action lifted | `ai.control.lifted` (an administrator lifted a response action; meta `lift_reason` when one was given) |
+| Response action applied by a guardrail | `ai.control.raised` (Netzilo isolated or inspected one AI session on its own, by the guardrail named in `origin` (`rule:<rule id>`); initiator Netzilo System; expires after 7 days unless lifted; `51-ai-response-actions.md` §2) |
+| Response action updated | `ai.control.updated` (an administrator changed a response action's effect, scope, reason or expiry) |
+| Response actions reported | `ai.controls.report` (a host's report of the response actions it applied; consumed by the server, never shown in Activity) |
 | AI detected | `ai.detected` |
 | AI redacted | `ai.redacted` |
 | AI redirected | `ai.redirected` |
+| AI session deleted | `ai.session.deleted` (an administrator deleted an AI session and everything it recorded; meta `session`, `agent`, `user`, `started_at`, `last_activity` and the counts removed) |
 | AI usage reported | `ai.usage` (a device's or gateway's recorded model and tool calls on their way to the AI sessions; never shown in Activity) |
 | AI behavior graph updated | `aidr.graph` (a device's behaviour data on its way to the graph, never stored as an entry; shown as "Session snapshot" only for a browser tab session's first behaviour (and on older device rows), with a session id that opens its graph) |
 | Session trajectory available | `aidr.trajectory` (no longer created by current servers; rows an older server recorded — one per AI session, meta `session_id`, `agent_name`, `peer`, `point` — still open the session in the Agentic Activity window; `30-activity-reports-and-integrations.md` §3) |

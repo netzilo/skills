@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 28229
+chars: 29329
 sections:
 - id: '1'
   title: Model
-  chars: 2556
+  chars: 3400
 - id: '2'
   title: Field reference (Add / Edit Guardrail)
   chars: 5270
@@ -20,7 +20,7 @@ sections:
   chars: 3733
 - id: '4'
   title: Testing a rule
-  chars: 4608
+  chars: 4601
 - id: '5'
   title: API
   chars: 2443
@@ -32,11 +32,12 @@ sections:
   chars: 3685
 - id: '8'
   title: Limits to state before a customer discovers them
-  chars: 3027
+  chars: 3213
 ---
 # Admin Skill — Edge Guardrails (detection rules)
 
-**Dashboard:** Edge → **Guardrails** (`/ai-edge/guardrails`). **API:**
+**Dashboard:** Edge → Governance → **Guardrails** (`/ai-edge/governance?tab=guardrails`;
+the older `/ai-edge/guardrails` redirects there). **API:**
 `/api/edge/guardrails`; the dialog's AI panel is the AI Assistant
 (`/api/support/sessions?kind=guardrail_authoring`, `/api/support/sessions/{id}/messages`,
 §2.1). The older
@@ -91,6 +92,16 @@ Start there: find a close match, paste it into **Add Guardrail**, adjust, test (
   tool, the source (`mitm`, `hook`, `extension`, `gateway`) and, when a rule matched
   content, the matched excerpt and the content as the chain left it (after redaction,
   at most 8 KB). `34-event-catalogue.md`, `30-activity-reports-and-integrations.md` §1.
+- **Guardrails that respond on their own.** A rule can apply a **response action** to
+  the session it judged: put it **Under Inspection** or **isolate** it on every host that
+  carries it (`raise_control()`, `32`, Response Actions). Netzilo's **Cruise Control
+  Inspection** and **Cruise Control Containment** do this with Gate and Patrol: a flagged
+  session is inspected, and a second blocked tool call isolates it. Their actions are
+  listed under Edge → Governance → **Actions** as applied by the guardrail, show on the
+  session as **Under Isolation** / **Under Inspection**, raise the event **Response
+  action applied by a guardrail**, expire after 7 days, and an administrator's lift is
+  final for that session (`51-ai-response-actions.md` §2). Such rules declare the
+  `controls` capability; hosts older than this release skip them.
 - **Files attached to AI requests** are their own context, `file_attachment`, judged at
   the AI Gateway: type facts as fields, the file's text as `content`; a block refuses the
   request and names the file, a redact rewrites the file in place (never a PDF: a
@@ -272,7 +283,7 @@ A rule is tested live, on a small scope, before it blocks anything:
    behaviour graph (the **View** window from the peer page or an activity entry: graph,
    keyword search, Search Results) and in
    `GET /api/aidr/sessions|graph|observations|detections|search?q=&scope=…`; the
-   session itself is in Activity → AI Sessions → **View session** (Trajectory, MCP
+   session itself is in Edge → Sessions → **View session** (Trajectory, MCP
    Calls). A background rule (`mode: async`) reports the call it judged as **AI
    detected** a moment after the call; what it blocks are the session's later calls
    (`10` §8).
@@ -435,7 +446,9 @@ background rule then runs inline, and a script using the session builtins fails 
 **A session verdict cannot be lifted from the dashboard.** A rule that blocks the rest
 of a session keeps blocking it until the session ends or the verdict expires; the
 dashboard does not show which sessions are under one. The events name the rule and its
-reason.
+reason. A rule that must stop a session visibly, on every host and in a way an
+administrator can lift, applies a **response action** instead (`raise_control()`,
+`51-ai-response-actions.md` §2).
 
 **Performance is not instrumented for customers.** No overhead figure and no per-rule
 timing are exposed. When AI tools feel slow, narrow the rules and move expensive ones to
