@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 44905
+chars: 45113
 sections:
 - id: '1'
   title: Architecture in one page
@@ -38,7 +38,7 @@ sections:
   chars: 7039
 - id: '10'
   title: Reporting and evidence
-  chars: 1337
+  chars: 1545
 - id: '11'
   title: Constraints to disclose early
   chars: 3289
@@ -529,11 +529,13 @@ Log prefixes to search for on a device: `MITM:`, `Filters applied`, `Rules updat
 
 ## 10. Reporting and evidence
 
-- Dashboard → **Agentic Activity** (Last 24 Hours | Last 7 Days | Last 30 Days; Overview /
-  Agents / MCP tabs; Top Teams, Guardrails, Agents, Models, Servers, Tools), recomputed
-  hourly or on **Refresh**; its window drills from teams to a single AI session's
-  (device or gateway) trajectory, MCP calls and behavior graph, with kill chains marked
-  (`30` §3).
+- Dashboard → **Agentic Activity** (Last 24 Hours | Last 7 Days | Last 30 Days; cards
+  Tokens, Cost, MCP Calls; Top Teams, Guardrails, Models, Agents, Tools; a chart of
+  Tokens, LLM Requests or MCP Calls), recomputed hourly or on **Refresh**; its window
+  (Overview | Teams | Sessions) drills from teams to a single AI session's (device or
+  gateway) trajectory, MCP calls and behavior graph, with kill chains marked; its
+  **Sessions** tab is the live session hive, every session coloured by state — isolated,
+  inspected, active, idle (`30` §3).
 - Activity → **AI Sessions**: every recorded session, LLM and MCP tabs, word-prefix
   search, server-side sort (`30` §1a).
 - Activity → Events filtered by category *AI Edge*: each `ai.*` event carries the agent,
@@ -544,7 +546,7 @@ Log prefixes to search for on a device: `MITM:`, `Filters applied`, `Rules updat
   gateways and devices: requests, tokens, cost, latency, MCP calls; by model, user,
   provider, gateway, server, tool).
 - API: `GET /api/events/paginated?code=ai.blocked&…`, `GET /api/aidr/…`,
-  `GET /api/stats`, `GET /api/ai/activity`, `GET /api/ai/sessions…`,
+  `GET /api/stats`, `GET /api/ai/activity`, `GET /api/ai/hive`, `GET /api/ai/sessions…`,
   `POST /api/reports {report_type: ai_activity|ai_usage}` (`09` §2).
 - Stream everything to S3/Min.io for SIEM (Integrations → Event Streaming).
 

@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 31823
+chars: 32108
 sections:
 - id: '1'
   title: Rules of engagement
@@ -17,7 +17,7 @@ sections:
   chars: 3301
 - id: '3'
   title: 'Triage: route the request'
-  chars: 7759
+  chars: 8044
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
@@ -174,6 +174,7 @@ first; go to the device to see what the account cannot.
 | "Filters" — endpoint (devices) vs gateway (users); "the filter is not applying" | `29-edge-filters.md` |
 | "AI usage / Agentic Activity / tokens and cost per user, model, gateway" | `30-activity-reports-and-integrations.md` §2–3 |
 | "Agentic Activity window: teams, a team's flow (LLM or MCP), an agent's sessions, a session's trajectory, MCP calls or behavior graph, Refresh" | `30-activity-reports-and-integrations.md` §3, then `27-ai-gateway.md` §8–§10 |
+| "Sessions tab / honeycomb / hive: red, orange, green, blue hexagons; a comb shows fewer hexagons than its number; a person in the wrong team; N more people on a flow; Could not load" | `30-activity-reports-and-integrations.md` §3 (the session hive), `51-ai-response-actions.md` §8 |
 | "AI Sessions page / find or search a session / an agent's MCP calls / my device's sessions are missing / no allowed events any more / a session with no cost / a session with no messages" | `30-activity-reports-and-integrations.md` §1a, §3, §6; `27-ai-gateway.md` §10 |
 | "What do the client and the AI Gateway send to the server; are prompts stored; who can read them" | `14-data-handling-and-privacy.md` §3 and §8, `27-ai-gateway.md` §8.1 |
 | "How long is AI data kept; AI tables growing; the `ai-retention` container" | `02-server-operations.md` §20 |

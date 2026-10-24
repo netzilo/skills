@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 37104
+chars: 41672
 sections:
 - id: '1'
   title: Activity → Events
@@ -20,7 +20,7 @@ sections:
   chars: 3523
 - id: '3'
   title: Dashboard home
-  chars: 6448
+  chars: 10072
 - id: '4'
   title: Integrations
   chars: 7913
@@ -29,7 +29,7 @@ sections:
   chars: 2036
 - id: '6'
   title: Diagnosis
-  chars: 4676
+  chars: 5620
 ---
 # Admin Skill — Activity Events, Reports, Dashboard Home and Integrations
 
@@ -227,22 +227,22 @@ active in the last 7 days) and **Tokens** (tokens recorded by gateways and devic
 is no Security Score tile any more; the per-peer score is on each peer's page (the
 Peers list no longer has the column; `24-peers-and-setup-keys.md` §2).
 
-**Agentic Activity**: a period selector (**Last 24 Hours** | **Last 7 Days** | **Last 30
-Days**), three tabs, and two buttons at the top right — **Refresh** (circular arrows) and
-**View** (opens the Agentic Activity window, below):
+**Agentic Activity** (no tabs): the period selector (**Last 24 Hours** | **Last 7 Days** |
+**Last 30 Days**), **Refresh** (circular arrows) and **View** (two arrows; opens the
+Agentic Activity window, below) at the top right, then three cards — **Tokens** (in · out),
+**Cost** (per request), **MCP Calls** (errors · blocked) — a top list drawn as a bar graph
+and a chart over the period. Icons (names on hover) pick the top list — **Top Teams**,
+**Top Guardrails**, **Top Models**, **Top Agents**, **Top Tools** — and the chart's figure —
+**Tokens**, **LLM Requests**, **MCP Calls**. There is no Top Servers list and no LLM
+Requests card any more (request errors and blocked requests are in the AI Usage report,
+§2).
 
-| Tab | Cards | Chart | Top lists |
-|---|---|---|---|
-| Overview | Tokens, Cost, MCP Calls | Tokens over time | Top Teams, Top Guardrails |
-| Agents | LLM Requests | LLM requests over time | Top Agents, Top Models |
-| MCP | MCP Calls | MCP calls over time | Top Servers, Top Tools |
-
-Top lists hold at most 6 rows as percentage shares. Top Teams is by tokens and names the
-users' groups (never `All`). Top Agents and Top Guardrails count `ai.*` events from
-every source; Top Models, Top Servers and Top Tools combine recorded usage with the
-events from other sources; the cards and the time series are recorded usage (gateways
-and devices). Before any recorded usage exists the section shows "Getting Started with AI
-Edge" with the button **Get Started with AI Edge** (→ Edge → Providers).
+A top list shows its 5 largest rows; Top Teams by tokens (the users' groups, never `All`),
+the others as percentage shares. Top Agents and Top Guardrails count `ai.*` events from
+every source; Top Models and Top Tools combine recorded usage with the events from other
+sources; the cards and the chart are recorded usage (gateways and devices). Before any
+recorded usage exists the section shows "Getting Started with AI Edge" with the button
+**Get Started with AI Edge** (→ Edge → Providers).
 
 Everything above is a **snapshot computed hourly** by the stat job, not a live query: a
 request made a minute ago is not on the home page yet, while the AI Usage report (§2)
@@ -251,29 +251,37 @@ server builds an account once at a time and keeps a build younger than 30 second
 admins refreshing together get one build. On a busy account it takes tens of seconds.
 
 **The Agentic Activity window** (admins only; built from the AI sessions recorded on
-devices and gateways, every 15 minutes or on **Refresh**) goes from the company down to
-one agent session. The title names the level; the back arrow or **Escape** goes up one;
-**Escape** on the first page closes it. Levels:
+devices and gateways, every 15 minutes or on **Refresh** — except the Sessions tab, which
+is live) goes from the company down to one agent session. The title names the level; the
+back arrow or **Escape** goes up one; **Escape** on the first page closes it. Levels:
 
-1. **First page** — the same tabs as the panel, then **Teams**: a tile per group whose
-   members had recorded AI sessions in the period (**All** = everyone; a user in no
-   group is under All only). A tile shows the name, active agents, people and service users, and token
-   bars over the period; a left bar shades from gray to blue by the team's tokens against
-   the busiest team (legend **Tokens Low → High**). Busiest first; **Search teams** filters
-   by name; hovering shows sessions, tokens, cost and violations (blocked + redacted +
-   detected). A group's membership is what the user had when each request was made.
-2. **A team** — a traffic switch **LLM | MCP**. LLM: a flow **Users → Agents → Models ·
-   by provider**, band width = tokens; **Users**, **Agents**, **Models** and the period
-   narrow it. MCP: **Users → MCP Clients → MCP Servers → Tools**, band width = calls (no
-   verdicts on the flow); menus Users, Clients, Servers, Tools (tools grouped by server).
-3. **Sessions** — LLM list: Started, Agent / User, Models, Turns (model calls · tool
-   calls), Usage (tokens and cost), Violations, kill-chain badge. MCP list: Started, Last
-   activity, User · Agent, MCP servers (chips), Calls (n tools), Latency (average),
-   Violations, and a **Trajectory** badge — **Model + MCP** when the session also made
-   model calls, **MCP only** when it made none. Violations are blocked + redacted +
-   detected of the whole session. Newest first; the kill-chain badge opens the session on
-   its graph; **Search** by name, agent or model. Edge → Sessions (§1a) lists the
-   same sessions with server-side search and sort.
+1. **First page** — tabs **Overview** | **Teams** | **Sessions**, the period on the
+   tabs' strip. **Overview** is the home panel's content, filling the window.
+   **Teams**: a tile per group whose members had recorded AI sessions in the period
+   (**All** = everyone; a user in no group is under All only). A tile shows the name,
+   active agents, people and service users, and token bars over the period; a left bar
+   shades from gray to blue by the team's tokens against the busiest team (legend
+   **Tokens Low → High**). Busiest first, read 60 tiles at a time as the tab scrolls;
+   **Search teams** searches every team on the server; hovering shows sessions, tokens,
+   cost and violations (blocked + redacted + detected). A group's membership is what the
+   user had when each request was made. **Sessions**: the session hive, below.
+2. **A team** (a Teams tile) — a traffic switch **LLM | MCP**. LLM: a flow **Users →
+   Agents → Models · by provider**, band width = tokens; **Users**, **Agents**, **Models**
+   and the period narrow it. MCP: **Users → MCP Clients → MCP Servers → Tools**, band width
+   = calls (no verdicts on the flow); menus Users, Clients, Servers, Tools (tools grouped
+   by server). A flow shows the team's **40 busiest people**; the rest are one node at the
+   bottom of Users, **N more people**. Scrolling to the end of the flow or clicking that
+   node adds 40 more, up to **500** (the server's cap; the node stays past it).
+3. **Sessions** (a name on a flow) — LLM list: Agent / User, Status, Started, Last
+   activity, Models, Turns (model calls · tool calls), Usage (tokens and cost), Violations,
+   kill-chain badge. MCP list: Started, Last activity, User · Agent, MCP servers (chips),
+   Calls (n tools), Latency (average), Violations, and a **Trajectory** badge — **Model +
+   MCP** when the session also made model calls, **MCP only** when it made none.
+   Violations are blocked + redacted + detected of the whole session. **Paged on the
+   server** (25 a page, page arrows "1 of N"), most recently active first; Started, Last
+   activity, Turns, Usage, Violations (and Calls) sort the whole list on the server;
+   **Search** by name, agent or model; the kill-chain badge opens the session on its graph.
+   Edge → Sessions (§1a) lists the same sessions with more filters.
 4. **A session** — tabs **Trajectory**, **Behavior Graph** and, when the session has MCP
    calls, **MCP Calls**. **Trajectory**: a timeline (lanes Input, Model, Tools, Host, and
    Kill chain when there is one; scale Duration / Turns / Calls) and every message by
@@ -302,14 +310,49 @@ session (`point` `endpoint,gateway`); a call the device sent to the account's ga
 recorded once, by the gateway. A session recorded on a device shows cost $0.00. A call
 whose content did not reach the server shows **Content not captured for this call**.
 
+**The session hive** (the window's **Sessions** tab; live, read again every 30 s while
+open, from the sessions themselves — not the 15-minute views). One hexagon per session
+of the period, a comb per team; the colour is the state and nothing else: **red** Under
+Isolation, **orange** Under Inspection (a response action, `51-ai-response-actions.md`,
+holding the session for real), **green** Active, **blue** Idle (idle or finished),
+brighter with more tokens (bands < 1K, 1K–10K, 10K–100K, 100K–1M, > 1M). A comb fills
+from its middle: isolated, inspected, active (latest first), then idle (most tokens
+first), at most **250** hexagons per comb (fewer when there are many combs, never under
+37); the number on its name and the hover counts are exact ("Shown 250 / 11.4k" when
+capped). The legend counts the whole level by state; clicking states shows only theirs.
+A person's team is the most specific group (fewest people) their **latest** session of the
+period recorded, so a person in several groups is in one comb only (people in no group
+but All: **No group**) — counts differ from the Teams tiles by design. Levels: teams →
+click a comb: the team's people (legend and **Search people** in the toolbar) → click a
+person: their agents, each hexagon a session (hover: state, the action's reason, model,
+tokens, started) → click a hexagon: the session (4). Over 100 combs the level scrolls at a
+small size and reads 100 combs at a time; search runs on the server. The background is
+one continuous honeycomb; its grey cells are not sessions and are not clickable.
+
 Below it, the **Devices** panel: OS Distribution and the Security Score Distribution
 radar.
 
 API: `GET /api/stats` returns the saved snapshot — `null` before the job has run once —
 with the fields `total_users`, `total_devices`, `total_agents`, `total_tokens`, `date`,
-plus the 7 daily rows behind the tiles. The window reads `GET /api/ai/activity` and the
-`/api/ai/sessions…` endpoints (`GET /api/ai/sessions` is also the AI Sessions list,
-§1a), and **Refresh** is `POST /api/ai/activity/refresh` (`09-api-and-automation.md` §2).
+plus the 7 daily rows behind the tiles. The window reads:
+
+- `GET /api/ai/activity?window=24h|7d|30d&scope=org[&offset=&limit=&q=]` — tiles, the most
+  tokens first; with paging, `limit` (≤ 200) from `offset` of those whose name holds `q`,
+  plus `total_tiles` (omitted when 0) and `max_tokens` (the busiest group's).
+- `GET /api/ai/activity?window=…&scope=group:<id>[&people=N]` — the team's `flow` and
+  `mcp_flow`; `people` (≤ 500) keeps the N busiest, the rest folded into the node key
+  `*others` (its `others` = how many), and each flow's `people` is the total.
+- `GET /api/ai/hive?window=…[&team=<groupId>|&user=<userId>[&limit=]][&q=]&offset=&combs=`
+  — a page of the hive: `counts` (`isolated`, `inspected`, `active`, `idle`,
+  `idle_bands[5]`) for the whole level, `combs` (≤ 200 a page) and `total_combs`; with
+  `user`, each agent comb carries its first `limit` (≤ 500, default 250) `sessions`
+  (`state`, `reason`, `model`, `tokens`, `started_at`). An empty `user=` is the sessions no
+  user owns. Built levels are shared for 10 s; a level waiting too long for a build slot
+  answers 500 "The session hive is busy" (the console retries on its next poll).
+- `/api/ai/sessions…` (`GET /api/ai/sessions` is also the AI Sessions list, §1a).
+- **Refresh** is `POST /api/ai/activity/refresh` (`09-api-and-automation.md` §2).
+
+These GETs carry an `ETag`; `If-None-Match` gets a 304 when nothing changed.
 
 ---
 
@@ -483,6 +526,10 @@ if it does, the dashboard is out of date.
 | AI Usage report empty although devices produce `ai.*` events | the device's client or the server predates session recording; the app is not intercepted (hooks only, the browser extension); or the traffic is Cursor, Gemini CLI or Connect-streaming (not recorded yet) | upgrade client and server; use the AI Agent Activity report for that traffic |
 | AI Agent Activity report shows a setup-key peer's verdicts but none of its clean calls | the **Agents** tab counts events, and a current client sends no event for a clean call | read the peer's sessions in Edge → Sessions (user = the peer's name) |
 | Agentic Activity on the home page empty although the gateway works | the snapshot is computed hourly; the AI Usage report reads live data | wait for the next run, or generate the report |
+| The window's **Sessions** tab and the **Teams** tiles count differently | Sessions is live; Teams is the 15-minute view; a person is in one comb (the most specific group of their latest session) but counts on every team tile | expected; **Refresh** brings the tiles up to date |
+| A comb shows fewer hexagons than the number on its name | at most 250 per comb, fewer with many combs; held sessions fill first | expected; the number and the hover counts are exact; open the comb for the person's or agent's sessions |
+| The Sessions tab shows **Could not load** | the server builds a few hives at once for all accounts; one waiting too long answers busy (500) | **Retry**; an open tab reads again every 30 s and keeps what it showed |
+| A team's flow ends with **N more people** | the flow shows the 40 busiest people, more on scroll or click, up to 500 | scroll or click the node; past 500, narrow with **Users** or list the sessions (§1a) |
 | Tokens tile zero | no recorded usage (gateway or device) that day | — |
 | My device's sessions do not show up in AI Sessions | client or server older than session recording (the client records only once management announces it); the app is not intercepted (not in an endpoint filter's Agents; on Linux not pointed at the proxy); Cursor, Gemini CLI, Connect-streaming or stdio MCP (not recorded yet); the call went to the account's AI Gateway (recorded once, as point `gateway`) | upgrade both; fix Agents (`10-ai-security-aidr.md` §2); look for the gateway session |
 | "No allowed events any more" | expected: AI events are verdicts only, and the server drops allowed events from older hosts | read the sessions in AI Sessions |

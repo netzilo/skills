@@ -7,6 +7,25 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.10.0 — 2026-10-24
+
+Agentic Activity: the home panel without tabs, the window's **Sessions** tab (the live
+session hive) and every list read a page at a time. Minor version: new procedures.
+
+- `30` §3: the home panel (cards Tokens, Cost, MCP Calls; a top list and a chart picked by
+  icon — Top Teams, Guardrails, Models, Agents, Tools; Tokens, LLM Requests, MCP Calls; no
+  Top Servers list or LLM Requests card any more); the window's tabs Overview | Teams |
+  Sessions; Teams read 60 tiles at a time with server-side search; a team's flow over its
+  40 busiest people with **N more people**, up to 500; the session list paged on the
+  server; the session hive (colours as states only, fill order, the 250-hexagon cap, the
+  team a person is counted in, levels, the legend filter); the API — tile paging
+  (`offset`, `limit`, `q`, `total_tiles`, `max_tokens`), `people` and the `*others` node,
+  `GET /api/ai/hive`, ETags; §6 four diagnosis rows (Sessions vs Teams counts, capped
+  combs, Could not load, N more people).
+- `51` §8: the hive as the company-wide view of what response actions hold.
+- `09` §2, `10` §10, `08`: the hive endpoint and the panel without tabs.
+- Skill index (`00`): a routing row for the Sessions tab and the hive.
+
 ## 4.9.0 — 2026-10-22
 
 AI response actions: Netzilo isolates a hijacked AI session on its own, and administrators

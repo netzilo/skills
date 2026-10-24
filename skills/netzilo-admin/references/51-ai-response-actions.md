@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 25178
+chars: 25525
 sections:
 - id: '1'
   title: What a response action does
@@ -32,7 +32,7 @@ sections:
   chars: 1294
 - id: '8'
   title: Session badges — the badge means it is enforced
-  chars: 892
+  chars: 1239
 - id: '9'
   title: Activity events
   chars: 897
@@ -354,6 +354,10 @@ also show **Active**, **Idle** or **Finished**.
 - An action that names only **devices** puts no badge on sessions: it is enforced on
   those devices, and its reach is in the action's `hosts` / `applied` (§5).
 - A session under both shows **Under Isolation** (isolation wins).
+- The same rule colours the Dashboard's session hive (Agentic Activity window →
+  **Sessions**, `30-activity-reports-and-integrations.md` §3): red **Under Isolation**,
+  orange **Under Inspection**, a hexagon per session, a comb per team, person and agent —
+  the company-wide view of what the actions hold; its tooltip shows the action's reason.
 
 ---
 

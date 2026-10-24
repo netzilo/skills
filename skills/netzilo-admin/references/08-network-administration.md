@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 24792
+chars: 24835
 sections:
 - id: '1'
   title: Peers (Endpoint → Peers, `/peers`)
@@ -32,7 +32,7 @@ sections:
   chars: 3696
 - id: '8'
   title: Activity, reports, integrations
-  chars: 5740
+  chars: 5783
 - id: '9'
   title: Multi-tenant / self-service (cloud and MSP servers)
   chars: 807
@@ -350,15 +350,16 @@ deletes its settings.
 
 **Dashboard home** (`/dashboard`): four 7-day tiles — **Users**, **Devices**, **Agents**
 (distinct AI agents active in the last 7 days), **Tokens** (gateway tokens per day) —
-then **Agentic Activity** (period Last 24 Hours | Last 7 Days | Last 30 Days; tabs Overview
-with Tokens, Cost, MCP Calls, Tokens over time, Top Teams, Top Guardrails | Agents with
-LLM requests, Top Agents, Top Models | MCP with MCP calls, Top Servers, Top Tools), and a
+then **Agentic Activity** (period Last 24 Hours | Last 7 Days | Last 30 Days; no tabs:
+cards Tokens, Cost, MCP Calls, a top list picked by icon — Top Teams, Guardrails, Models,
+Agents, Tools — and a chart picked by icon — Tokens, LLM Requests, MCP Calls), and a
 Devices panel with OS Distribution and the Security Score Distribution radar (per-peer
 scores still exist, `24-peers-and-setup-keys.md` §2). Cards and series come from gateway
 usage only; it is computed hourly, so `GET /api/stats` returns the last snapshot (null
 before the first run); **Refresh** builds it now, and **View** opens the Agentic Activity
-window — teams, a team's users → agents → models, sessions, a session's trajectory and
-behavior graph (`30-activity-reports-and-integrations.md` §3). The empty state offers **Get Started with AI Edge** → Edge →
+window — tabs Overview | Teams | Sessions (the live session hive), a team's users →
+agents → models, sessions, a session's trajectory and behavior graph
+(`30-activity-reports-and-integrations.md` §3). The empty state offers **Get Started with AI Edge** → Edge →
 Providers. The former Security Score tile, AI Activity panel and Policy Violations donut
 are gone (`30-activity-reports-and-integrations.md` §3).
 
