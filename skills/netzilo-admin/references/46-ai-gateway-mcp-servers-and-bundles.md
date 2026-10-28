@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 24668
+chars: 24762
 sections:
 - id: '1'
   title: MCP server — field reference
@@ -35,15 +35,15 @@ sections:
   chars: 3457
 - id: '9'
   title: Limits to state before a customer discovers them
-  chars: 1333
+  chars: 1356
 ---
 # Admin Skill — MCP Servers, MCP Bundles and Sign-ins (AI Gateway)
 
 **Dashboard:** Edge → **MCP** (`/ai-edge/mcp`, tabs **MCP Servers** | **MCP Bundles**,
 `?tab=bundles`). **API:** `/api/edge/mcp-servers`, `/api/edge/virtual-mcps`,
 `/api/edge/mcp-catalog`, `/api/users/current/mcp-connections`. **Who:** admins define
-servers and bundles; users connect their own sign-ins at Workplace → **Agentic Access**
-(`47-agentic-access-workplace.md`).
+servers and bundles; users connect their own sign-ins at Workplace → **AI Workspace**, in the server's dialog
+(`47-agentic-access-workplace.md`), and can attach a server to an AI Workspace chat.
 
 An **MCP server** is a definition: how the AI Gateway reaches a server (HTTP, SSE, or a
 process it starts) and how it authenticates. Every gateway serves it at
@@ -383,7 +383,7 @@ result text.
 ## 9. Limits to state before a customer discovers them
 
 - **No tool listing on management.** Which tools a server has is known only to the
-  gateway at runtime (the Workplace Tools tab asks a gateway). A grant names tools by
+  gateway at runtime (the Tools tab of the Workplace's server dialog asks a gateway). A grant names tools by
   the names you type; a typo grants nothing and nothing warns.
 - **Secrets are stored on the server unencrypted at the field level** (masked in the
   API, clear to the gateway's service token, as provider keys are).

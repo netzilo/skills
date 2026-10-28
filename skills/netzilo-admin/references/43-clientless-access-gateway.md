@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 68574
+chars: 68726
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 12785
+  chars: 12937
   requires:
   - api
   executable_on:
@@ -318,10 +318,11 @@ or logged out leaves routing to the gateway (extension 5.0.456 and later; before
 seen within seven days blocked the PAC). Sessions appear in **Endpoint → Peers** as
 `vp-<n>-PROXY` (§10.3).
 
-The dashboard's **Workplace** page shows tabs for what is on the computer: with the
-Netzilo client (with or without the extension) **Applications** and **Devices**; without
-the client but with the extension routing through a gateway, **Applications** and a
-**Private access** status; with neither, **Applications** only. The status is **the
+The dashboard's **Workplace** shows what is on the computer in the panel next to
+**Applications** (`47-agentic-access-workplace.md` §8): with the Netzilo client (with or
+without the extension) the **Devices**; without the client but with the extension routing
+through a gateway, a **Private access** section with one row, **This browser**, in place
+of the devices; with neither, "Netzilo client not reachable". The status is **the
 extension's own report**, the way the desktop client reports its own device: the page
 asks the Netzilo extension in this browser, and the extension answers with whether its
 proxy is installed, through which gateway, the session's peer as the gateway named it on
@@ -329,12 +330,12 @@ the last credential probe (name, tunnel address, since when) and its last error.
 is looked up on the server and nothing is inferred from the user's other browsers.
 Without an answer (no extension, one older than 5.0.458, or gateway mode off in it)
 nothing about private access is shown. **Online** (green) while the extension has its
-proxy installed and no error, **Suspended** (amber) otherwise, with the extension's
-reason in the hover. Hovering shows the gateway, the session's name and address, since
-when it is up, and the extension's version. The page
-asks every 30 seconds while it is visible and not at all in a background tab; a new
-session can take up to 30 seconds to appear, while online/offline follows at the next
-poll. With the client running, the Devices tab is back as before.
+proxy installed and no error, **Suspended** (amber) otherwise. Clicking the row opens the
+details: the gateway, the session's name and address, since when it is up, the
+extension's version and, when suspended, the extension's reason. The page asks every 15
+seconds while it is visible and not at all in a background tab; a new session can take up
+to 15 seconds to appear. With the client running, the panel lists the devices again. (The
+previous layout at `/my` shows the same status as a pill with the details on hover.)
 
 ## 4. Where the gateway can run
 

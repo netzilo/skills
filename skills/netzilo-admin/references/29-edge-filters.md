@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 17176
+chars: 17203
 sections:
 - id: '1'
   title: Model
@@ -23,7 +23,7 @@ sections:
   chars: 1807
 - id: '5'
   title: Diagnosis — "the filter is not applying"
-  chars: 4509
+  chars: 4536
 ---
 # Admin Skill — Edge Filters (binding AI policy to devices and to gateway users)
 
@@ -256,7 +256,7 @@ rule bound in the baseline reaches everyone.
 | Browser filter ignored | OS list has only desktop values; user not in the groups; not signed in to the extension; stood down for the client | §5.1 step 5 |
 | Filter save fails | validation above; a deleted guardrail still referenced | complete the tabs; remove the id |
 | Gateway users refused after the filter was saved | the granted provider or model was disabled since, or the filter was saved with no models by an older server | grant an enabled model |
-| Workplace shows no card though models work | Gateways tab empty | add the address |
+| Workplace's AI Workspace shows no gateway though models work by token | Gateways tab empty | add the address |
 | A user gets more than intended | another filter (the `All` baseline) grants it too; grants are a union | narrow the baseline |
 | A user gets less than intended | another filter carries a lower limit | find it with `/effective` and the filters' `limits` |
 | Group cannot be deleted | referenced by a filter | edit the filter first |

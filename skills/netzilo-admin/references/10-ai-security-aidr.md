@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 45113
+chars: 45213
 sections:
 - id: '1'
   title: Architecture in one page
-  chars: 4947
+  chars: 5018
 - id: '2'
   title: Rollout runbook
   chars: 3860
@@ -29,13 +29,13 @@ sections:
   chars: 4866
 - id: '7'
   title: The AI Gateway and MCP
-  chars: 2696
+  chars: 2709
 - id: '8'
   title: Writing and testing rules (Guardrails)
   chars: 4443
 - id: '9'
   title: Troubleshooting
-  chars: 7039
+  chars: 7055
 - id: '10'
   title: Reporting and evidence
   chars: 1545
@@ -91,7 +91,8 @@ Servers** and **MCP Bundles** as its tabs (`46`); **Governance**, with the tabs
 **Filters** (`29`), **Guardrails** (`28`), **Limits** (`45`) and **Actions** (`51`);
 **Sessions** (`30` §1a). The earlier addresses (`/ai-edge/guardrails`, `/ai-edge/filters`,
 `/ai-edge/limits`, `/ai-edge/mcp`, `/ai-sessions`) redirect there. Users meet the gateway
-side at Workplace → **Agentic Access** (`47`).
+side at Workplace → **AI Workspace**: a chat over the gateway and the panel of their
+gateways and MCP servers (`47`).
 
 **Response actions** (`51-ai-response-actions.md`) sit on top of both enforcement points
 and the browser extension: an **isolation** — the AI Kill Switch — refuses every AI call
@@ -382,7 +383,7 @@ filters (model grants, limits, MCP grants, guardrails) and records usage facts.
 - Providers (the model catalogue) and Limits: `45-ai-gateway-providers-and-limits.md`.
 - MCP servers and bundles, admin and per-user sign-ins, MCP clients that sign in through
   OAuth: `46-ai-gateway-mcp-servers-and-bundles.md`.
-- What users see and paste at Workplace → Agentic Access: `47-agentic-access-workplace.md`.
+- What users see and paste at Workplace → AI Workspace (and its chat): `47-agentic-access-workplace.md`.
 - Usage: Dashboard → Agentic Activity and the **AI Usage** report
   (`30-activity-reports-and-integrations.md` §2–3).
 
@@ -503,7 +504,7 @@ than v5.3.590 (browser extension 5.2.578) skip the two that apply actions
 | Bedrock traffic visible but not redacted | SigV4-signed requests cannot be rewritten by the daemon | use SDK embedded mode, or Bedrock's OpenAI-compatible bearer endpoint, or route through the AI Gateway |
 | Events with source `extension` and agent = a site (`chatgpt.com`, `claude.ai`, …) | events from the browser extension; Activity reads "<site> in the browser for <user>" | normal |
 | An agent gets 400 (`netzilo_policy`)/401/405/429 from the **gateway** | `27` §6 and `47` §5 | |
-| A user has no **Agentic Access** tab | no gateway filter grants them an address or MCP server | `29` §5.2 |
+| A user has no **AI Workspace** in the Workplace menu | no gateway filter grants them an address or MCP server | `29` §5.2 |
 | Every AI call of a user, agent or session fails with "Response action: AI access is isolated by an administrator (or a guardrail). Reason: … Reference: …" | an isolation (the AI Kill Switch) covers it; **AI blocked** events with engine `control` | expected while it holds; find it under Edge → Governance → Actions by its reason and lift it when the cause is gone (`51` §4, §11) |
 | An isolation was added but calls still pass on a device or in a browser | the host has not applied it: offline, or older than v5.3.590 (extension 5.2.578, Agent SDK 5.2.2); the app is not inspected on that device | `51` §6, §11 |
 

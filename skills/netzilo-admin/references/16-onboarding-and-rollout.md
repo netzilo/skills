@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12683
+chars: 12765
 sections:
 - id: '0'
   title: What the admin sees first
@@ -38,13 +38,13 @@ sections:
   chars: 1185
 - id: phase-7c-the-ai-gateway
   title: Phase 7c — The AI Gateway
-  chars: 2925
+  chars: 2989
 - id: phase-8-roll-out-to-everyone
   title: Phase 8 — Roll out to everyone
   chars: 639
 - id: the-first-week-mistakes-in-order-of-frequency
   title: The first-week mistakes, in order of frequency
-  chars: 1055
+  chars: 1073
 - id: handover
   title: Handover
   chars: 431
@@ -247,9 +247,10 @@ the Workplace.
 6. **Test with curl** as a pilot user: `curl <gateway>/v1/models -H "Authorization:
    Bearer <token>"` lists the granted models; a chat completion answers; an ungranted
    model answers 400 `model X is not granted to this user`.
-7. **Check the Workplace card**: the pilot user opens Workplace → Agentic Access, sees the
-   gateway **Online**, creates their AI Gateway token and connects one client from the
-   Connect tab (`47-agentic-access-workplace.md` §2).
+7. **Check the Workplace**: the pilot user opens Workplace → **AI Workspace**, sees the
+   gateway **Online** in the Gateways & MCP Servers panel, sends one chat message, creates
+   their AI Gateway token and connects one client from the Connect tab
+   (`47-agentic-access-workplace.md` §2, §7).
 8. **Tell users** which address to use and that usage per user and the conversation
    after the guardrails are recorded and readable by administrators (`14` §3).
    Guardrails govern the chat,
@@ -286,7 +287,7 @@ for a week before the old path is switched off.
 | Removing the default policy too early | Everything connects, nothing works | Phase 4, after replacements are proven |
 | Attaching an impossible posture check | One platform silently loses all access | Phase 6, check the fleet first |
 | Blocking AI traffic on day one | Users blocked mid-task, trust lost | Phase 7, report mode first |
-| Gateway filter saved without a Gateways address | Models work by token, but no card in the Workplace | Phase 7c step 5; the MCP and Gateways tabs must be opened by hand |
+| Gateway filter saved without a Gateways address | Models work by token, but no gateway in the Workplace's AI Workspace | Phase 7c step 5; the MCP and Gateways tabs must be opened by hand |
 | Enrolling before groups exist | Devices land ungrouped, policies miss them | Phase 2 |
 | Only approving one macOS prompt | AI features silently do nothing | Three approvals, see `05` |
 | No backup on self-hosted | Recoverable incident becomes a rebuild | Phase 1 |

@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16635
+chars: 16669
 sections:
 - id: '1'
   title: Roles and visibility
-  chars: 1214
+  chars: 1216
 - id: '2'
   title: Users page — reference
   chars: 1799
@@ -26,7 +26,7 @@ sections:
   chars: 1615
 - id: '6'
   title: Procedures
-  chars: 1371
+  chars: 1403
 - id: '7'
   title: Diagnosis
   chars: 2396
@@ -52,7 +52,7 @@ in `04-identity-and-sso.md`; this skill is the Netzilo-account side.
 |---|---|---|
 | **Owner** (one per account) | everything, incl. Plans & Billing, Tenant (logo, delete tenant), transfer ownership | — |
 | **Admin** | all administration | owner-only items above |
-| **User** | `/workplace` portal (applications, devices, Agentic Access — the last only when a gateway filter grants them something), own profile & access tokens; sees only own peers and what policies allow | any admin page ("You don't have access to …") |
+| **User** | `/workplace` portal (applications, devices, the AI Workspace — the last only when a gateway filter grants them something), own profile & access tokens; sees only own peers and what policies allow | any admin page ("You don't have access to …") |
 | **Agent** (service user) | API access with the role given (`user` = read, `admin` = write) | interactive login |
 
 **Disable portal access for regular users** (Settings → Permissions) sends users to
@@ -172,7 +172,7 @@ Token body: `{name, expires_in (1–365 days), scope: "" | "mcp"}` — leave `sc
   tokens the person knew. Their own tokens, including the `mcp`-scoped AI Gateway one,
   go with the user; a gateway may honour a cached token for up to a minute.
 - **Give a user a token for the AI gateway**: nothing to do as an admin — the user
-  creates it on Workplace → Agentic Access (90 days, scope `mcp`) and manages it under
+  creates it in a gateway or MCP server dialog at Workplace → AI Workspace (90 days, scope `mcp`) and manages it under
   Profile Settings → Access Tokens. Grants come from a gateway filter on their group
   (`29-edge-filters.md` §2), not from the token.
 - **Least-privilege admins**: keep one Owner, few Admins; use Agents with `user` role for

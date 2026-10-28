@@ -8,17 +8,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 24429
+chars: 24495
 sections:
 - id: '1'
   title: What a regular user can see through the API
-  chars: 6358
+  chars: 6397
 - id: '2'
   title: What you may do on their device
   chars: 2164
 - id: '3'
   title: The questions a regular user brings, and where each one ends
-  chars: 12062
+  chars: 12089
 - id: '4'
   title: Ending on the administrator's side of the boundary
   chars: 1814
@@ -65,11 +65,11 @@ here is what the person's devices themselves hold, no more.
 | `GET /api/profiles` | The profiles their peers receive |
 | `GET /api/support/devices/{id}`, `/tools` | The device summary for the tools (`online`, `tools_supported`, `owned_by_caller: true`) and the tool catalog |
 | `GET /api/edge/filters` | Their enabled **endpoint** filters only (what the extension reads). Gateway grants are not in it: they come from `GET /api/users/current/ai-access` |
-| `GET /api/users/current/ai-access` | The Workplace's **Agentic Access** view: their gateways with models, their MCP servers with connection state, bundles, and the guardrails that apply. Both lists empty = no gateway filter grants them anything, and the tab is hidden |
+| `GET /api/users/current/ai-access` | The Workplace's **AI Workspace** panel (Gateways & MCP Servers): their gateways with models, their MCP servers with connection state, bundles, and the guardrails that apply. Both lists empty = no gateway filter grants them anything, and the AI Workspace is hidden |
 | `GET /api/users/current/mcp-connections`, and the connect / complete / headers / disconnect calls under it | Their own sign-ins and header values for per-user MCP servers (`not_connected`, `needs_reauth`, connected); the writes a user makes from the MCP server dialog (`47-agentic-access-workplace.md` §3, `46-ai-gateway-mcp-servers-and-bundles.md` §4) |
 | `GET/POST/DELETE /api/users/{their id}/tokens` | Their own personal access tokens; the Workplace creates one named **AI Gateway** with scope `mcp` (90 days) for gateway use — that scope identifies them to gateways and reads nothing else. An application they approved on the consent page (Claude Desktop's **Sign in with your organization**) holds one named **<app> (MCP)**, for example **Claude (MCP)**, same scope, renewed by the application itself; deleting it signs that application out |
 | `GET /api/users/current/published-apps` | The published applications the person may open (the Workplace's Applications tiles): name, address, `url`. Empty when publishing is off for the tenant or none of their groups is admitted (`44-published-applications.md` §12) |
-| `GET /api/users/{their id}/gateway-sessions` | Their browser sessions through a Netzilo gateway (`vp-<n>-PROXY`) with `connected`, browser and OS: the Workplace page's **Private access** status (`43-clientless-access-gateway.md` §3.5, §10.3). Another user's id answers 403. (Not the AI gateway: for that, `ai-access` above) |
+| `GET /api/users/{their id}/gateway-sessions` | Their browser sessions through a Netzilo gateway (`vp-<n>-PROXY`) with `connected`, browser and OS: the Workplace's **Private access** row in the Devices panel (`43-clientless-access-gateway.md` §3.5, §10.3). Another user's id answers 403. (Not the AI gateway: for that, `ai-access` above) |
 | `GET /api/ai/sessions`, `/api/ai/sessions/session`, `/trajectory`, `/message` | Their own AI sessions only (recorded on their devices and through the AI Gateway), with the captured conversation; `user=` is always themselves, and another person's session answers 404. The **AI Sessions** page is for admins only; regular users read their sessions through the API |
 | `GET /api/aidr/sessions`, `GET /api/aidr/sources` | Their own AI sessions and sources only: the sessions recorded on their devices and in their browser (a source of `kind: browser`, with the `device` it runs on and the `capabilities` the browser offers). Without `scope` the list is narrowed to theirs; `scope=session:<id>` for someone else's session answers 403 (`session is not one of yours`); `scope=source:<id>` must be one of their peers or their browser |
 
@@ -91,7 +91,7 @@ use it to widen their access, and tell them to revoke it.
 Writes through the API are refused for a regular user with three exceptions (their own
 personal access tokens, their own MCP sign-ins and header values through
 `mcp-connections`, and the Edge event and AI scan endpoints the client itself calls).
-The first two are what the Workplace's Agentic Access page does on their behalf; do not
+The first two are what the Workplace's AI Workspace does on their behalf; do not
 propose any other API write to a regular user. What else they can change is on their
 device, through the device tools.
 
@@ -148,7 +148,7 @@ administrator.
 | "Access Denied — because posture check … failed" / "Additional Protection Required" at a published application | the reason text the dialog shows; is the Netzilo client on their device running and current (a Workspace's client too); are they in the Enterprise Browser or another browser; the extension popup | Their side: start or update the client, use the browser the check asks for, add or connect the extension, fix the named setting, then Workplace logout and open again. **Administrator** when the check cannot be met by that audience (`44-published-applications.md` §4.1, §12) |
 | "Our internal site opens by IP but not by name" / "it works in Chrome but not in Firefox" / "the browser says Secure Connection Failed for an http site" | their gateway session or peer in `GET /api/peers` (connected); ask whether the address bar shows `https://` after typing `http://`, and whether the IP or another browser works. No device tools for a browser | Their side, with the one-site browser reset of `43-clientless-access-gateway.md` §11.3a once all four conditions hold (ask before: it clears that site's cookies in that browser); **administrator** for what served the name over HTTPS outside the tunnel |
 | "Private access says unavailable" / "I can't open our internal sites in the browser" (browser extension, no Netzilo app) | Ask what hovering over **unavailable** shows; their `vp-<n>-PROXY` session in `GET /api/peers` (connected, public IP). There are no device tools for a browser | Their side for Firefox private-window access or a proxy owned by another extension; **administrator** for an operating-system proxy the profile does not name, the account switch, the profile, the gateway port, or a policy (`43-clientless-access-gateway.md` §11.2) |
-| "I have no Agentic Access tab" / "where is the AI gateway?" | `GET /api/users/current/ai-access` — `gateways` and `mcp` both empty? | **Administrator**: no gateway filter targets a group they are in, or it grants no gateway address and no MCP server (`47-agentic-access-workplace.md` §5) |
+| "I have no AI Workspace" / "I have no Agentic Access tab" / "where is the AI gateway?" | `GET /api/users/current/ai-access` — `gateways` and `mcp` both empty? | **Administrator**: no gateway filter targets a group they are in, or it grants no gateway address and no MCP server (`47-agentic-access-workplace.md` §5) |
 | "My coding agent cannot reach the model" / 400 (older gateways 403) `no model is granted to this user` or `model X is not granted` | `ai-access` — the models listed under their gateway; is the one the tool asks for among them | **Administrator**: the gateway filter grants the models; the user can switch to a granted model meanwhile (`47` §5) |
 | 429 or 402 from the gateway / "limit reached" | the error body names the limit; `ai-access` lists the guardrails but not the limits as objects | **Administrator** raises the limit, or the user waits for the window to reset (`47` §5, `45-ai-gateway-providers-and-limits.md` §2.2) |
 | An MCP server shows **Needs Attention** / "it asks me to sign in" / a tool answers `Connect <server> in your Workplace…` | `GET /api/users/current/mcp-connections` → `not_connected` or `needs_reauth` for that server | Their side: open the server's card, **Connect** or **Reconnect** (`47` §3). **Administrator** when the server uses the admin's shared sign-in ("An admin has not connected this server yet") |

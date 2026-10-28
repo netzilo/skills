@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 33474
+chars: 33630
 sections:
 - id: '1'
   title: Model
-  chars: 4961
+  chars: 5117
 - id: '2'
   title: Enterprise Workspace — reference
   chars: 5518
@@ -108,7 +108,9 @@ close with it.
 extension. They appear on the dashboard **Workplace** page (`/workplace`), which lists
 the bookmarks of every enabled profile whose groups include one of the signed-in
 **user's** groups (or All) and whose OS list includes the OS of the browser viewing the
-page; opened in the Enterprise Browser, it adds that browser's bookmarks. The account
+page; opened in the Enterprise Browser, it adds that browser's bookmarks. Each web tile
+carries an **Online** / **Offline** pill from the browser's own check, none for an `http://`
+address (`47-agentic-access-workplace.md` §8.1). The account
 setting **Disable portal access for regular users** hides the page from regular users
 (`25-users-groups-and-account-settings.md`).
 

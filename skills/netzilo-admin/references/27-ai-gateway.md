@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 51450
+chars: 51522
 sections:
 - id: '1'
   title: How it works
@@ -66,7 +66,8 @@ sections:
 `ghcr.io/netzilo/net-aigateway`). **Dashboard objects it enforces:** Edge → **Providers**,
 **MCP**, **Guardrails**, **Limits**, **Filters** (gateway type). **Peer:** the gateway is an
 ordinary peer of the account, named with `--name`. **Users reach it:** at Workplace →
-**Agentic Access** (`47-agentic-access-workplace.md`).
+**AI Workspace** — a chat over the gateway and the panel of their gateways and MCP servers
+(`47-agentic-access-workplace.md`).
 
 The AI Gateway is the second place Netzilo governs AI traffic. The first is the Netzilo
 client on a device (`10-ai-security-aidr.md`). The gateway sits in front of the LLM

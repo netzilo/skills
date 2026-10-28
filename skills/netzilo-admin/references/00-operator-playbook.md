@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 32108
+chars: 32269
 sections:
 - id: '1'
   title: Rules of engagement
   chars: 3399
 - id: '2'
   title: What Netzilo is (30-second model)
-  chars: 3301
+  chars: 3346
 - id: '3'
   title: 'Triage: route the request'
-  chars: 8044
+  chars: 8160
 - id: '4'
   title: Intake checklist (in this order)
   chars: 6960
@@ -113,8 +113,8 @@ this folder. Read it fully before your first action.
   callers as Netzilo users from the bearer token (or the calling peer), applies their
   gateway filters — model grants, limits, MCP servers and bundles, guardrails — and
   records usage facts. Users find their gateways, models, MCP servers and the token to
-  paste at Workplace → **Agentic Access** (`27-ai-gateway.md`,
-  `47-agentic-access-workplace.md`).
+  paste, and a chat with the granted models and tools, at Workplace → **AI Workspace**
+  (`27-ai-gateway.md`, `47-agentic-access-workplace.md`).
 - **Secure workplace:** **Profiles** deliver Enterprise Workspace (isolated enclave for
   Windows apps), Enterprise Browser, Disposable Browser, and the browser extension
   (DLP: redaction, watermark, clipboard/print/download controls).
@@ -199,7 +199,7 @@ it not applying" diagnosis) — load the one matching the dashboard page in ques
 | Edge → Governance → Limits | `45-ai-gateway-providers-and-limits.md` §2 |
 | Edge → Governance → Filters (endpoint and gateway) | `29-edge-filters.md` |
 | The AI gateway itself (`netzilo-aigw`: install, doors, refusals, logs) | `27-ai-gateway.md` |
-| Workplace → Agentic Access (what users see) | `47-agentic-access-workplace.md` |
+| Workplace: the AI Workspace chat, its Gateways & MCP Servers panel (Agentic Access), Applications status, the Devices panel and private access (what users see) | `47-agentic-access-workplace.md` |
 | Activity → Events / Reports, Dashboard home, Integrations | `30-activity-reports-and-integrations.md` |
 
 

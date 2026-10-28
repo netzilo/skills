@@ -6,17 +6,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 19857
+chars: 20391
 sections:
 - id: '1'
   title: Tell people before you install, not after
   chars: 1073
 - id: '2'
   title: The page to publish
-  chars: 9940
+  chars: 10462
 - id: '3'
   title: Translating what the employee says
-  chars: 7238
+  chars: 7250
 - id: '4'
   title: What to tell an employee who asks what is monitored
   chars: 1013
@@ -102,10 +102,12 @@ what the app shows, whether other websites work, and roughly when it started.
 - You lose access to something you had yesterday and nothing changed on your side.
 - Your device is lost or stolen. Report this immediately, not tomorrow.
 
-**Your own portal.** You can see the applications, your devices, and — under **Agentic
-Access** — the AI gateways and MCP servers granted to you, and manage your own profile,
-from the web portal your administrator will link (the **Workplace**). While the Netzilo
-app runs on the computer you open it from, it shows your devices and their connection
+**Your own portal.** You can see the applications — each with **Online** or **Offline**
+when this browser can check it — your devices, and, in the **AI Workspace**, a chat with
+the AI models and tools granted to you next to the AI gateways and MCP servers themselves,
+and manage your own profile, from the web portal your administrator will link (the
+**Workplace**). While the Netzilo app runs on the computer you open it from, the
+**Devices** panel next to your applications shows your devices and their connection
 quality, so you can check whether a device is connected without asking anyone. On
 Windows and Mac an **Onboarding Progress** panel lists **Install Client** and **Install
 Extension** until both are done; on an iPhone or iPad it offers **Install Enterprise
@@ -114,14 +116,17 @@ shows **System Errors** when the app on this computer has lost its connection to
 company's servers.
 
 **Using AI tools through the company gateway.** If your company grants you an AI
-gateway, the Workplace shows an **Agentic Access** page. The gateway is how your AI tools
-(Claude Code, Cursor, an SDK, curl) reach the company's models and tools: point the tool
-at the address on your card and use the access token the page creates for you — it is
+gateway, the Workplace menu shows **AI Workspace**: a chat with the company's models, which
+can use the company's MCP tools after you allow each call, and beside it your gateways and
+MCP servers. The gateway is how your AI tools (Claude Code, Cursor, an SDK, curl) reach the
+company's models and tools too: open a gateway there, point the tool at its address and use
+the access token the page creates for you — it is
 yours, do not share it, and delete it under Profile Settings → Access Tokens if it leaks.
 Your prompts and the tools' results are checked against the company's guardrails on the
 way, and a refused request says why. What is recorded about your use is which model or
-tool you used, when, how many tokens and what it cost; the text of a prompt only when a
-guardrail matched it. "Needs Attention" on an MCP server means you still have to connect
+tool you used, when, how many tokens and what it cost, and the conversation itself as it
+passed the guardrails (text a guardrail redacted stays redacted); the AI Workspace is
+recorded the same way, and its chat history stays in your browser until you sign out. "Needs Attention" on an MCP server means you still have to connect
 it: open it and press Connect. Files you or your tool attach (a PDF, an image, a document)
 are checked too: a file the policy does not allow is refused with a message that names it,
 for example `Netzilo Guardrail: account_statement.pdf: financial records, not development
@@ -155,7 +160,8 @@ browser).
 
 **Signing in Claude Desktop with your organization.** If your company grants you an AI
 gateway, Claude Desktop can sign in through it with **Sign in with your organization**.
-The address to enter is the **Anthropic API** address on your Agentic Access page — it
+The address to enter is the **Anthropic API** address in your gateway's **Details** tab
+(Workplace → AI Workspace, click the gateway) — it
 ends in `/anthropic`; the shorter gateway address fails. Claude then shows a code
 (`XXXX-XXXX`) and opens a page in your browser headed "Claude wants to access your Netzilo account". Check
 that the code on the page is the one Claude shows you, then press **Allow**. The page
@@ -218,7 +224,7 @@ When an admin forwards a complaint, this maps it to a cause and the file that fi
 | "It asks me to log in all the time" | Login expiration setting, working as configured | `24-peers-and-setup-keys.md` |
 | "It worked yesterday and now it doesn't" | A policy, group or posture check changed. Check Activity first | `20-policies-access-control.md`, `15-incident-response-and-recovery.md` §6.2 |
 | "My AI assistant stopped working" (on the device) | Inspection, a blocked guardrail, or certificate trust | `10-ai-security-aidr.md` §9 |
-| "My AI assistant stopped working" (through the company gateway: a refusal names the gateway, or the tool is configured with the Agentic Access address) | A gateway refusal: no model granted to the user, a limit reached (429/402), an MCP server that needs a new sign-in, or an expired access token (401) | `47-agentic-access-workplace.md` §5 |
+| "My AI assistant stopped working" (through the company gateway: a refusal names the gateway, or the tool is configured with the gateway address from the Workplace) | A gateway refusal: no model granted to the user, a limit reached (429/402), an MCP server that needs a new sign-in, or an expired access token (401) | `47-agentic-access-workplace.md` §5 |
 | "My file was refused" / "Netzilo Guardrail: <file name>: …" (Claude Code, a chat app, through the company gateway) | A file guardrail, working as configured: the message names the file and why; the conversation continues without it | `50-ai-gateway-file-guardrails.md` §5 |
 | "ChatGPT shows [SOMETHING-REDACTED]" / "my answer was cut" / "Claude answered Netzilo Guardrail: Blocked by rule …" | A guardrail redaction or block in the browser, working as configured: the bracketed token is the rule's replacement text, the refusal names the rule, and a reloaded chat shows the redacted version | `49-browser-extension-aidr.md` |
 | "Every AI tool I use says 'Response action: AI access is isolated'" | A response action (isolation, the AI Kill Switch) covers the user, their group, the agent or the session — set by an administrator, or by Netzilo itself when a guardrail contained the session ("…by a guardrail") | `51-ai-response-actions.md` §7, §10 |

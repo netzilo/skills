@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 10625
+chars: 11164
 sections:
 - id: '1'
   title: When an identifier belongs in the answer
   chars: 817
 - id: '2'
   title: Areas of the product
-  chars: 6664
+  chars: 7203
 - id: '3'
   title: 'Objects: names, not ids'
   chars: 599
@@ -82,7 +82,8 @@ dashboard; if a customer's build shows a different label, theirs wins.
 | a limit (spend, token or request quota) | Edge → Governance → Limits tab | `/api/edge/limits` |
 | a filter — an endpoint filter (devices) or a gateway filter (users) | Edge → Governance → Filters tab | `/api/edge/filters` |
 | a response action — an isolation (the AI Kill Switch) or an inspection | Edge → Governance → Actions tab; a session's **Response Action** menu | `/api/ai/controls` |
-| the user's gateways and MCP servers, their AI Gateway token | Workplace → Agentic Access | `/api/users/current/ai-access` |
+| the user's gateways and MCP servers, their AI Gateway token | Workplace → AI Workspace → Gateways & MCP Servers panel | `/api/users/current/ai-access` |
+| a chat with the granted models and MCP tools | Workplace → AI Workspace | the gateway's `/v1/chat/completions` and `/mcp/<slug>` |
 | an event / the activity log | Activity → Events | `/api/events`, `/api/events/paginated` |
 | an AI session (a recorded agent conversation, LLM or MCP) | Edge → Sessions; the home page's Agentic Activity, **View** | `/api/ai/sessions` |
 | a report | Activity → Reports | `/api/reports` |
@@ -101,7 +102,8 @@ scanners, catalogue) in this release.
 | **model grant** | an entry in a gateway filter's Models tab, `provider/model` or a whole provider; without one the user is refused at the gateway with "no model is granted to this user" |
 | **limit** | a spend, token or request quota, applied per user per gateway; the lowest value wins when several filters apply |
 | **MCP server / MCP bundle** | an admin-defined server the gateway serves at `<gateway>/mcp/<slug>`; a bundle is one endpoint that combines tools of several servers |
-| **Agentic Access** | the Workplace section where a user sees their gateways and MCP servers, creates their AI Gateway token and signs in to per-user MCP servers |
+| **Agentic Access** | how a user connects their own AI tools from the Workplace: the Gateways & MCP Servers panel of the AI Workspace, where they see their gateways and MCP servers, create their AI Gateway token and sign in to per-user MCP servers (a tab of that name only in the previous layout at `/my`) |
+| **AI Workspace** | the Workplace section with a chat over the user's AI gateway: the granted models, the MCP servers the user attaches, each tool call approved by the user (Manual) or not (Autopilot); history kept in the browser |
 | **AI Gateway** | the Netzilo AI Gateway (`netzilo-aigw`), a peer of the account that identifies callers as users and applies their gateway filters; not the clientless-access gateway on 8443, although the same binary serves both |
 | **browser extension** (as an AI enforcement point) | the Netzilo extension in Chrome, Edge, Firefox or Safari running the same governance engine as the client and the gateway: it applies the endpoint filters whose Operating Systems include **Browser** to the signed-in user's AI use in the page. Say "the extension governs the browser"; it is not a device, not a peer, and not the Enterprise Browser (which bundles it) |
 | **browser source** | the user's browser as an uploader of behaviour: one per user and browser under `GET /api/aidr/sources` with `kind: browser`. Say "Erin's browser" or "the browser on Erin's MacBook", not the source id |

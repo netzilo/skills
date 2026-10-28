@@ -7,6 +7,33 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.11.0 — 2026-10-28
+
+The new Workplace: a menu instead of the header and tabs, the **AI Workspace** (a chat
+over the user's AI gateway with MCP tools), Online/Offline status on application tiles,
+and the Devices and private-access panel. Minor version: new procedures.
+
+- `47` (now "The Workplace: AI Workspace, Agentic Access, applications and devices"):
+  §0 the page (menu, sections, panels, responsive behaviour, deep links, the previous
+  layout at `/my`); §1 the Gateways & MCP Servers panel replaces the Agentic Access tab
+  (rows, probes only while the AI Workspace is on screen and the tab visible, MCP health
+  sessions closed); §7 the AI Workspace — what it sends and as whom (the dashboard
+  session, no access token, no system prompt), choosing a model across gateways,
+  attachments and their limits, Manual / Autopilot tool calls (Allow once, Allow for this
+  chat, Deny, the 10-round Autopilot cap, Stop), history in the browser (last 20, images by
+  name, removed at sign-out), Use in code, a diagnosis table; §8 Applications (filters,
+  tile sizes, the Online/Offline check and why `http://` apps have no status), the Devices
+  panel (strip marks, counts, paging, IP and domain copy, details) and private access;
+  §5 rows renamed for the panel; §6 corrected: the gateway records the conversation after
+  the guardrails, not only matched prompts.
+- `14` §8: AI Workspace conversations as a data flow; the "AI Gateway" token is removed
+  from the browser at sign-out, and the Workplace never sends it (probes and the chat use
+  the dashboard session).
+- `43` §3: private access is a row in the Devices panel, with the details on click and a
+  15-second poll.
+- `17`, `39`, `35`, `00`, `10`, `16`, `25`, `26`, `27`, `29`, `44`, `46`, skill index: the
+  AI Workspace instead of the Agentic Access tab; application status on tiles.
+
 ## 4.10.0 — 2026-10-24
 
 Agentic Activity: the home panel without tabs, the window's **Sessions** tab (the live

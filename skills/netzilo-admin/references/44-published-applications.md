@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 82784
+chars: 82980
 sections:
 - id: '1'
   title: How it works
@@ -34,7 +34,7 @@ sections:
   - human-operator
 - id: '5'
   title: What users see
-  chars: 3662
+  chars: 3858
 - id: '6'
   title: 'Non-interactive access: scripts and services'
   chars: 2972
@@ -488,8 +488,10 @@ credential callers. There is no temporary-exception button as in the extension.
 ## 5. What users see
 
 - **Workplace → Applications:** every application the user may open appears as a tile
-  with its name and address, next to the bookmarks and shortcuts. Opening one goes to
-  `https://<address>/` in a new tab.
+  with its name (the list view adds its address), next to the bookmarks and shortcuts,
+  with an **Online** / **Offline** pill from the browser's own check of its address
+  (`47-agentic-access-workplace.md` §8.1: any answer, a sign-in page included, is
+  Online). Opening one goes to `https://<address>/` in a new tab.
 - **First open, or after 12 hours:** the Workplace's sign-in dialog, the same look as the
   usual login: *Logging in* while the tunnel comes up (a few seconds; 10 to 20 the first
   time in an hour while the user's peer registers), *Login complete*, then the page.

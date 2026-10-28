@@ -6,7 +6,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 27034
+chars: 28207
 sections:
 - id: '1'
   title: The short answer
@@ -31,7 +31,7 @@ sections:
   chars: 1174
 - id: '8'
   title: Data flows by feature
-  chars: 10981
+  chars: 12154
 ---
 # What Netzilo Collects — Data Handling, Privacy and Security Review
 
@@ -352,11 +352,21 @@ host's.
 
 | | |
 |---|---|
-| Collected | a personal access token the user creates in the Workplace's Agentic Access section for their agents (90 days, scope `mcp`) |
+| Collected | a personal access token the user creates in a gateway or MCP server dialog of the Workplace's AI Workspace for their agents (90 days, scope `mcp`) |
 | Stored | the token itself in the user's **browser localStorage** on the Workplace's origin; its record (name, expiry, scope) on the management server like any access token |
-| Sent to | the AI Gateway as `Authorization: Bearer` by the user's agents, and from the Workplace to probe the gateway cards |
-| Retained | in the browser until the site data is cleared or it expires; the record until deleted |
-| Deleted | the user deletes it under Access Tokens (the browser copy then stops working); clearing the browser's site data removes the copy only |
+| Sent to | the AI Gateway as `Authorization: Bearer` by the user's agents. The Workplace itself (probes, the AI Workspace chat) uses the dashboard session instead |
+| Retained | in the browser until the user signs out of the dashboard, the site data is cleared or it expires; the record until deleted |
+| Deleted | the user deletes it under Access Tokens (the browser copy then stops working); signing out or clearing the browser's site data removes the copy only |
+
+**AI Gateway — AI Workspace conversations (the Workplace chat, `47-agentic-access-workplace.md` §7)**
+
+| | |
+|---|---|
+| Collected | what the user types in the AI Workspace, the files they attach, the answers, and the arguments and results of the MCP tool calls they allow |
+| Stored | on the gateway's side exactly as any gateway traffic (the AI Gateway rows above: usage facts and the captured conversation after the guardrails). In the user's **browser localStorage** on the Workplace's origin: their last 20 conversations (text, tool calls and results; attached images only by name) and their model choice |
+| Sent to | the gateway serving the chosen model, with the user's dashboard session token; from there the configured provider and MCP servers, like any gateway client |
+| Retained | the browser copy until the user signs out of the dashboard, the site data is cleared, or newer conversations push it out of the 20 |
+| Deleted | signing out removes the browser copy; the gateway's records follow the AI data retention (§6 "How long is it kept?") |
 
 **AI assistant conversations**
 
