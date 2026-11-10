@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 26943
+chars: 35225
 sections:
 - id: '0'
   title: The Workplace at a glance
-  chars: 1608
+  chars: 1752
 - id: '1'
   title: What the user sees
   chars: 1991
@@ -35,13 +35,19 @@ sections:
   chars: 6214
 - id: '8'
   title: Applications, devices and private access
-  chars: 2936
+  chars: 3097
+- id: '9'
+  title: 'Where the Workplace runs: dashboard, desktop app, extension'
+  chars: 7699
 ---
 # Admin Skill — The Workplace: AI Workspace, Agentic Access, applications and devices
 
 **Dashboard:** `/workplace`, for every user, regular users included. Regular users land
 there; admins and owners open it from the company logo in the dashboard header and return
-with **Dashboard** in the Workplace menu. The gateways and MCP servers are the **Gateways &
+with **Dashboard** in the Workplace menu. The same Workplace is also the **Netzilo desktop
+app**'s window and the **Netzilo extension's Workplace page** (the Enterprise Browser's new
+tab); §9 covers the three hosts, the workplace picker and when the Workplace shows this
+computer's devices. The gateways and MCP servers are the **Gateways &
 MCP Servers** panel of the **AI Workspace** section (`/workplace#gateways` opens it).
 **API the page uses:** `GET /api/users/current/ai-access`,
 `/api/users/current/mcp-connections…`, `POST /api/users/{id}/tokens` (scope `mcp`),
@@ -53,7 +59,7 @@ cannot reach the gateway" or "the AI Workspace does not answer". The AI Workspac
 its panel) exists only for a user to whom a gateway filter grants at least one gateway
 address or one MCP server or bundle; it stays hidden for everyone else, which is the first
 thing to check. §0 is the page as a whole, §7 the AI Workspace chat, §8 the Applications
-section and the Devices panel.
+section and the Devices panel, §9 where the Workplace runs.
 
 ---
 
@@ -64,7 +70,8 @@ Three parts, no header:
 - **The menu** (left rail, icons; the menu button expands it with labels and the company
   logo, the button next to the logo collapses it, remembered per browser in
   `netzilo.workplace.rail`): **Applications**, **AI Workspace** (only when something is
-  granted, see above), **Dashboard** (admins and owners only), and at the bottom **AI
+  granted, see above), **Dashboard** (owners and admins whose role does not block the
+  dashboard view, permission `dashboard_view`), and at the bottom **AI
   Assistant** (`42`, `25` permissions) and the user menu (Profile Settings, **Display
   Status**, sign out).
 - **The section**: Applications (§8) or AI Workspace (§7). The last one used is remembered
@@ -79,7 +86,8 @@ Responsive: from 1024 px a panel sits beside the section; narrower, an open pane
 the section as a drawer (closed by its button, a tap outside, or Escape) and panels start
 collapsed. Below 768 px the expanded menu also covers the page and folds after a choice.
 The Onboarding Progress / System Errors button sits in the bottom-right corner (Windows,
-macOS, iOS only, `17` §3 row "System Errors"). The previous layout (header, tabs
+macOS, iOS only, `17` §3 row "System Errors"; in the dashboard only, never in the desktop
+app or the extension's page). The previous layout (header, tabs
 Applications | Devices | Agentic Access) stays at **`/my`**.
 
 ---
@@ -390,7 +398,8 @@ app over HTTPS or publish it (`44`).
 ### 8.2 Devices panel
 
 Reads the local Netzilo client (websocket `localhost:41336`/`41337`) — this computer's
-client only. Collapsed by default: up to 8 device marks (online first, green/red dot),
+client only, and only when that client is the signed-in user's own connected device on
+the same server (§9.3); any other client shows as not signed in, with no devices. Collapsed by default: up to 8 device marks (online first, green/red dot),
 "+N"; with no device one status mark ("Netzilo client not reachable", "Retrieving your
 devices...", "No devices"). Open: **Search devices...** (name, IP), the count (from
 10,000 shortened, e.g. 12.3K; exact on hover), dots with online/total, **All | Online**,
@@ -411,3 +420,96 @@ parentheses. A globe mark stands for it on the collapsed strip. The data is the
 extension's own answer, asked every 15 s while the page is visible
 (`43-clientless-access-gateway.md` §3).
 
+---
+
+## 9. Where the Workplace runs: dashboard, desktop app, extension
+
+### 9.1 Three hosts, one Workplace
+
+The Workplace of §0–§8 is one page shown in three places. What it shows and does is the
+same everywhere; how the user gets there and signs in differs.
+
+| Host | How the user opens it | Signed out | Signed in with |
+|---|---|---|---|
+| The dashboard, `https://<dashboard>/workplace` (Netzilo Cloud: `https://go.netzilo.com/workplace`) | the address; regular users land there after sign-in | the dashboard's own sign-in | the dashboard session |
+| The **Netzilo desktop app** (macOS, Windows, Linux): its window | the app opens with its window; tray menu → **Open...**; starting the app again; on macOS the Dock icon (`06` §5) | the workplace picker (§9.2) | the Netzilo client's own sign-in: no second sign-in |
+| The **Netzilo extension's Workplace page** | the **Workplace** button (grid icon) at the top of the extension popup opens it in a new tab. In the **Enterprise Browser** the same page is the new tab and home page | the workplace picker (§9.2) | the extension's sign-in (the Enterprise Browser's own) |
+
+Differences by host:
+
+- **Onboarding Progress / System Errors** (§0) shows in the dashboard only.
+- **Dashboard** in the menu shows for owners and admins whose role does not block the
+  dashboard view; in the desktop app and the extension's page it opens the dashboard in
+  the browser.
+- **Enterprise Browser:** its bookmarks join the Applications (§8.1), and the Devices
+  panel reads its built-in client.
+- **Desktop app:** the Devices panel skips the ownership check of §9.3: the app signs the
+  Workplace in with its own client's sign-in, so it is the same user on the same server.
+
+### 9.2 The workplace picker (desktop app and extension page, signed out)
+
+Heading **Welcome Back!**, text "Pick a workplace and press "Connect" to continue.", and a
+list: **Default Workplace** first (it cannot be forgotten), then the workplaces the user
+added, the most recently used first. Each row shows the name and address and a
+**Connect** button; added rows have a ⋮ menu with **Forget workplace**. Below the list,
+"or define a new workplace" and **Add Workplace** open **Add a workplace**: one address
+field and **Next**. After **Connect**: **Redirecting...** "Taking you to your identity
+provider for authentication." with **Cancel**. The Enterprise Browser also shows
+**Logging in...** and **Logging out...** cards, each with **Cancel**, while it signs in or
+out.
+
+| | Desktop app | Extension (in the user's own browser) | Enterprise Browser |
+|---|---|---|---|
+| **Default Workplace** | the deployment's `NETZILOSRV` value, else the management server the client service was set up with, else Netzilo Cloud | Netzilo Cloud (`https://go.netzilo.com`); with the managed lock, the locked workplace | the tenant from the installer (`TENANT` / `--netzilo-tenant`, `48` §13.1); Netzilo Cloud when none was set |
+| Add asks for | **Management server URL** (placeholder `https://srv.your-company.com`) | **Workplace URL** (placeholder `https://your-workspace.netzilo.com`) | **Workplace URL** |
+| An address is accepted when | the server's API answers at it (`GET <address>/api/users` returns 401 or 403 without a token, within 8 s) | `https://<address>/.well-known/netzilo.json` answers as a Netzilo Server (https only) | same as the extension |
+| **Connect** does | signs the computer's Netzilo client in at that server and connects it: the client then belongs to that server until the user connects another | signs the extension in at that workplace; the sign-in opens in the same tab | signs the browser in at that workplace |
+| The list is kept in | the user's config folder: `~/Library/Application Support/Netzilo/workplaces.json` (macOS), `%AppData%\Netzilo\workplaces.json` (Windows), `~/.config/Netzilo/workplaces.json` (Linux) | the extension's workplace registry (`43-clientless-access-gateway.md` §3.4a) | the browser's own list |
+| Managed lock | — | with the extension's managed policy `lockPortal` + `activePortal` the picker shows only that workplace, with no Add and no Forget | installed with `FORCETENANT=1`: the picker lists only the tenant, with **Connect**, no Add and no Forget, also after a logout, and signing in elsewhere is refused (`48` §13.5) |
+
+The name on a row comes from the workplace's `/.well-known/netzilo.json` (§9.4); without
+one the row shows the address. The desktop app learns the name after the first sign-in.
+
+Errors under the address field or on the picker:
+
+| Message | Cause | Fix |
+|---|---|---|
+| "Enter a valid https address." | the text is not an `https://` address | type the address as `https://<host>` |
+| "This address is not a Netzilo workplace." | the extension: `https://<address>/.well-known/netzilo.json` did not answer as a Netzilo Server (wrong address, a dashboard older than the file, a proxy blocking `/.well-known/`, the address not reachable from this computer). The desktop app: the management API did not answer 401/403 at that address (a dashboard address given instead of the management address, or not reachable) | `curl -s https://<address>/.well-known/netzilo.json` (extension) or `curl -sS -o /dev/null -w "%{http_code}\n" https://<address>/api/users` → `401` (desktop app) from the same computer |
+| "Sign-in did not complete." | the identity provider's sign-in was cancelled, failed or timed out | Connect again; for the desktop app the client's sign-in messages are in `07-client-troubleshooting.md` §2 |
+
+### 9.3 This computer's devices: only the user's own client
+
+The Devices panel (§8.2) and the client shortcuts (§8.1) come from the Netzilo client on
+the computer the Workplace is open on. The Workplace shows them only when that client is
+**the signed-in user's own device, connected to the same server**: it asks management
+`GET /api/users/current/device?key=<the client's WireGuard public key>`, which answers
+with the device's peer id when the caller registered that device and it is connected to
+this server now, and 404 otherwise. The answer is kept for 60 s per user, key and server.
+
+Any other client shows as a client that is not signed in: **No devices** in the Devices
+panel, no client shortcuts, and, with Display Status on, the System Errors panel reports
+the management connection as down. That happens when:
+
+- the client on this computer is signed in as **another user**;
+- the client was enrolled with a **setup key** (the peer has no user);
+- the client is connected to **another server** (another account or another Netzilo
+  Server) than the Workplace;
+- the client is **not connected** (signed out, login expired, service stopped).
+
+Check with an admin token: the device in `GET /api/peers` (search by name), its `user_id`
+against the user's id and `connected: true`. Fix by signing the client in as that user on
+that server (`netzilo up` or the desktop app's **Connect**), or accept it: a shared or
+setup-key machine never shows its devices in a personal Workplace. The desktop app skips
+this check (§9.1).
+
+### 9.4 The workplace's name
+
+The dashboard serves `/.well-known/netzilo.json` with `"product": "netzilo-server"`, the
+API and management addresses, `"name"` and `"client_auth": ["pkce"]`. `name` is what the
+desktop app, the extension and its connect confirmation show for the workplace; it comes
+from the dashboard container's environment variable `NETZILO_WORKPLACE_NAME` and is empty
+when that is unset (the picker then shows the address). Self-hosted: set it in the
+dashboard's environment (`02-server-operations.md` §5) and recreate the dashboard
+container. `client_auth` tells the Netzilo client that the dashboard can hand its sign-in
+over (`04-identity-and-sso.md` §10).

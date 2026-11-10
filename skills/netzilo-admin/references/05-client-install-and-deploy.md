@@ -6,23 +6,23 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 25883
+chars: 26623
 sections:
 - id: '0'
   title: Facts you need before touching a device
   chars: 3817
 - id: '1'
   title: Enrollment methods (decide first)
-  chars: 1717
+  chars: 1842
 - id: '2'
   title: Windows
-  chars: 4559
+  chars: 4678
 - id: '3'
   title: macOS
-  chars: 1983
+  chars: 2032
 - id: '4'
   title: Linux
-  chars: 2191
+  chars: 2327
 - id: '5'
   title: Mobile
   chars: 283
@@ -31,10 +31,10 @@ sections:
   chars: 1554
 - id: '7'
   title: Upgrading clients
-  chars: 1572
+  chars: 1615
 - id: '8'
   title: Fleet deployment patterns
-  chars: 2411
+  chars: 2574
 - id: '9'
   title: Post-install verification checklist
   chars: 646
@@ -43,7 +43,7 @@ sections:
   chars: 1238
 - id: '11'
   title: Platform details that cause first-install tickets
-  chars: 2816
+  chars: 2921
 - id: '12'
   title: What Cloud customers must allow outbound
   chars: 718
@@ -114,7 +114,7 @@ them. For containers see §6.
 
 | Method | Use when | How | Peer semantics |
 |---|---|---|---|
-| **SSO (interactive)** | user devices | `netzilo up` (or tray **Connect**) → browser login | peer is bound to the user; **login expiration** applies (account default 24 h, admin-configurable); inactivity expiration can apply |
+| **SSO (interactive)** | user devices | `netzilo up`, or **Connect** in the desktop app (its workplace picker or tray menu, `06` §5) → browser login; `netzilo up --device-code` signs in with a code on another device | peer is bound to the user; **login expiration** applies (account default 24 h, admin-configurable); inactivity expiration can apply |
 | **Setup key** | servers, containers, IaC, kiosks | `netzilo up --setup-key <KEY>` | peer has no user; never expires by login; auto-assigned to the key's groups; `ephemeral` keys remove the peer 10 min after it goes offline |
 | **PAT (personal access token)** | headless devices that must act as a user (AI agents, CI runners) | `netzilo up --pat nzl_…` or env `NETZILOPAT`, or `netzilo deploy-user` | peer bound to the token's user |
 
@@ -158,7 +158,7 @@ Administrator": the installer starts unelevated and elevates itself. Files go to
 `%ProgramData%\Netzilo Client\` (`netzilo.exe`, `netzilo-ui.exe`, `installer.exe`,
 `nwfilter.exe`, `nzcontainer.exe`, drivers, `wintun.dll`); configuration and logs go to
 `%ProgramData%\Netzilo\`. The `Netzilo` service and its drivers are installed and started,
-the tray autostart is registered for the user, and the firewall rules `Netzilo` and
+the desktop app's autostart is registered for the user, and the firewall rules `Netzilo` and
 `Netzilo Client` are created. `%ProgramData%\Netzilo Client` is appended to the machine
 `Path` (the user `Path` for a non-admin install); scripts should still use the full path to
 `netzilo.exe`. **An install whose UAC prompt is cancelled or refused fails (exit 1)** — it
@@ -168,7 +168,7 @@ does not fall back to non-admin mode.
 
 ```powershell
 msiexec /i netzilo_x64.msi /qn /norestart /l*v C:\Windows\Temp\netzilo_msi.log
-# then enroll servers/kiosks (elevated PowerShell); user devices sign in from the tray
+# then enroll servers/kiosks (elevated PowerShell); user devices sign in from the desktop app
 & "$env:ProgramData\Netzilo Client\netzilo.exe" up --management-url https://<domain> --setup-key <KEY>
 ```
 
@@ -176,8 +176,9 @@ Deploy in device context: the MSI is per-user scoped and its install engine elev
 itself, so in user context a standard user gets a UAC prompt they cannot complete. Detect
 the install by file (`%ProgramData%\Netzilo Client\netzilo.exe`), not by ProductCode — it
 changes every build (`48` §3.4). The online installer always reports success and needs
-internet in the deployment context, so it is the wrong form for a managed rollout. For user devices with SSO, let the user click **Connect** in the tray;
-the installer starts the service, and the tray app starts at login.
+internet in the deployment context, so it is the wrong form for a managed rollout. For user devices with SSO, let the user press **Connect** on **Default Workplace** in the
+desktop app's window (or **Connect** in its tray menu); the installer starts the service,
+and the desktop app starts at sign-in, in the tray (`06` §5).
 
 **Non-admin install:** `NONADMIN=1` (MSI and NSIS EXEs) or `-na` (pack), and every install
 on Windows on ARM, is non-admin mode: a per-user client with userspace networking (no TUN adapter, no drivers, no
@@ -211,7 +212,8 @@ If the `Netzilo Edge CA` root remains in the machine store afterwards
 `com.netzilo.NetziloSecurity`). The postinstall script runs
 `service stop/uninstall/install/start` and appends
 `export PATH="/Applications/Netzilo.app/Contents/MacOS:$PATH"` to the installing user's
-`~/.zshrc` (or `~/.bashrc`), then launches the menu-bar app.
+`~/.zshrc` (or `~/.bashrc`), then launches the desktop app (menu-bar icon and the
+Workplace window, `06` §5).
 
 Consequences to tell users: open a **new** terminal before `netzilo` is on PATH, or use
 the full path `/Applications/Netzilo.app/Contents/MacOS/netzilo`. Nothing is put in
@@ -268,7 +270,9 @@ present (nftables preferred; `NZ_SKIP_NFTABLES_CHECK=true` forces iptables). Wit
 netstack mode.
 
 **Headless SSO:** `netzilo up` on a server without a browser prints a URL and a code
-(device-code flow) — paste the URL into any browser. Prefer setup keys for servers.
+(device-code flow) — paste the URL into any browser. On any machine,
+`netzilo up --device-code` asks for that flow explicitly (over SSH, or when the browser is
+on another device: `06` §2). Prefer setup keys for servers.
 
 **Persistent flags for the service:** `sudo netzilo service install --log-level debug`
 bakes flags into the unit; or set `NB_*` env vars in the unit's environment
@@ -336,8 +340,8 @@ gives HA automatically.
 | macOS | install the new pkg | postinstall re-installs the service; enrollment kept |
 | Linux | re-run the one-liner, or replace `/usr/bin/netzilo` and `sudo netzilo service restart` | **the one-liner runs `netzilo down` which logs the peer out and regenerates keys** — SSO devices must log in again; setup-key devices must re-run `netzilo up --setup-key` (a new peer entry may appear; delete the old one). Replacing the binary manually + `service restart` preserves enrollment |
 
-Version check: `netzilo version`; the tray shows "GUI" and "Service" versions and a
-"Download latest version" item. The dashboard flags peers older than the latest release
+Version check: `netzilo version`; the desktop app's tray menu shows **Version → GUI** and
+**Service** and, when an update exists, **Download latest version**. The dashboard flags peers older than the latest release
 with "Update available". The client's in-app update URL
 (`pkg.netzilo.com/releases/latest/version`) currently returns 404, so in-app update
 notifications may not work; direct users to the download links above.
@@ -352,7 +356,9 @@ cloud-init/Ansible; `--hostname <name>` to control the peer name. Use `ephemeral
 autoscaling groups.
 
 ### 8.2 End-user laptops (SSO)
-Push the installer silently; users click **Connect** in the tray and sign in. Configure
+Push the installer silently; users open the desktop app, press **Connect** on **Default
+Workplace** and sign in (point the default at your server with `NETZILOSRV` or the
+service's `--management-url`, `47-agentic-access-workplace.md` §9.2). Configure
 **Peer login expiration** (Settings → Authentication) to force periodic re-auth. Peers
 added with setup keys are exempt from login expiration (toggle disabled for them).
 
@@ -451,10 +457,11 @@ deploy with `/l*v` to a path outside `%ProgramData%\Netzilo`: a failed install's
 deletes that folder, its install logs included. `installer_internal.log` there is
 encrypted and is for Netzilo support only. Every switch and exit code: `48`.
 
-**Linux has an optional tray application** distributed separately from the command-line
-client. On desktop environments that do not show legacy tray icons, notably stock GNOME,
-it needs an indicator extension before the icon appears. A missing icon is a desktop
-environment issue, not a client fault.
+**Linux has an optional desktop app** (`netzilo-ui`: tray icon and Workplace window)
+distributed separately from the command-line client. It needs the GTK 3 and WebKitGTK 4.1
+libraries of the desktop. On desktop environments that do not show legacy tray icons,
+notably stock GNOME, it needs an indicator extension before the icon appears. A missing
+icon is a desktop environment issue, not a client fault.
 
 **Enterprise-managed configuration for mobile is not available.** The management server
 address cannot be pre-seeded through mobile device management; users set it in the app.

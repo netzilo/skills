@@ -6,23 +6,23 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 20091
+chars: 22998
 sections:
 - id: '1'
   title: Global flags (all commands)
   chars: 1473
 - id: '2'
   title: Commands
-  chars: 10056
+  chars: 10984
 - id: '3'
   title: Environment variables beyond flags
-  chars: 3080
+  chars: 3167
 - id: '4'
   title: Files and state
   chars: 2642
 - id: '5'
-  title: Tray application (`netzilo-ui`)
-  chars: 869
+  title: Desktop app (`netzilo-ui`)
+  chars: 2761
 ---
 # Netzilo Client — CLI and Configuration Reference
 
@@ -88,6 +88,7 @@ legacy `WT_` prefix is also read; `NB_` wins.
 | `--interface-name` | `wt0` (macOS `utun100`) | WireGuard interface; macOS must be `utunN` |
 | `--wireguard-port` | `51820` | local WireGuard UDP port |
 | `--pat` | | personal access token login (`NB_PAT`; also `NETZILOPAT` env or stored `pat.dat`) |
+| `--device-code` | false | "Sign in with a code entered on any device, for when the browser is not on this machine": prints a page and a code instead of opening a browser here |
 | `--allow-server-ssh` | false | allow this peer to run the embedded SSH server (dashboard must also enable it) |
 | `--disable-auto-connect` | false | don't connect when the service starts |
 | `--dns-resolver-address` | | custom local resolver `ip:port` (e.g. `127.0.0.1:5053`); `""` clears |
@@ -107,6 +108,14 @@ legacy `WT_` prefix is also read; `NB_` wins.
 Behaviour: if the daemon is already `Connected` prints `Already connected`. If login is
 needed and no key/PAT is given, it starts SSO and prints
 `Please do the SSO login in your browser.` with a URL (and a code for the device flow).
+With `--device-code` it prints `To sign in, open this page on any device:`, the page,
+`and enter the code:` and the code; the person opens the page on any phone or computer,
+types the code and signs in, and the command finishes once they have. Use it over SSH, on
+a machine whose browser is not the person's, or when the browser sign-in cannot reach
+this machine: on a desktop the default browser sign-in returns to a listener on this
+machine's `localhost` (`04-identity-and-sso.md` §10), so a sign-in link opened elsewhere
+delivers nothing. It needs the server's device-code flow; without one it fails with
+`no device authorization flow information available` (`04-identity-and-sso.md` §5.1).
 Flags given to `up` are persisted into `config.json` by the daemon and survive a reboot,
 but a logout (any of the operations under **Service safety** above) rewrites the file
 with only the management and admin URLs, so pass them again at the next `up`. Settings
@@ -114,7 +123,7 @@ that must survive a logout go into the service arguments at `service install` (t
 global flags in §1).
 
 ### `netzilo login` — authenticate without connecting
-Same auth options as `up` (`--setup-key`, `--pat`, `--management-url`). With
+Same auth options as `up` (`--setup-key`, `--pat`, `--management-url`, `--device-code`). With
 `--log-file console` it runs without the daemon and writes the config directly.
 
 ### `netzilo down` — disconnect **and log out**
@@ -163,7 +172,7 @@ existing tunnels and never logs the device out. Device tool: `mod.refresh`.
 - `netzilo routes list` (`ls`) → `ID`, `Network` or `Domains` + `Resolved IPs`, `Status: Selected|Not Selected`
 - `netzilo routes select <id…>|all [-a|--append]` — selecting deselects the others unless `-a`
 - `netzilo routes deselect <id…>|all`
-Tray equivalent: **Network Routes** menu.
+The CLI is the only place to choose routes: the desktop app has no routes menu.
 
 ### `netzilo ssh [user@]host [-p 44338]` — SSH to a peer over the tunnel
 Requires root/Administrator. Default user `root`. Target must have SSH enabled both
@@ -230,7 +239,7 @@ Flags: `--fullname`, `--email`, `--groups a,b`, `--password`, `--tokenname`,
 
 | Variable | Effect |
 |---|---|
-| `NETZILOSRV` | management URL override (CLI and tray) |
+| `NETZILOSRV` | management URL override (CLI and desktop app; the desktop app's **Default Workplace**, `47-agentic-access-workplace.md` §9.2) |
 | `NETZILOPAT` | PAT used for login when no setup key is given |
 | `NB_FORCE_WS=1` | gRPC over WebSocket to management/signal (when HTTP/2 is blocked by a proxy) |
 | `NB_WG_KERNEL_DISABLED=true` | force userspace WireGuard on Linux |
@@ -303,16 +312,42 @@ Log rotation is built in (5 MB, 10 files, 30 days, gzip).
 
 ---
 
-## 5. Tray application (`netzilo-ui`)
+## 5. Desktop app (`netzilo-ui`)
 
-Menu: status line, **Connect**, **Disconnect**, **Refresh**, **Record Session**
-(Windows), **Admin Panel**, **Workspaces → Terminate All / Reset Contents** (Windows),
-**Network Routes**, **Advanced → Allow SSH / Connect on Startup / Enable Quantum-Resistance / Server Settings**,
-**Support → Collect Data / Open Logs Folder**, **Version → GUI / Service / Download latest version**,
-**Quit**. Settings window fields: Quantum-Resistance (permissive), Interface Name,
-Interface Port, Management URL, Admin URL, Pre-shared Key, Config File, Log File.
-Errors: `Invalid Pre-shared Key Value`, `Invalid interface port`.
+The Netzilo desktop app (macOS, Windows, Linux) is a tray icon plus a window that shows
+the Workplace, the same page as the dashboard's `/workplace`
+(`47-agentic-access-workplace.md` §9). It talks to the client service like the CLI does.
 
-Session expiry: the UI shows "Netzilo Session Expired — You need to re-authenticate…";
+- **Window:** 900 × 850 (also the minimum size). The app starts with its window open;
+  closing the window keeps the app in the tray. Starting the app again, or tray →
+  **Open...**, shows the window. On macOS the app has a Dock icon while the window is
+  open, and clicking the Dock icon reopens the window. Signed out, the window shows the
+  workplace picker (`47` §9.2); signed in, the Workplace, signed in with the client's own
+  sign-in.
+- **Start at sign-in (Windows):** the autostart starts the app in the tray only, with
+  `--minimized` (the per-user install's autostart: `--nonadmin=true --minimized`).
+- **Tray menu** (a click on the icon), in order: the status line (**Connected** /
+  **Disconnected**, not clickable), **Open...**, **Connect**, **Disconnect**, **Refresh**,
+  **Record Session** (Windows), **Workspaces → Terminate All / Reset Contents**
+  (Windows), **Support → Collect Data / Open Logs Folder**, **Version → GUI: <v> /
+  Service: <v> / Download latest version** (the last only when an update exists),
+  **Quit**. **Connect** is enabled only while disconnected and signs in in the browser
+  when the client needs it; **Disconnect** and **Refresh** only while connected. Tooltip
+  "Netzilo (Connected)" / "Netzilo (Disconnected)".
+
+The tray of earlier versions also had **Admin Panel**, **Network Routes** and **Advanced
+→ Allow SSH / Connect on Startup / Enable Quantum-Resistance / Server Settings** with a
+settings window. They are gone; use:
+
+| Earlier tray item | Now |
+|---|---|
+| Admin Panel | **Dashboard** in the Workplace menu (owners and admins) |
+| Network Routes | `netzilo routes list` / `select` / `deselect` (§2) |
+| Allow SSH | `netzilo up --allow-server-ssh` |
+| Connect on Startup | on by default; `netzilo up --disable-auto-connect` turns it off |
+| Enable Quantum-Resistance | `netzilo up --enable-rosenpass` (and `--rosenpass-permissive`) |
+| Server Settings (Management URL, Admin URL, Pre-shared Key, Interface Name, Interface Port, Config File, Log File) | the global flags `--management-url`, `--admin-url`, `--preshared-key`, `--config`, `--log-file` (§1); `--interface-name`, `--wireguard-port` on `netzilo up`; another server is also the picker's **Add Workplace** (`47` §9.2) |
+
+Session expiry: the app shows "Netzilo Session Expired — You need to re-authenticate…";
 on headless Unix hosts `wall` broadcasts "Netzilo connection session expired". Status
-then shows `NeedsLogin`; run `netzilo up`.
+then shows `NeedsLogin`; run `netzilo up`, or **Connect** in the desktop app.

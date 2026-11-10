@@ -7,17 +7,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 33630
+chars: 33944
 sections:
 - id: '1'
   title: Model
-  chars: 5117
+  chars: 5216
 - id: '2'
   title: Enterprise Workspace — reference
   chars: 5518
 - id: '3'
   title: Enterprise Browser — reference
-  chars: 779
+  chars: 994
 - id: '4'
   title: Disposable Browser — reference
   chars: 636
@@ -105,7 +105,8 @@ per-session engine process supervises the work apps; if that process exits, the 
 close with it.
 
 **Extension bookmarks** (`extension_bookmarks`) are not shown inside the browser
-extension. They appear on the dashboard **Workplace** page (`/workplace`), which lists
+extension. They appear on the **Workplace** (the dashboard's `/workplace`, the desktop
+app's window and the extension's Workplace page, `47-agentic-access-workplace.md` §9), which lists
 the bookmarks of every enabled profile whose groups include one of the signed-in
 **user's** groups (or All) and whose OS list includes the OS of the browser viewing the
 page; opened in the Enterprise Browser, it adds that browser's bookmarks. Each web tile
@@ -180,7 +181,9 @@ applications". Tabs **Shortcuts** (bookmarks: URL, name, drag to order), **Restr
 | Wipe Data When Closed | disposes downloaded data when the browser closes |
 
 The Enterprise Browser is installed separately (`10-ai-security-aidr.md` §6; every installer switch and MSI property in `48-installer-command-lines.md` §13–16); the
-profile only configures it.
+profile only configures it. Its new tab is the Workplace, where the **Shortcuts** join
+the Applications; signed out, the new tab shows the workplace picker, which lists only the tenant
+when the browser is locked to it (`48` §13.5, `47` §9.2).
 
 ---
 

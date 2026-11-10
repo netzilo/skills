@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 45155
+chars: 46452
 sections:
 - id: '1'
   title: Which file to use
@@ -34,37 +34,37 @@ sections:
   chars: 1319
 - id: '9'
   title: Admin mode and non-admin (network-only) mode
-  chars: 1289
+  chars: 1292
 - id: '10'
   title: Pre-enrolment with `CONFIGFILE` — the `deploy-user` file
   chars: 3302
 - id: '11'
   title: What an install leaves on the machine
-  chars: 1360
+  chars: 1363
 - id: '12'
   title: Upgrades — Windows client
-  chars: 970
+  chars: 989
 - id: '13'
   title: Enterprise Browser — the MSI `netzilo_enterprise_browser.msi`
-  chars: 5297
+  chars: 6170
 - id: '14'
   title: Enterprise Browser — the EXE `netzilo_enterprise_browser.exe`
-  chars: 3404
+  chars: 3489
 - id: '15'
   title: Uninstall — Windows client
   chars: 1383
 - id: '16'
   title: macOS
-  chars: 2987
+  chars: 3083
 - id: '17'
   title: Linux
-  chars: 1289
+  chars: 1376
 - id: '18'
   title: Diagnosis
-  chars: 4145
+  chars: 4253
 - id: '19'
   title: Known installer limitations — what to avoid
-  chars: 1887
+  chars: 1910
 ---
 # Installer command lines — Netzilo client and Enterprise Browser
 
@@ -383,7 +383,7 @@ downloads `https://pkg.netzilo.com/download/configs/<tenant>.config` when it run
 | | Admin mode (default) | Non-admin mode (`NONADMIN=1`, `-na`, ARM64) |
 |---|---|---|
 | Elevation | UAC elevation for the machine-wide part | none |
-| Components | client service, drivers (sandbox, network filter for AI governance, virtual disk), sandbox service, Workspace | **network only**: the client and its tray app; no drivers, no sandbox, no Workspace, no network filter |
+| Components | client service, drivers (sandbox, network filter for AI governance, virtual disk), sandbox service, Workspace | **network only**: the client and its desktop app; no drivers, no sandbox, no Workspace, no network filter |
 | Registry root | `HKLM\SOFTWARE\Netzilo` | `HKCU\Software\Netzilo` |
 | `PATH` | `%ProgramData%\Netzilo Client` appended to the **machine** `Path` | appended to the **user** `Path` |
 | Shortcuts | Start menu and common desktop `Netzilo` | Start menu and the user's desktop, started with `--nonadmin=true` |
@@ -476,7 +476,7 @@ in the dashboard after the rollout.
 | Version | `HKLM\SOFTWARE\Netzilo\Version` | `HKCU\Software\Netzilo\Version` |
 | Add/Remove Programs | the MSI's entry (MSI); otherwise "Netzilo Client" with `UninstallString "%ProgramData%\Netzilo Client\installer.exe" -u` (not with `-q`) | same, under HKCU |
 | Shortcuts | Start menu `Netzilo`; desktop `Netzilo` | user desktop |
-| After a successful install | the tray app starts for the signed-in user | same |
+| After a successful install | the desktop app starts for the signed-in user | same |
 
 A failed install **rolls back completely**, and the rollback deletes `%ProgramData%\Netzilo`
 — including the installer logs, any downloaded tenant config and `pat.dat`. Capture the MSI
@@ -497,7 +497,7 @@ log (`/l*v`) so something survives (§18).
 - The EXE forms do **not** compare versions: they install whatever version they carry,
   older or newer.
 - You do not re-pass `NONADMIN`; the mode is remembered (§9).
-- In-app update from the tray is a separate mechanism (`05` §7).
+- In-app update from the desktop app's tray menu is a separate mechanism (`05` §7).
 
 ---
 
@@ -516,7 +516,7 @@ log (`/l*v`) so something survives (§18).
 |---|---|---|
 | `TENANT` | your **Workplace / dashboard address**: `https://go.netzilo.com` on Netzilo Cloud, `https://<your domain>` self-hosted | written to `netzilo.json` in the browser's install folder; the built-in Netzilo extension uses it as its portal. **Also used as the browser's update host** — see §13.3 |
 | `SHORTCUTNAME` | text, e.g. `Acme Browser` | name of the desktop and Start-menu shortcuts. Empty = the default name |
-| `FORCETENANT` | `1` (exactly; any other value or absent = off) | locks the browser to `TENANT`: users cannot sign in to another Workplace from it (§13.5) |
+| `FORCETENANT` | `1` (exactly; any other value or absent = off) | locks the browser to `TENANT`: the signed-out new tab lists only the tenant, with **Connect**, and users cannot sign in to another Workplace from it (§13.5) |
 
 **No property is remembered.** Pass all of them on **every** install and upgrade: an MSI
 upgrade without `TENANT` rewrites `netzilo.json` with an empty tenant, without
@@ -574,26 +574,38 @@ update source, used when no tenant is set, is
   uninstall fails with `1603`. Then uninstall with the browser's current uninstaller
   (§14.3) and remove the MSI registration with `msiexec /x {ProductCode} /qn` afterwards.
 
-### 13.5 Locking the browser to your Workplace — `FORCETENANT`
+### 13.5 The new tab, and locking the browser to your Workplace — `FORCETENANT`
 
-Without the lock, a signed-out browser's new tab shows **Login to access your workplace**
-with two cards: **Default** (the tenant) and **Custom** (a **Workplace URL** field the
-user can fill with any address), then **Login to Workplace**. A custom address the user
-entered is remembered by the browser and used from then on.
+The Enterprise Browser's new tab and home page is the Workplace
+(`47-agentic-access-workplace.md` §9). Signed out and not locked (below), it shows the
+**workplace picker**:
+**Welcome Back!**, the **Default Workplace** (the tenant, or `https://go.netzilo.com`
+without one), the workplaces the user added, each with **Connect**, and **Add Workplace**
+(a **Workplace URL** field; the address must serve a Netzilo Server's
+`/.well-known/netzilo.json`). **Logging in...** and **Logging out...** cards with
+**Cancel** show while the browser signs in or out. This page replaced the earlier new
+tab, its **Login to access your workplace** screen and its **Default** / **Custom**
+cards.
+
+Without the lock, that is the whole story: **Default Workplace** is the tenant, and the
+user can add and sign in to any other workplace.
 
 With `FORCETENANT=1` (EXE: `--netzilo-forcetenant`):
 
-- a signed-out browser shows no choice: its new tab goes straight to the tenant's sign-in
-  page;
-- a custom Workplace URL a user saved earlier is cleared, so an existing install switches
-  to the tenant on its next sign-in;
-- the lock follows `TENANT`. Set `TENANT` too: the lock without a tenant locks the browser
-  to the built-in default, `https://go.netzilo.com` (Netzilo Cloud) — wrong for a
-  self-hosted server.
+- the signed-out new tab, also after a logout, lists only the tenant (**Default
+  Workplace**) with **Connect**: no **Add Workplace**, no **Forget workplace**, and
+  signing in at any other workplace is refused;
+- a workplace the user chose before the tenant was forced is forgotten, so an existing
+  install switches to the tenant on its next sign-in;
+- the installer writes `"forcetenant":true` to `netzilo.json` and the browser hands it to
+  its built-in Netzilo extension with the tenant at every start (§13.1);
+- the lock follows `TENANT`. Set `TENANT` too: the lock without a tenant locks the
+  browser to the built-in default, `https://go.netzilo.com` (Netzilo Cloud) — wrong for
+  a self-hosted server.
 
 Use it on managed machines where the browser must only ever reach your own Workplace
-(the usual case for a company-deployed Enterprise Browser). It does not restrict which
-websites the browser opens — that is the Enterprise Browser profile's job (`26`).
+(the usual case for a company-deployed Enterprise Browser). The lock does not restrict
+which websites the browser opens — that is the Enterprise Browser profile's job (`26`).
 
 ---
 
@@ -652,8 +664,9 @@ per-user install, use the same command from
 
 What the dashboard's download page offers on Windows. It runs without admin rights,
 downloads `netzilo_enterprise_browser.exe` and runs it **with no switches**: a per-user
-install with no tenant, no lock and no shortcut name. The user then picks the Workplace
-on the new tab (§13.5). Never use it for managed deployment; it takes no parameters.
+install with no tenant, no lock and no shortcut name. The new tab's workplace picker then
+offers Netzilo Cloud as **Default Workplace**, and the user adds their own with **Add
+Workplace** (§13.5). Never use it for managed deployment; it takes no parameters.
 
 ---
 
@@ -692,7 +705,7 @@ sudo installer -pkg nz_installer_amd64.pkg -target /     # Intel
 
 - **No parameters.** The package has no choices and reads no configuration file or
   environment variable at install time. It installs `/Applications/Netzilo.app`, then
-  (re)installs and starts the client service and starts the tray app.
+  (re)installs and starts the client service and starts the desktop app.
 - It appends `/Applications/Netzilo.app/Contents/MacOS` to the `PATH` in the `~/.zshrc` (or
   `~/.bashrc`) of the account running the installer — **root's** under `sudo installer`,
   Jamf or another MDM, so signed-in users do not get the `netzilo` command on their `PATH`.
@@ -700,7 +713,7 @@ sudo installer -pkg nz_installer_amd64.pkg -target /     # Intel
 - Re-installing the package upgrades in place.
 - **Enrol after install:** `sudo /Applications/Netzilo.app/Contents/MacOS/netzilo up --setup-key <key>`
   (plus `--management-url https://<your server>` when self-hosted), or `deploy-user`
-  (§10), or let the user sign in from the tray (`05`).
+  (§10), or let the user sign in from the desktop app (`05`).
 - **Jamf / MDM:** deploy the package as is, then run the `netzilo up --setup-key …` line as
   a policy script. Pre-approve the system extensions `com.netzilo.NetziloFilter` and
   `com.netzilo.NetziloSecurity` with a SystemExtensions payload so users are not prompted
@@ -716,7 +729,8 @@ Chromium version (e.g. `152.0.7977.75`), signed by Developer ID "Netzilo Inc."
 (team `37WAJBKQG4`) and notarized.
 
 - **No parameters, no tenant, no lock.** macOS has no install-time way to set the tenant
-  or `FORCETENANT`; the user picks the Workplace on the new tab (§13.5). Do not add files
+  or `FORCETENANT`; the new tab's workplace picker offers Netzilo Cloud as **Default
+  Workplace** and the user adds their own with **Add Workplace** (§13.5). Do not add files
   into the app bundle: it is sealed by its signature and would no longer open.
 - By hand: open the image and drag the app to Applications.
 - **Jamf / MDM:** deploy the DMG as an app package (Jamf copies the `.app` from a DMG), or
@@ -750,8 +764,8 @@ curl -fsSL https://pkg.netzilo.com/download/linux/install_netzilo_linux.sh | sh
   client, downloads `https://pkg.netzilo.com/download/linux/netzilo` to `/usr/bin/netzilo`
   (via `/opt/netzilo`), installs the systemd service `Netzilo`, starts and enables it. It
   needs `sudo`, `wget` and systemd.
-- It installs the command-line client only; the tray app (`/download/linux/netzilo-ui`) is
-  a separate download.
+- It installs the command-line client only; the desktop app (`/download/linux/netzilo-ui`)
+  is a separate download.
 - **Enrol after install:** `sudo netzilo up --setup-key <key>` (add
   `--management-url https://<your server>` for self-hosted).
 - Without the script (images, containers, other init systems): download the binary, then
@@ -763,8 +777,9 @@ curl -fsSL https://pkg.netzilo.com/download/linux/install_netzilo_linux.sh | sh
 A `.deb` package `netzilo-enterprise-browser`, installed to `/opt/netzilo/enterprisebrowser`
 (`sudo apt install ./netzilo-enterprise-browser_*.deb`). It has **no public download link**
 (the dashboard's download page offers none): get the package from Netzilo. No
-install-time parameters, no tenant setting and no lock; the user picks the Workplace on
-the new tab (§13.5).
+install-time parameters, no tenant setting and no lock; the new tab's workplace picker
+offers Netzilo Cloud as **Default Workplace** and the user adds their own with **Add
+Workplace** (§13.5).
 
 ---
 
@@ -789,8 +804,8 @@ the new tab (§13.5).
 | A user cannot find "Netzilo Client" in Add/Remove Programs | per-user MSI installed as SYSTEM, or a pack install with `-q` | uninstall from the deployment tool / with the engine (§15) |
 | Installer logs are gone after a failed install | the rollback deletes `%ProgramData%\Netzilo` | always deploy with `/l*v` to a path outside it |
 | Browser shortcut lost its custom name after an MSI upgrade / extension shows no portal | `SHORTCUTNAME` / `TENANT` not passed again (§13.1) | redeploy with both properties |
-| Users can sign in to another Workplace from the browser (the **Custom** card) | installed without `FORCETENANT=1` / `--netzilo-forcetenant`, or a later install dropped it (§13.5) | redeploy with `TENANT` and `FORCETENANT=1`; `netzilo.json` shows `"forcetenant":true` afterwards |
-| Locked browser opens the sign-in page of `go.netzilo.com` on a self-hosted deployment | `FORCETENANT=1` without `TENANT` (§13.5) | redeploy with `TENANT=https://<your server>` |
+| Users can add or sign in to another Workplace on the new tab (**Add Workplace**) | installed without `FORCETENANT=1` / `--netzilo-forcetenant`, or a later install dropped it (§13.5) | redeploy with `TENANT` and `FORCETENANT=1`; `netzilo.json` shows `"forcetenant":true` afterwards |
+| The new tab's **Default Workplace** is `go.netzilo.com`, or a locked browser's **Connect** opens the sign-in page of `go.netzilo.com`, on a self-hosted deployment | installed without `TENANT` (with or without `FORCETENANT=1`) (§13.5) | redeploy with `TENANT=https://<your server>` |
 | macOS: `installer: … is not a valid package` / no `.pkg` for the browser | the browser ships as a DMG (§16.2) | deploy the DMG or copy the app with `ditto` |
 | Browser "About" update check fails | `TENANT` is used as the update host (§13.3) | reinstall with the EXE and `--netzilo-update=…` |
 | Browser MSI uninstall fails with `1603` | browser updated since that MSI (§13.4) | browser's own uninstaller, then `msiexec /x` |
@@ -830,8 +845,9 @@ promise otherwise.
    with `apiurl` rewrites the device's identity and sets the dashboard address to
    `go.netzilo.com` (§10.3).**
 8. **Only the Windows browser installers take a tenant or a lock.** On macOS and Linux
-   the Enterprise Browser is installed without one and each user picks the Workplace on
-   the new tab (§16.2, §17.2); plan sign-in instructions for those users.
+   the Enterprise Browser is installed without one and each user adds their Workplace on
+   the new tab's workplace picker (§16.2, §17.2); plan sign-in instructions for those
+   users.
 8. **Uninstall removes everything** under `%ProgramData%\Netzilo`, with no keep option
    (§15).
 9. **Browser MSI properties are not remembered; the browser's update host is the tenant;

@@ -7,6 +7,56 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.13.0 — 2026-11-10
+
+The Workplace in three places (the dashboard, the new Netzilo desktop app and the
+extension's Workplace page, which is also the Enterprise Browser's new tab), the
+workplace picker, the new tray menu, provider IDs on the AI gateways and sign-in with a
+code. Minor version: new procedures.
+
+- `47` §9 (new): where the Workplace runs and what differs by host (§9.1); the workplace
+  picker in the desktop app, the extension and the Enterprise Browser — default
+  workplace, Add Workplace and how an address is accepted, Connect, where the list is
+  kept, the managed lock, every error (§9.2); the Workplace shows this computer's devices
+  and shortcuts only for the user's own connected client on the same server
+  (`GET /api/users/current/device`), otherwise as not signed in (§9.3); the workplace's
+  name from `/.well-known/netzilo.json` (§9.4). §0 and §8.2 point to it; the menu's
+  Dashboard link follows the `dashboard_view` permission; Onboarding shows in the
+  dashboard only.
+- `06` §5 rewritten as the desktop app: the window, start-up and autostart, the tray menu
+  in order, and a table of where the removed tray items (Admin Panel, Network Routes,
+  Advanced, Server Settings) went. §2: `--device-code` on `netzilo up` and `netzilo
+  login`, its output and when to use it; routes are chosen with the CLI only. §3:
+  `NETZILOSRV` sets the desktop app's Default Workplace.
+- `04` §10 (new): how a device signs a person in — the dashboard hand-over (PKCE with
+  `client_auth`, the `localhost` listener, `/nb-client-login`), the browser-session flow,
+  the IdP flows, `--device-code`; the shared status card of the sign-in pages.
+- `07` §2: rows for `--device-code`, a sign-in finished on another machine, and the
+  success card before the client finishes; §10 rows reworded for the desktop app; §14
+  (new): the desktop app and the Workplace on this computer — no devices although
+  connected, the picker's errors, the missing name, the window that does not open at
+  sign-in, the removed tray items.
+- `45` §1.1, §1.3, §1.5, §4: the provider **ID** (`slug`): `<ID>/<model>` on every
+  gateway, defaults, the types that take a free ID and the one-per-account types,
+  immutability, the IDs given at upgrade and the switch clients must make from
+  `openai/…`, `anthropic/…` or `nz-…`; new diagnosis rows. `27` §1 and §7 the same rule
+  replaces `nz-<id>`; `09` the `slug` field and keeping it on import.
+- `48` §13.5 rewritten: the Enterprise Browser's new tab is the Workplace with the
+  workplace picker (replacing "Login to access your workplace" and the Custom card);
+  with `FORCETENANT` the picker lists only the tenant with **Connect** (no Add, no
+  Forget, other sign-ins refused), also after a logout, and a workplace chosen earlier
+  is forgotten; §14.4, §16, §17, §18, §19 follow; tray wording.
+- `43` §3.4a: the extension's Workplace page and its picker over the workplace registry.
+  `49` §3: the popup's header buttons and the **Workplace** button.
+- `01` §1.6 and `02` §1, §5: `NETZILO_WORKPLACE_NAME` in `dashboard.env` and what
+  `netzilo.json` serves.
+- `05` §1–§3, §4, §7, §8.2, §11, `40`, `41`, `37`, `10` §6, `26` §1 and §3: tray → the
+  desktop app; sign-in with **Connect** on **Default Workplace**; `--device-code`; the
+  Linux app's GTK 3 / WebKitGTK 4.1 libraries; the Enterprise Browser's new tab.
+- `17` §2 and §3, `39`, `35`: end-user wording for the app's window, the extension's
+  Workplace button and the picker; rows for "no devices" and the picker's errors; the
+  terms desktop app, workplace picker and provider ID. `SKILL.md`: routing and overview.
+
 ## 4.12.0 — 2026-11-10
 
 Database encryption: the sensitive columns of the management database encrypted with a

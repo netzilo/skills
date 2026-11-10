@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 32797
+chars: 33111
 sections:
 - id: '0'
   title: The server and an admin token come first
@@ -20,10 +20,10 @@ sections:
   chars: 9775
 - id: '3'
   title: Field reference (request bodies)
-  chars: 7132
+  chars: 7296
 - id: '4'
   title: Recipes
-  chars: 3682
+  chars: 3832
 - id: '5'
   title: Client-side automation
   chars: 709
@@ -213,7 +213,7 @@ nz /support/openapi.yml | yq '.paths["/api/reports"].post.requestBody'     # liv
 
 **Filter** (`/edge/filters`): `{name, description, enabled, type:"endpoint"|"gateway" (empty = endpoint), groups:[ids], guardrails:[ids] (required for both types; `scanners` accepted as an alias), os:["Windows","Darwin","Linux","Android","iOS"] (endpoint, required), agents:[process path globs] (endpoint), models:["<providerId>/<model>" | "<providerId>/*"] (gateway), limits:[ids] (gateway), mcp:[{server_id, tools:["*"] | [names]}] (gateway), virtual_mcps:[bundleIds] (gateway), gateways:[{name, url}] (gateway; http(s) URL, no path)}`. On an endpoint filter the gateway-only fields are reset to empty. There are no `posture_checks`, `any_check_must_pass`, `tools` or `tool_ids` fields any more. `29-edge-filters.md` §3.
 
-**Provider** (`/edge/providers`): `{name, description, enabled, type (one of 33 types, e.g. openai, anthropic, azure, bedrock, ollama, vllm), base_url (required for ollama/vllm/sgl), credential:{… per type, e.g. api_key}, extra_headers:{}, insecure_skip_verify, models:[{name, display_name, enabled}]}`; the credential is write-only (masked on read; sending the mask keeps it). `POST /edge/providers/discover` lists a provider's models. `45` §1.
+**Provider** (`/edge/providers`): `{name, slug (the provider's ID: clients call its models <slug>/<model> on every gateway; derived from the name when empty, immutable after create, unique in the account), description, enabled, type (one of 33 types, e.g. openai, anthropic, azure, bedrock, ollama, vllm), base_url (required for ollama/vllm/sgl), credential:{… per type, e.g. api_key}, extra_headers:{}, insecure_skip_verify, models:[{name, display_name, enabled}]}`; the credential is write-only (masked on read; sending the mask keeps it). `POST /edge/providers/discover` lists a provider's models. `45` §1.
 
 **Limit** (`/edge/limits`): `{name, description, enabled, budget:{max_usd, reset}, tokens:{max, reset}, requests:{max, reset}}` — at least one of the three; `reset` is `hourly|daily|weekly|monthly|yearly`. Per user per gateway, lowest value wins across filters. `45` §2.
 
@@ -258,7 +258,9 @@ Import order on the target: groups → posture-checks → policies → routes �
 → published-apps → guardrails → providers → limits → mcp-servers → virtual-mcps → filters
 (filters reference all of the Edge objects by id, so they come last). Strip
 `id`/timestamps and remap group, guardrail, provider, limit and MCP ids by name; model
-grants are `<providerId>/<model>`, so rewrite the provider part. Provider credentials are
+grants are `<providerId>/<model>`, so rewrite the provider part. Send each provider's
+`slug` with it, so the clients' `<ID>/<model>` names stay the same on the target
+(`45-ai-gateway-providers-and-limits.md` §1.1). Provider credentials are
 masked in the export and must be re-entered; users' MCP sign-ins and the admin's shared
 sign-in are not exportable and are redone on the target. Users are recreated via the identity provider
 (`04-identity-and-sso.md`); peers must re-enrol (keys live on devices).

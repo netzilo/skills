@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 28361
+chars: 32534
 sections:
 - id: '1'
   title: CLI cannot talk to the daemon
   chars: 1085
 - id: '2'
   title: Not logged in / cannot log in
-  chars: 3877
+  chars: 4644
 - id: '3'
   title: Connected to management but peers unreachable
   chars: 2778
@@ -37,7 +37,7 @@ sections:
   chars: 4392
 - id: '10'
   title: Upgrade / install problems
-  chars: 1488
+  chars: 1543
 - id: '11'
   title: Verbose diagnostics
   chars: 1177
@@ -46,7 +46,10 @@ sections:
   chars: 604
 - id: '13'
   title: Environment problems that look like product faults
-  chars: 1677
+  chars: 1683
+- id: '14'
+  title: The desktop app and the Workplace on this computer
+  chars: 3345
 ---
 # Netzilo Client — Troubleshooting Runbook
 
@@ -131,7 +134,9 @@ server-side event it pairs with, and which side owns the fix.
 | `invalid setup-key format` | key mistyped | copy the key exactly (UUID-like) |
 | `invalid PAT token` / `PAT token expired` / `PAT token has expired on …` | bad or expired PAT | new PAT; delete `pat.dat`; unset `NETZILOPAT` |
 | `no SSO provider returned from management. Please proceed with setting up this device using setup keys` | self-hosted server has no IdP configured for device login | use `--setup-key` or fix server `management.json` auth flows |
-| `no available port found from configured redirect URLs` | localhost 53000/54000 busy during PKCE | free the port or run on a host with a browser; the CLI falls back to device-code flow when no desktop is detected |
+| `no available port found from configured redirect URLs` | localhost 53000/54000 busy during PKCE | free the port, or sign in with `netzilo up --device-code` (a code entered on any device); the CLI also falls back to device-code flow when no desktop is detected |
+| The sign-in page was opened on another computer or phone, the person signed in, and the client keeps waiting | the browser sign-in returns to a listener on the device's own `localhost` (`04-identity-and-sso.md` §10); a sign-in finished elsewhere never reaches it | sign in in a browser on the device itself, or run `netzilo up --device-code` and enter the code on the other device |
+| The browser shows the dashboard's "success" card and then the Workplace, but `netzilo status` still says `NeedsLogin` | the card only reports the hand-over; the client finishes the sign-in itself | wait a few seconds and check `netzilo status`; if it stays signed out, read the `failed login:` line in the client log (rows above) |
 | `authentication timeout after N seconds` / `waiting for browser login failed` | user did not finish the browser login | run `netzilo up` again and complete login promptly |
 | `sso user code is invalid` / `oauth flow is not initialized` | stale flow | rerun `netzilo up` |
 | `user is blocked` | account admin blocked the user | unblock in Team → Users |
@@ -296,8 +301,8 @@ More in `10-ai-security-aidr.md` §9.
 | Windows: `Admin mode is already installed, please uninstall Netzilo Client and try again.` | a per-user (non-administrator) install was attempted over an administrator install | install elevated, or uninstall first (`references/40-windows-hosts.md`) |
 | Windows: `netzilo` is not recognised in a terminal | the installer adds `%ProgramData%\Netzilo Client\` to the PATH, but terminals opened before the install keep the old PATH | open a new terminal, or call `"%ProgramData%\Netzilo Client\netzilo.exe"` directly |
 | macOS: CLI not on PATH | new terminal or full path; PATH line is appended to `~/.zshrc` of the installing user only |
-| Dashboard says "Update available" but tray shows no update | in-app version feed is currently unavailable (404); download from the links in `05-client-install-and-deploy.md` |
-| Version mismatch between "GUI" and "Service" in tray | UI and daemon from different installs; reinstall |
+| Dashboard says "Update available" but the desktop app's tray shows no update | in-app version feed is currently unavailable (404); download from the links in `05-client-install-and-deploy.md` |
+| Version mismatch between **GUI** and **Service** in the tray menu's **Version** | desktop app and service from different installs; reinstall |
 
 ---
 
@@ -370,3 +375,25 @@ one, and exempt the control-plane hostnames.
 
 None of these are product faults, and all four are fixed by the user in under a minute
 once identified. `17-end-user-guide.md` §2 carries them in language for employees.
+
+---
+
+## 14. The desktop app and the Workplace on this computer
+
+The desktop app is a tray icon and a window showing the Workplace (`06` §5); the Workplace
+on this computer, in the desktop app, the dashboard or the extension's page, shows this
+computer's client only when it is the user's own (`47-agentic-access-workplace.md` §9).
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| The Workplace shows **No devices** and no client shortcuts, or the System Errors panel says the management connection is down, although `netzilo status` shows **Connected** | the client on this computer is not the signed-in user's own connected device on the same server: signed in as **another user**, enrolled with a **setup key**, or connected to **another server** than the Workplace (`47` §9.3) | admin: the device in Endpoint → Peers — its user, and whether it is connected to this server. Sign the client in as this user on this server (`netzilo up`, or **Connect** in the desktop app), or accept it on a shared or setup-key machine. The desktop app itself skips the check |
+| The Devices panel says **Netzilo client not reachable** | no client answers on `localhost:41336`/`41337` on this computer (not installed, service stopped, or a per-user client on other ports) | start the service; `netzilo status` (§1) |
+| "This address is not a Netzilo workplace." in the desktop app's **Add a workplace** | the management API did not answer 401/403 at that address within 8 s: a dashboard address where the management address belongs, a typo, or not reachable from this computer | `curl -sS -o /dev/null -w "%{http_code}\n" https://<address>/api/users` must print `401`; on Netzilo Cloud the management address is `https://srv.netzilo.com` |
+| "This address is not a Netzilo workplace." in the extension's or the Enterprise Browser's picker | `https://<address>/.well-known/netzilo.json` did not answer as a Netzilo Server | `curl -s https://<address>/.well-known/netzilo.json` must show `"product": "netzilo-server"`; a dashboard older than the file, or a proxy blocking `/.well-known/`, is the usual cause (`43-clientless-access-gateway.md` §11.3) |
+| "Enter a valid https address." | the address is not `https://…` | type it with `https://` |
+| "Sign-in did not complete." | the identity provider's sign-in was cancelled, failed or timed out | **Connect** again; for the desktop app the client's own sign-in messages are in §2 |
+| The picker shows the address instead of a name | the workplace's `netzilo.json` has no `name` (the dashboard's `NETZILO_WORKPLACE_NAME` is unset); the desktop app learns the name only after a sign-in | cosmetic; self-hosted admins set the name (`47` §9.4) |
+| After **Connect** on another workplace the computer is on another server | the desktop app's Connect signs this computer's client in at that server | expected; **Connect** on the original workplace moves it back (another sign-in) |
+| The window does not open at sign-in (Windows) | the autostart starts the app in the tray only (`--minimized`) | click the tray icon → **Open...**, or start the app again |
+| No tray icon on Linux | the desktop does not show legacy tray icons (stock GNOME) | install an indicator extension (`05` §11) |
+| The tray has no **Admin Panel**, **Network Routes** or **Advanced** | removed from the desktop app | `06` §5 lists the replacement for each |

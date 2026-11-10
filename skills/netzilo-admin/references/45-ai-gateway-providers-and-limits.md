@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14506
+chars: 17249
 sections:
 - id: '1'
   title: Providers
-  chars: 6109
+  chars: 8252
 - id: '2'
   title: Limits
   chars: 2635
@@ -20,7 +20,7 @@ sections:
   chars: 1322
 - id: '4'
   title: Diagnosis
-  chars: 1923
+  chars: 2523
 - id: '5'
   title: Limits to state before a customer discovers them
   chars: 1180
@@ -56,12 +56,13 @@ entered in one is not known to the other.
 | Field | Rule |
 |---|---|
 | Name | required; unique in the account, case-insensitive (409 `a provider named "…" exists`) |
+| **ID** (`slug`) | the name clients call the provider by: its models are `<ID>/<model>` on every gateway (e.g. `netzilo-builtin/gpt-4o`). Dashboard help: "Clients call this provider's models as ID/model on every gateway; cannot change once created". Default = the name made into a slug; a typed ID is slugified (lowercase letters, digits, single dashes). Unique in the account, **immutable after create** (an update keeps the stored one). A provider whose ID equals its type (`openai`, `anthropic`, …) is served as that standard provider; another type's name is reserved (`the slug "…" is reserved for the … provider type`). Only `openai`, `anthropic`, `bedrock`, `cohere`, `gemini`, `huggingface`, `replicate` and `typesafe` take an ID of your choice; every other type is served under its type's name only: ID = type, fixed in the dialog, and **one provider of that type per account** (`a … provider is served under the slug "…" only`, `the provider "…" already serves …; an account holds one … provider`) |
 | Provider type | one of: `openai, anthropic, azure, bedrock, bedrock_mantle, cohere, vertex, mistral, ollama, opencode-go, opencode-zen, groq, sgl, parasail, perplexity, cerebras, deepseek, gemini, openrouter, elevenlabs, huggingface, nebius, xai, replicate, vllm, runway, runware, fireworks, sarvam, wafer, github-copilot, databricks, typesafe` (dashboard labels: OpenAI, Anthropic, Azure OpenAI, AWS Bedrock, AWS Bedrock Mantle, Cohere, DeepSeek, Vertex AI, Mistral AI, Ollama, OpenCode Go, OpenCode Zen, Groq, Parasail, ElevenLabs, Perplexity, SGLang, Cerebras, Gemini, OpenRouter, Hugging Face, Nebius Token Factory, xAI, Replicate, vLLM, Runway, Runware, Fireworks AI, Sarvam AI, Wafer, Databricks, GitHub Copilot, Typesafe) |
 | Endpoint (`base_url`) | optional http(s) URL; empty = the vendor's own API. **Required** for `ollama`, `vllm`, `sgl` ("An endpoint is required for this type"). Must be reachable **from the gateway host**, through the gateway peer's routes first and the host network second — not from the admin's browser or from management |
 | Credential | fields depend on the type (§1.2); write-only; the API returns `••••` plus the last 4 characters; sending the mask or an empty value keeps the stored value, **unless the type changed** (then the stored credential is discarded) |
 | Extra headers | sent with every request to the provider (an organisation id, for example) |
 | Skip TLS Verification (`insecure_skip_verify`) | accept the endpoint's certificate unverified: for a local or internal endpoint with its own CA |
-| Models | the **catalogue**: `name` (no spaces, unique in the provider, "model name … must not contain spaces", "model … is listed twice"), optional display name, enabled switch. A model's id is `<providerId>/<name>` |
+| Models | the **catalogue**: `name` (no spaces, unique in the provider, "model name … must not contain spaces", "model … is listed twice"), optional display name, enabled switch. In a filter's grants a model is `<provider id>/<name>` (the provider's record id, `29` §2.2); on the gateways clients call it `<ID>/<name>` |
 | Enable Provider | "A disabled provider is removed from every gateway; filters that grant its models grant nothing from it." |
 
 Catalogue versus grants: the provider's model list says what **exists**; a filter's
@@ -97,7 +98,10 @@ them in order and stays disabled on Connection until the connection is valid.
    typed by hand: `bedrock`, `bedrock_mantle`, `vertex`, `github-copilot`, `replicate`,
    `runway`, `runware`, `sarvam`, `wafer`, `opencode-go`, `opencode-zen`. Picker errors:
    "This provider does not list its models", "Could not list the models".
-3. **Name & Description.**
+3. **Name & Description:** Name, **ID** (above; editable only when creating, and only for
+   the types that take an ID of their choice), Description.
+
+The providers table shows the ID as `<ID>/` next to each provider's name.
 
 Discovery runs on management (20 s timeout) with the credential typed or stored; its
 answers name the cause: `the provider rejected the credential (HTTP 401)`, `the provider
@@ -112,7 +116,7 @@ differ.
 GET/POST /api/edge/providers ; GET/PUT/DELETE /api/edge/providers/{id} ; POST /api/edge/providers/discover
 ```
 ```json
-{"name":"Anthropic production","description":"","enabled":true,"type":"anthropic",
+{"name":"Anthropic production","slug":"anthropic-production","description":"","enabled":true,"type":"anthropic",
  "base_url":"","credential":{"api_key":"sk-ant-…"},"extra_headers":{},
  "insecure_skip_verify":false,
  "models":[{"name":"claude-sonnet-4-6","display_name":"Claude Sonnet 4.6","enabled":true}]}
@@ -131,9 +135,20 @@ meta `name, type, enabled, base_url, models_count`, never a credential).
 
 The gateway pulls the enabled providers with their enabled models and keys
 (`GET /api/ai-gateway/providers`, ETag) at start, every `--ai-policy-refresh` (60 s) and
-on every policy change, and applies the difference to its built-in upstream: the first
-provider of a type keeps the type's own name there, further ones become `nz-<id>`; a
-changed provider is removed and re-added; keyless types get no key. The key is held by
+on every policy change, and applies the difference to its built-in upstream: each
+provider under its **ID** (§1.1), so clients call its models `<ID>/<model>` on every
+gateway; a changed provider is removed and re-added; keyless types get no key.
+
+**Providers created before IDs existed** were each given an ID from their name when the
+server was upgraded (in creation order, with `-2`, `-3`… on a clash, and the type's name
+appended when the name alone would be a reserved type name). This replaces the earlier
+rule (the first provider of a type served under the type's name, further ones as
+`nz-<id>`). Clients that called a provider's models as `openai/…`, `anthropic/…` or
+`nz-…/…` must switch to `<ID>/…` when the provider's ID is different: read the ID in the
+providers table (or `slug` in `GET /api/edge/providers`) and tell the users of those
+clients. A bare model name (no `<ID>/`) is routed as before (`27` §1). A gateway whose
+management server is older than IDs receives none and keeps the earlier naming; upgrade
+management first. The key is held by
 the gateway process and never reaches a caller. The gateway is the only writer of its
 upstream's providers.
 
@@ -221,6 +236,8 @@ requests_max, requests_reset`).
 |---|---|---|
 | Refresh lists nothing / "Could not list the models" | wrong key; endpoint unreachable **from management**; type cannot list | check the error text; type the models by hand (Custom) |
 | Models listed but users get 400 `model X is not granted to this user` | no gateway filter grants it; the grant names another provider of the same type; model disabled in the catalogue | `29` §2.2 |
+| A client that worked before the upgrade now gets 400 `model openai/… is not granted` (or `anthropic/…`, `nz-…/…`) | the provider's ID is not the old name: models are `<ID>/<model>` (§1.5) | point the client at `<ID>/<model>`; the ID is in the providers table |
+| Creating a provider is refused: `the slug "…" is in use by the provider "…"` / `… is reserved for the … provider type` / `an account holds one … provider` | the ID clashes, is another type's name, or the type is served under its own name only (§1.1) | choose another ID; for a one-per-account type edit the existing provider instead |
 | Users get 400 `no model is granted to this user` / `none of this user's filters grants a model` | user in no group a gateway filter targets, or the matching filters grant no enabled model | fix the filter's groups/Models; enable the provider or model |
 | 502 / provider errors through the gateway for one provider | endpoint unreachable **from the gateway host**; TLS (private CA) → Skip TLS Verification or add the CA; wrong `base_url` form (`/v1` is not appended twice) | `journalctl -u netzilo-aigw` shows the upstream error at `--ai-upstream-log-level debug` |
 | Provider deleted/disabled, users still see its models in the Workplace | the Workplace card lists what the gateway answered at its last probe (30 s) | wait, or reload |

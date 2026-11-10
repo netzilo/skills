@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 20402
+chars: 20517
 sections:
 - id: '1'
   title: The shape of a workflow
@@ -21,7 +21,7 @@ sections:
   chars: 1135
 - id: '4'
   title: 'Workflow: a device shows Disconnected'
-  chars: 1235
+  chars: 1254
 - id: '5'
   title: 'Workflow: a device cannot reach a resource'
   chars: 1613
@@ -30,7 +30,7 @@ sections:
   chars: 1540
 - id: '7'
   title: 'Workflow: the user cannot sign in on a device'
-  chars: 1412
+  chars: 1485
 - id: '8'
   title: 'Workflow: grant a user access to a resource'
   chars: 1480
@@ -39,7 +39,7 @@ sections:
   chars: 1414
 - id: '10'
   title: 'Workflow: a Windows device after an install or upgrade'
-  chars: 1229
+  chars: 1252
 - id: '11'
   title: 'Workflow: the Workspace has no network or does not open'
   chars: 1217
@@ -141,7 +141,7 @@ read shows it did not happen.
 | Authorization | Diagnostics only; no change until a cause is confirmed |
 | Action | Device tools cannot reach a disconnected device. Work from the API fields (`last_seen`, `login_expired`, version), from what the person pastes (`netzilo status -d`, the tray message), and from the local shell if the surface has one. Trees: `references/38-device-diagnosis-method.md` §4.1 and §4.9 |
 | Recovery | Not applicable while nothing has been changed |
-| Verification | The device reports `connected: true` and answers `diag.status`; the person confirms the tray shows Connected |
+| Verification | The device reports `connected: true` and answers `diag.status`; the person confirms the Netzilo app's tray menu shows Connected |
 | Limits | If the person cannot run `netzilo up` or reach management from the device within one session, hand over: server reachability is `references/03-server-troubleshooting.md`; a corporate proxy or firewall is the customer's network team |
 | Record | Last seen time, whether login had expired, what the person saw locally |
 
@@ -175,7 +175,7 @@ read shows it did not happen.
 
 | Element | |
 |---|---|
-| Applicability | SSO-enrolled device; the tray or CLI shows a login prompt or session expired |
+| Applicability | SSO-enrolled device; the desktop app (its workplace picker, or a "Netzilo Session Expired" notice) or the CLI shows a login prompt or session expired |
 | Preconditions | Distinguish the cases by the reason text (`references/13-log-interpretation.md`, login rejections): login expired is normal after the account's expiry period; a blocked user or a deleted peer is an administrator's decision; a wrong identity-provider audience or a device clock error is a fault |
 | Authorization | The user signs in themselves (`netzilo up` or Connect). Changing login expiry, unblocking a user, or re-adding a peer are admin API writes |
 | Action | Expired: the person signs in. Blocked user: the admin decides; if approved, the write on the user object. Deleted peer: re-enrol the device (new peer; the old record is gone). Clock skew: fix the device clock. Audience or issuer mismatch: server configuration, `references/04-identity-and-sso.md` |
@@ -219,7 +219,7 @@ read shows it did not happen.
 | Authorization | Reads through `shell.run` (service state, event log, install logs) are immediate on an owned device; re-running an installer or removing a peer needs an explicit "yes" |
 | Action | Follow `references/40-windows-hosts.md` §4. If a reinstall produced a new peer, the admin removes the stale one; the user signs in once |
 | Recovery | There is none for a wiped configuration; say so before any uninstall |
-| Verification | Service `Netzilo` running, tray Connected, the peer present once in `GET /api/peers` with the current version |
+| Verification | Service `Netzilo` running, the desktop app's tray menu Connected, the peer present once in `GET /api/peers` with the current version |
 | Limits | Do not uninstall to "fix" a start failure until the event log and service log have been read; one reinstall per case |
 | Record | Installer type and switches, service and driver states, whether identity was lost |
 

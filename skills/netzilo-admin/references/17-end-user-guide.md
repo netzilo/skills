@@ -6,17 +6,17 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 20391
+chars: 22266
 sections:
 - id: '1'
   title: Tell people before you install, not after
   chars: 1073
 - id: '2'
   title: The page to publish
-  chars: 10462
+  chars: 11282
 - id: '3'
   title: Translating what the employee says
-  chars: 7250
+  chars: 8305
 - id: '4'
   title: What to tell an employee who asks what is monitored
   chars: 1013
@@ -66,13 +66,19 @@ Adapt the product and contact names to the customer's own.
 Netzilo connects your device securely to company systems. Once you have signed in it runs
 in the background and you should not need to think about it.
 
-**Signing in.** Open the Netzilo app and sign in with your work account. On a Mac the
+**Signing in.** Open the Netzilo app: its window lists your company's workplace as
+**Default Workplace**. Press **Connect** and sign in with your work account in the
+browser page that opens. If your company gave you another workplace address, use **Add
+Workplace** and enter it. After that the window shows your Workplace, and the Netzilo icon
+in the menu bar or system tray has **Open...**, **Connect** and **Disconnect**; closing
+the window leaves Netzilo running there. On a Mac the
 first launch asks you to approve the app in System Settings. There are **three separate
 approvals** and all of them are needed: a network extension, a security extension, and
 Full Disk Access for the security monitor. If you approve only the first, the app appears
 to work but protection is not active.
 
-**Checking it is working.** The app shows Connected when everything is in order. If it
+**Checking it is working.** The Netzilo icon's menu shows Connected when everything is in
+order. If it
 shows anything else, try the four steps below.
 
 **When something does not work**
@@ -106,9 +112,14 @@ what the app shows, whether other websites work, and roughly when it started.
 when this browser can check it — your devices, and, in the **AI Workspace**, a chat with
 the AI models and tools granted to you next to the AI gateways and MCP servers themselves,
 and manage your own profile, from the web portal your administrator will link (the
-**Workplace**). While the Netzilo app runs on the computer you open it from, the
-**Devices** panel next to your applications shows your devices and their connection
-quality, so you can check whether a device is connected without asking anyone. On
+**Workplace**). The same Workplace is the Netzilo app's window, and in your browser the
+**Workplace** button (a grid icon) at the top of the Netzilo extension's menu opens it; in
+the Netzilo Enterprise Browser it is the new tab. While the Netzilo app on the computer
+you open it from is connected and signed in as you, the **Devices** panel next to your
+applications shows your devices and their connection quality, so you can check whether a
+device is connected without asking anyone. If the app on that computer is signed in as
+someone else, or set up by your IT team without your account, the Workplace shows no
+devices there; that is expected. On
 Windows and Mac an **Onboarding Progress** panel lists **Install Client** and **Install
 Extension** until both are done; on an iPhone or iPad it offers **Install Enterprise
 Browser**. If you turn on **Display Status** in the menu under your name, the same panel
@@ -232,6 +243,9 @@ When an admin forwards a complaint, this maps it to a cause and the file that fi
 | "The approval page asks me for a code" / "is this code right?" | The device sign-in's approval page; the code must be the one the application shows. Compare, then Allow | §2 "Signing in Claude Desktop", `47-agentic-access-workplace.md` §5 |
 | "Everything is slow since this was installed" | Relayed connection, or an inspection rule doing too much work | `11-connectivity-diagnosis.md`, `10-ai-security-aidr.md` |
 | "The Workplace shows System Errors" / "a red panel shows Management Server — Disconnected" | The Netzilo app on that computer reports a lost connection: Management or Signal (red), all relays or all DNS servers failing (orange), some DNS servers failing (yellow). Shown only after **Display Status** is turned on in the user menu (Windows, macOS, iOS) | `07-client-troubleshooting.md`, `11-connectivity-diagnosis.md` |
+| "The Workplace shows no devices" / "it says Netzilo is not signed in" although the app says Connected | The Netzilo app on that computer is not the employee's own: signed in as someone else, set up with a setup key, or connected to another company's server. The Workplace shows only the user's own connected device | `47-agentic-access-workplace.md` §9.3 |
+| "The Netzilo window asks me to pick a workplace" / "This address is not a Netzilo workplace" / "Sign-in did not complete" | The workplace picker of a signed-out Netzilo app, extension or Enterprise Browser: press **Connect** on the company's workplace. The error means the address typed under **Add Workplace** is wrong (the app wants the management server address, the browser the Workplace address) or the sign-in was cancelled | `47-agentic-access-workplace.md` §9.2 |
+| "I can't find Network Routes / Admin Panel / Advanced in the Netzilo menu" | Removed from the app; routes are chosen with the command line, the dashboard is reached from the Workplace | `06-client-cli-reference.md` §5 |
 | "I can't see the page my colleague sees" | Role, not a fault. Most pages are admin-only | `25-users-groups-and-account-settings.md` |
 | "I was told to approve something on my Mac and I clicked no" | Extension approval declined; features silently inactive | `07-client-troubleshooting.md` |
 | "My work apps went blurry" | A workspace posture check is failing on the device (screen lock, disk encryption, antivirus…). The apps keep running; the blur clears when the check passes | `26-profiles-secure-workplace.md` §9 (blurred windows row), `21-posture-checks.md` |

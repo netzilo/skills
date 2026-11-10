@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 90375
+chars: 90704
 sections:
 - id: '1'
   title: Know which layout you are on
-  chars: 2364
+  chars: 2380
 - id: '2'
   title: Service inventory and health
   chars: 6237
@@ -22,7 +22,7 @@ sections:
   chars: 29646
 - id: '5'
   title: Configuration changes
-  chars: 2520
+  chars: 2833
 - id: '6'
   title: Backup
   chars: 16884
@@ -119,7 +119,7 @@ Files in `$C` and what they hold:
 | `Caddyfile` | reverse proxy + TLS; all routes for dashboard, API, gRPC, Zitadel | — |
 | `management.json` | management server config | `DataStoreEncryptionKey`, `InternalAPIToken`, IdP client secret, TURN password, `SupportConfig.WorkerToken`; with database encryption on, the `EncryptionConfig` block (a Vault token or a local key when those are used, `52-database-encryption.md`) |
 | `zitadel.env` | Zitadel runtime config | **`ZITADEL_MASTERKEY`** (irreplaceable), DB passwords |
-| `dashboard.env` | dashboard runtime config (auth, package mirror) | `NETZILO_MSP_KEY` |
+| `dashboard.env` | dashboard runtime config (auth, package mirror, workplace name) | `NETZILO_MSP_KEY` |
 | `turnserver.conf` | coturn | TURN static credential |
 | `.env` | plain-text copy of admin username/password | admin password |
 | `machinekey/` | bootstrap service-account PAT (expired 30 min after install; harmless) | — |
@@ -749,6 +749,7 @@ cd "$C" && sudo docker compose up -d --force-recreate <service>
 | Change | Edit | Recreate |
 |---|---|---|
 | Package/download mirror shown in the dashboard | `dashboard.env` → `NETZILO_PKG_BASE_URL=https://mirror.example.com` (must mirror the `/download/...` and `/debian/` layout) | `dashboard` |
+| The workplace's name in the desktop app's and the extension's workplace picker | `dashboard.env` → `NETZILO_WORKPLACE_NAME=Acme Corp` (unset = no name; the picker shows the address). It is served as `"name"` in `https://<domain>/.well-known/netzilo.json` (`47-agentic-access-workplace.md` §9.4) | `dashboard` |
 | Management log level | `docker-compose.yml` management `command:` → `"--log-level", "debug"`; revert to `info` afterwards (`03-server-troubleshooting.md` §11) | `management` |
 | Zitadel log level | `zitadel.env` → `ZITADEL_LOG_LEVEL=info` | `zitadel` |
 | TURN relay port range | `turnserver.conf` `min-port`/`max-port` (and open the same UDP range) | `coturn` |

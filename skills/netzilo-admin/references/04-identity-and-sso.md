@@ -6,7 +6,7 @@ requires:
 - server-shell
 executable_on:
 - human-operator
-chars: 24269
+chars: 26332
 sections:
 - id: '1'
   title: How users get into the account
@@ -34,7 +34,10 @@ sections:
   chars: 2124
 - id: '9'
   title: Quick checks
-  chars: 413
+  chars: 419
+- id: '10'
+  title: How a device signs a person in
+  chars: 2057
 ---
 # Netzilo — Identity, Users, SSO and MFA Administration
 
@@ -361,3 +364,37 @@ curl -sS -o /dev/null -w "console %{http_code}\n" https://$D/ui/console/
 curl -sS -o /dev/null -w "zitadel ready %{http_code}\n" https://$D/debug/ready
 sudo docker compose logs --tail=200 zitadel | grep -iE "smtp|error" | tail -n 20
 ```
+
+---
+
+## 10. How a device signs a person in
+
+What happens when `netzilo up`, or **Connect** in the desktop app, needs an SSO sign-in.
+The client tries these in order and uses the first that is available:
+
+1. **Through the Workplace's sign-in (dashboard hand-over)** — on a desktop (macOS,
+   Windows, Linux with a desktop session) when the dashboard's
+   `/.well-known/netzilo.json` lists `"client_auth": ["pkce"]` (current dashboards do) and
+   the server has a PKCE flow. The browser opens the dashboard's sign-in page; once the
+   user is signed in there, the identity provider sends the code back to a listener the
+   client opens on the device's own `localhost` (the `Cli` application's redirects,
+   `http://localhost:53000/` or `:54000/`, §3). The browser then lands on the dashboard's
+   `/nb-client-login` page: a "success" card that moves on to `/workplace` after a second,
+   or a failure card. Because the code returns to `localhost`, a sign-in link opened on
+   another machine delivers nothing. Not used on mobile or on Linux without a desktop.
+   The client's debug log says `using dashboard PKCE authentication flow`.
+2. **The browser-session flow** — the dashboard signs the device in with the browser's
+   dashboard session (`client session authentication not configured` when the server
+   lacks it, §5.1).
+3. **PKCE directly with the identity provider**, then the **device-code flow** as the
+   fallback; on Linux without a desktop, the device-code flow directly.
+
+`netzilo up --device-code` (and `netzilo login --device-code`) skips all of this and asks
+for the device-code flow: the terminal shows a page and a code, and the person signs in
+on any phone or computer (`06-client-cli-reference.md` §2). Use it over SSH, or when the
+browser is not on the device.
+
+The dashboard's sign-in, sign-out and hand-over pages (`/nb-auth-x`, `/nb-logout`,
+`/publish-auth`, `/nb-client-login`) share one status card: the Netzilo mark (the
+tenant's logo where one is set), a spinner, check or cross, a title, a line of text and
+**Cancel** or **Log out**.

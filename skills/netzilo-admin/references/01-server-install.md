@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 35922
+chars: 36409
 sections:
 - id: '0'
   title: What gets installed (all paths)
   chars: 5876
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
-  chars: 9336
+  chars: 9823
 - id: '2'
   title: Path B — AWS Marketplace (CloudFormation)
   chars: 4401
@@ -297,6 +297,13 @@ if any required artifact (database dumps, `management.json`, `zitadel.env`,
 `docker-compose.yml`, `Caddyfile`, `dashboard.env`, `turnserver.conf`, provided
 certificates) is missing. Agree a date for the isolated restore rehearsal (§6.4); until
 one has passed the customer is not disaster-recovery ready, and say so in the handover.
+
+**Workplace name.** The desktop app and the browser extension list the server in their
+workplace picker by the name in `https://<domain>/.well-known/netzilo.json`; no install
+path sets one, so they show the address. To show a name, add
+`NETZILO_WORKPLACE_NAME=<name>` to `dashboard.env` and recreate the dashboard
+(`02-server-operations.md` §5). Check: `curl -s https://<domain>/.well-known/netzilo.json`
+shows `"product": "netzilo-server"`, the `"name"` and `"client_auth": ["pkce"]`.
 
 **Database encryption** is off after every install. For production, set up a key store
 and turn it on (`52-database-encryption.md`; HashiCorp Vault on-prem, AWS KMS on the AWS

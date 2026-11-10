@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 68726
+chars: 69480
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 12937
+  chars: 13647
   requires:
   - api
   executable_on:
@@ -46,7 +46,7 @@ sections:
   chars: 7823
 - id: '11'
   title: Troubleshooting
-  chars: 13998
+  chars: 14042
 - id: '12'
   title: Introducing it to existing installations
   chars: 2472
@@ -274,7 +274,7 @@ by default, plus any it was connected to) and the *active* one. Extension 5.0.46
   portal registered (its descriptor, or its first sign-in); one naming another API is
   refused.
 - **An unknown portal** (a self-hosted server the extension has not seen): the Workplace
-  shows *Netzilo extension — connect to this server*; the button asks the extension, which
+  shows *Netzilo Workplace* — *You are not connected to this server.* with **Connect Workplace**; the button asks the extension, which
   reads the server's descriptor itself (`https://<portal>/.well-known/netzilo.json`, served
   by every dashboard) and shows **its own confirmation over the page** (an extension
   frame the page can neither read nor click; its buttons arm only once the frame has been
@@ -285,6 +285,14 @@ by default, plus any it was connected to) and the *active* one. Extension 5.0.46
   at most once a minute per server). A site without the descriptor cannot be connected,
   and the window says so. A page that is not a known portal learns only that the
   extension is installed, never which server it follows.
+- **The extension's own Workplace page** (the popup's **Workplace** button,
+  `47-agentic-access-workplace.md` §9): signed out, it shows the workplace picker, whose
+  list is this registry. **Add Workplace** reads the address's descriptor the same way
+  (https only, `"product": "netzilo-server"`) and adds it; **Connect** signs in at that
+  portal in the same tab, which switches the extension to it as above. With `lockPortal`
+  and `activePortal` the picker lists only that portal, with no Add and no Forget. The
+  name shown for a portal is the descriptor's `name`, which the dashboard takes from its
+  `NETZILO_WORKPLACE_NAME` environment variable (`47` §9.4).
 - **Logout** counts only from the active portal; a logout on another server's tab is ignored.
 - **A connected desktop client** owns the login: no portal event switches or signs the
   extension out.
@@ -982,7 +990,7 @@ matching enabled profile for the OS, or the profile is Disabled).
 | the activity log fills with *Peer access blocked* for `vp-<n>-PROXY` peers | the reasons | expected for policies with endpoint checks (§3.4); scope those policies' source groups, or leave it |
 | Workplace shows **Private access · Suspended** | the hover (the extension's own reason); the popup's Private access row; §10.3 for the user | the extension has no proxy installed or its last gateway probe failed: it is off, logged out or paused, its proxy setting is blocked (the reason says so), or the gateway is down (`/readyz`); it turns Online within 15 s of the gateway answering the extension |
 | Workplace still shows **Devices** on a browser-only computer | the popup | the user's routing is off for this browser (§3.2), so no private access is expected; or a Netzilo client answers on this computer |
-| Workplace shows *Netzilo extension — connect to this server* although the user is signed in | the popup's server line | the extension follows another server (§3.4a); press the button, confirm in the extension's window |
+| Workplace shows *Netzilo Workplace* — *You are not connected to this server.* with **Connect Workplace** although the user is signed in | the popup's server line | the extension follows another server (§3.4a); press the button, confirm in the extension's window |
 | the Connect window says the site is not a Netzilo server | `curl -s https://<portal>/.well-known/netzilo.json` | the dashboard is older than the descriptor, or a proxy blocks `/.well-known/`; update the dashboard, allow the path |
 | private access stopped after visiting another customer's portal | the popup's server line | the extension switched to the portal that signed in last (§3.4a); sign in again on the intended one, or set `lockPortal` by policy |
 | popup button says **Session expired – Login**; Workplace shows Applications only | the popup row's hover text ("credential refused") | the token lapsed while the browser was closed and the renewal failed; open the Workplace (5.0.460+ signs the extension in from the dashboard's session) or click Login |

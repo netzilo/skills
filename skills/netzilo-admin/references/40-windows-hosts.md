@@ -7,20 +7,20 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 31299
+chars: 31569
 sections:
 - id: '1'
   title: What is on a Windows host
-  chars: 5079
+  chars: 5252
 - id: '2'
   title: Install, upgrade, uninstall (what each keeps or wipes)
-  chars: 5690
+  chars: 5699
 - id: '3'
   title: Deploying at scale (Intune/SCCM/GPO, device context, proxies, switches)
-  chars: 3097
+  chars: 3144
 - id: '4'
   title: Service and driver failures
-  chars: 3075
+  chars: 3086
 - id: '5'
   title: DNS on Windows
   chars: 2236
@@ -35,15 +35,15 @@ sections:
   chars: 3584
 - id: '9'
   title: Multi-user and RDP hosts
-  chars: 1133
+  chars: 1140
 - id: '10'
   title: Collecting evidence safely
   chars: 1394
 ---
 # Netzilo — Windows Hosts (install, services, drivers, DNS, filter, posture)
 
-Windows is the platform where the client is more than one process: a service, a tray
-application, kernel drivers, a network filter, an optional workspace, and an installer
+Windows is the platform where the client is more than one process: a service, a desktop
+app (tray and Workplace window), kernel drivers, a network filter, an optional workspace, and an installer
 that behaves differently depending on who runs it and from where. Most Windows tickets
 are one of those pieces in an unexpected state, and the fix is usually a registry key, a
 service name or an event-log query rather than a client command. This file gives the
@@ -61,7 +61,7 @@ the first active user session (§9).
 ## 1. What is on a Windows host
 
 **Folders.** Program files live in `%ProgramData%\Netzilo Client\`: `netzilo.exe` (CLI
-and service), `netzilo-ui.exe` (tray), `installer.exe` (install, upgrade, uninstall),
+and service), `netzilo-ui.exe` (the desktop app: tray icon and Workplace window, `06` §5), `installer.exe` (install, upgrade, uninstall),
 `launcher.exe` (the `nz://` protocol handler), `nzcontainer.exe` (workspace),
 `afhelper64.exe`, `nwfilter.exe` and `nwfilter.dll` (AI network filter user-mode part),
 `nwfilter64.sys` and `ntzldrv.sys` (drivers), `wintun.dll`, and the `sandbox\`, `imdisk\`
@@ -112,7 +112,7 @@ Name,Enabled,AllowLocalFirewallRules` shows which case you are in (§6).
 
 | Key | Meaning |
 |---|---|
-| `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `Netzilo` | tray autostart for that user. Quitting the tray removes it; the next start of the tray recreates it. The tunnel is the service's and is unaffected |
+| `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `Netzilo` | desktop app autostart for that user; it starts the app in the tray only (`--minimized`; a per-user install adds `--nonadmin=true`). **Quit** in the tray removes it (admin installs); the next start of the app recreates it. The tunnel is the service's and is unaffected |
 | `HKLM\Software\Netzilo`, `HKCU\Software\Netzilo` | installer and workspace state; removed by uninstall |
 | `HKLM\System\CurrentControlSet\Control\NetziloPendingReboot` | set when a running driver could not be replaced; cleared by a reboot (§2) |
 | `HKLM\System\CurrentControlSet\Control\NetziloDebug` (REG_MULTI_SZ) | components whose native logs are turned on, `*` for all; the logs are the encrypted ones above |
@@ -147,7 +147,7 @@ laptop" — comes only from `NONADMIN=1` / `-na`, a tenant configuration that as
 an ARM64 machine.
 
 **What install does.** Copies the program files to `%ProgramData%\Netzilo Client\`,
-installs and starts the drivers and the `Netzilo` service, registers the tray autostart,
+installs and starts the drivers and the `Netzilo` service, registers the desktop app's autostart,
 appends `%ProgramData%\Netzilo Client` to the machine `Path` (user `Path` in
 non-administrator mode), writes the plain installer log to `%ProgramData%\Netzilo\`. On ARM64 it installs the
 network client only: no drivers, no workspace, no AI network filter.
@@ -198,7 +198,7 @@ dialog text, run the pack with `-s` interactively on the affected machine (`48` 
 | Reboot handling | `/norestart` or `REBOOT=ReallySuppress`; schedule the reboot yourself when the MSI returns `3010` or `NetziloPendingReboot` exists | the package schedules a reboot when a running driver must be replaced; without suppression a silent install can restart the machine |
 | Proxies | give the machine identity a proxy (WinHTTP or a system proxy policy) if the network requires one; or use offline/MSI | a `SYSTEM` context has no user proxy settings |
 | Pre-seeding | `CONFIGFILE=<path>` on the MSI (a `deploy-user` file: a service token creates the user and a token, and the device signs in with it — no SSO), or a setup key after install | `48` §10 — read its cautions (the token is left in the installer account's temp folder; `apiurl` replaces the identity) |
-| Enrolment | user devices: sign-in in the tray after install. Servers and kiosks: `netzilo.exe up --setup-key <KEY>` from an elevated shell | `references/05-client-install-and-deploy.md` §1 |
+| Enrolment | user devices: **Connect** in the desktop app after install (its workplace picker or tray menu). Servers and kiosks: `netzilo.exe up --setup-key <KEY>` from an elevated shell | `references/05-client-install-and-deploy.md` §1 |
 | Detection rule | file `%ProgramData%\Netzilo Client\netzilo.exe` and service `Netzilo` — never the MSI ProductCode, which changes every build | `HKLM\Software\Netzilo` `Version` also exists; `C:\Program Files\Netzilo` does **not** |
 | Security software | allowlist `%ProgramData%\Netzilo Client\`, the drivers `nwfilter64.sys` and `ntzldrv.sys`, and the two named pipes | see §7 |
 
@@ -228,7 +228,7 @@ has no drivers is a non-administrator install; its client log is
 
 | Symptom | Evidence | Cause | Fix |
 |---|---|---|---|
-| service `Netzilo` stops immediately / tray says the service is not running | `service.log` has `failed to start daemon:` | configuration file is unreadable or corrupt | move `config.json` aside and start the service; the device re-enrols as a new peer (§2 consequences apply), so try repairing the file's permissions first |
+| service `Netzilo` stops immediately / the desktop app says the service is not running | `service.log` has `failed to start daemon:` | configuration file is unreadable or corrupt | move `config.json` aside and start the service; the device re-enrols as a new peer (§2 consequences apply), so try repairing the file's permissions first |
 | same, log has `failed to listen daemon interface` | `netstat -ano \| findstr 40836` shows another process | the daemon port is taken | free the port or set `--daemon-addr` in the service arguments |
 | service starts, restarts in a loop | Service Control Manager events: `Get-WinEvent -FilterHashtable @{LogName='System';ProviderName='Service Control Manager'} -MaxEvents 50 \| ? Message -match Netzilo` | crash on start; the recovery action restarts it | read `service.log` and the last `client.log` lines; a driver that fails to load usually precedes it |
 | drivers not running | `sc.exe query ntzldrv`, `sc.exe query nwfilter`, `sc.exe query NtzlSb` show STOPPED | blocked by Memory Integrity (HVCI), a code-integrity policy or security software | `Get-WinEvent -LogName Microsoft-Windows-CodeIntegrity/Operational -MaxEvents 30`; allowlist the drivers; on ARM64 the drivers are simply not installed |
@@ -372,7 +372,7 @@ hosts:
 - Any RDP session on the host makes the Virtual Device signal fire (§8). Do not attach a
   Virtual Device check to a policy whose source group contains session hosts or machines
   that people reach over RDP.
-- The tray runs per session; one user quitting it removes only their own autostart (§1).
+- The desktop app runs per session; one user quitting it removes only their own autostart (§1).
 - A non-administrator install is per user: each user has their own client, port, and
   `usservice<N>.json` / `.log`. Two such users on one machine are two peers.
 

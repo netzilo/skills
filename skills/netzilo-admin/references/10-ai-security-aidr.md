@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 45213
+chars: 45431
 sections:
 - id: '1'
   title: Architecture in one page
@@ -26,7 +26,7 @@ sections:
   chars: 4658
 - id: '6'
   title: Browser extension and Enterprise Browser
-  chars: 4866
+  chars: 5084
 - id: '7'
   title: The AI Gateway and MCP
   chars: 2709
@@ -358,8 +358,10 @@ line 5.1.x. Everything below in full, with the diagnosis table, is
 Play `com.netzilo.browser2`, App Store `6747919491`. Windows MSI silent install
 (per-machine, system context):
 `msiexec /i netzilo_enterprise_browser.msi /qn /norestart TENANT=https://<your Workplace address> SHORTCUTNAME="Acme Browser"`.
-Add `FORCETENANT=1` to lock the browser to that Workplace (users can no longer pick
-another one on the new tab). Pass the properties on **every** install and upgrade (they
+Add `FORCETENANT=1` to lock the browser to that Workplace (a signed-out new tab lists
+only that Workplace, with **Connect**; users cannot add or sign in to another one). Without it the
+new tab is the Workplace with the workplace picker while signed out
+(`47-agentic-access-workplace.md` §9, `48-installer-command-lines.md` §13.5). Pass the properties on **every** install and upgrade (they
 are not remembered), and note that the tenant is also the browser's update host — every
 switch, the EXE alternative that keeps update checks working, macOS (DMG only, no tenant)
 and uninstall: `48-installer-command-lines.md` §13–16.

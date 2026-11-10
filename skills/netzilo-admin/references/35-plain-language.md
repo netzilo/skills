@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 11164
+chars: 12131
 sections:
 - id: '1'
   title: When an identifier belongs in the answer
   chars: 817
 - id: '2'
   title: Areas of the product
-  chars: 7203
+  chars: 8170
 - id: '3'
   title: 'Objects: names, not ids'
   chars: 599
@@ -84,6 +84,8 @@ dashboard; if a customer's build shows a different label, theirs wins.
 | a response action — an isolation (the AI Kill Switch) or an inspection | Edge → Governance → Actions tab; a session's **Response Action** menu | `/api/ai/controls` |
 | the user's gateways and MCP servers, their AI Gateway token | Workplace → AI Workspace → Gateways & MCP Servers panel | `/api/users/current/ai-access` |
 | a chat with the granted models and MCP tools | Workplace → AI Workspace | the gateway's `/v1/chat/completions` and `/mcp/<slug>` |
+| the Workplace on a computer: the Netzilo app's window, the extension's Workplace page, the Enterprise Browser's new tab | the desktop app (tray → **Open...**); the extension popup's **Workplace** button; a new tab in the Enterprise Browser | the same calls as the dashboard's Workplace; `/api/users/current/device` for this computer's client |
+| the workplace picker (choosing which server to sign in to) | the desktop app or the extension's Workplace page while signed out | none: the app's or extension's own list |
 | an event / the activity log | Activity → Events | `/api/events`, `/api/events/paginated` |
 | an AI session (a recorded agent conversation, LLM or MCP) | Edge → Sessions; the home page's Agentic Activity, **View** | `/api/ai/sessions` |
 | a report | Activity → Reports | `/api/reports` |
@@ -99,10 +101,12 @@ scanners, catalogue) in this release.
 | **guardrail** | a detection rule (YAML) bound by a filter; its verdict is allow, detect (report), redact, block or redirect. Formerly "scanner" — do not use that word for the object; "the AI scanner" inside a rule's `scan` action keeps its name |
 | **endpoint filter** | a filter of type Endpoint: groups × operating systems (and optionally Agents) on devices; binds guardrails the Netzilo client enforces |
 | **gateway filter** | a filter of type Gateway: groups of users; grants models, limits, MCP servers and bundles, lists the gateway addresses, binds guardrails the AI gateway enforces |
+| **provider ID** | the short name of a provider (its `slug`) that clients put before a model: `<ID>/<model>` on every gateway; set when the provider is created and never changed |
 | **model grant** | an entry in a gateway filter's Models tab, `provider/model` or a whole provider; without one the user is refused at the gateway with "no model is granted to this user" |
 | **limit** | a spend, token or request quota, applied per user per gateway; the lowest value wins when several filters apply |
 | **MCP server / MCP bundle** | an admin-defined server the gateway serves at `<gateway>/mcp/<slug>`; a bundle is one endpoint that combines tools of several servers |
 | **Agentic Access** | how a user connects their own AI tools from the Workplace: the Gateways & MCP Servers panel of the AI Workspace, where they see their gateways and MCP servers, create their AI Gateway token and sign in to per-user MCP servers (a tab of that name only in the previous layout at `/my`) |
+| **desktop app** | the Netzilo app on a computer: a tray (menu-bar) icon with Connect, Disconnect and Support, and a window that shows the Workplace. Say "the Netzilo app"; the tray of earlier versions had Admin Panel, Network Routes and Advanced, which are gone |
 | **AI Workspace** | the Workplace section with a chat over the user's AI gateway: the granted models, the MCP servers the user attaches, each tool call approved by the user (Manual) or not (Autopilot); history kept in the browser |
 | **AI Gateway** | the Netzilo AI Gateway (`netzilo-aigw`), a peer of the account that identifies callers as users and applies their gateway filters; not the clientless-access gateway on 8443, although the same binary serves both |
 | **browser extension** (as an AI enforcement point) | the Netzilo extension in Chrome, Edge, Firefox or Safari running the same governance engine as the client and the gateway: it applies the endpoint filters whose Operating Systems include **Browser** to the signed-in user's AI use in the page. Say "the extension governs the browser"; it is not a device, not a peer, and not the Enterprise Browser (which bundles it) |

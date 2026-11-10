@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 51522
+chars: 51685
 sections:
 - id: '1'
   title: How it works
-  chars: 7646
+  chars: 7678
 - id: '2'
   title: Requirements
   chars: 1514
@@ -34,7 +34,7 @@ sections:
   - human-operator
 - id: '7'
   title: What the gateway pulls from management, and when
-  chars: 1773
+  chars: 1904
   requires:
   - api
   executable_on:
@@ -127,7 +127,8 @@ gateway filters that target the user's groups (cached for `--ai-policy-refresh`,
 
 1. **Model access** — the request's model must be granted by one of the user's gateway
    filters (`29-edge-filters.md` §2.2). A bare model name is routed to the granted
-   provider that serves it; `provider/model` must be granted for that provider. Nothing
+   provider that serves it; `<ID>/<model>` (the provider's ID, `45` §1.1) must be granted
+   for that provider. Nothing
    granted, or an ungranted model, is refused with HTTP 400 (`type: netzilo_policy`;
    gateways before October 2026 answered 403).
 2. **Limits** — spend, token and request quotas from the user's filters, enforced by the
@@ -522,9 +523,10 @@ All with the service token:
 
 What was applied to the upstream is remembered in `<data-dir>/ai-applied.json` so a
 restart leaves an unchanged upstream and every user's spend counters alone. A provider
-that changes is removed and re-added; the first provider of a type keeps the type's own
-name in the upstream, further ones become `nz-<id>`; keyless types (`ollama`, `vllm`,
-`sgl`) get no key. Each user gets one virtual key (`netzilo:user:<id>`) carrying their
+that changes is removed and re-added under its **ID** (slug, `45-ai-gateway-providers-and-limits.md`
+§1.1): clients call its models `<ID>/<model>` on every gateway, and a provider whose ID is
+its type's name (`openai`, `anthropic`, …) is served as that standard provider; keyless
+types (`ollama`, `vllm`, `sgl`) get no key. Each user gets one virtual key (`netzilo:user:<id>`) carrying their
 grants, MCP servers and the combined limits; it is replaced when any of those change,
 which **restarts that user's counters**.
 

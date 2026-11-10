@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 24495
+chars: 25578
 sections:
 - id: '1'
   title: What a regular user can see through the API
@@ -18,7 +18,7 @@ sections:
   chars: 2164
 - id: '3'
   title: The questions a regular user brings, and where each one ends
-  chars: 12089
+  chars: 13172
 - id: '4'
   title: Ending on the administrator's side of the boundary
   chars: 1814
@@ -137,6 +137,8 @@ administrator.
 |---|---|---|
 | "I can't log in" / "it keeps asking me to sign in" | `GET /api/peers` — `login_expired` and `connected` on their device; `GET /api/users?self=true` works at all (a blocked user gets nothing). A device that needs a login usually has no management connection, so device tools cannot reach it: ask for `netzilo status` output (it shows `Daemon status: NeedsLogin` or `LoginFailed`) or a screenshot of the Netzilo window. If the device is reachable, `diag.status` reports the same in its `status` string (for example `"NeedsLogin"`) | Their side if it is a browser or the wrong identity provider account; **administrator** if the login expired under a policy they cannot change, or the user is blocked |
 | "Netzilo is not connected" / "red icon" | if `device_tools` reaches the device: `diag.status` (management, signal, relay state), then `diag.logs` tail. If it says offline, the management connection is down: `last_seen` from `GET /api/peers`, and ask for `netzilo status -d` output or a screenshot | Device: network, captive portal, VPN conflict, service not running (`38-device-diagnosis-method.md` §4, *not connected*) |
+| "The Workplace shows no devices" / "it says Netzilo is not signed in" although the app on that computer says Connected | `GET /api/peers` — is the device on that computer in their list (they see only their own devices) and `connected`? The Workplace shows a computer's devices only for the user's own connected device on the same server (`47-agentic-access-workplace.md` §9.3) | Their side: sign the app in as themselves (**Connect** in the Netzilo app, or `netzilo up`). **Administrator** when the device was enrolled with a setup key or for someone else on purpose (a shared machine): then it is expected |
+| "The Netzilo window asks me to pick a workplace" / "This address is not a Netzilo workplace." / "Sign-in did not complete." | which app shows it (the Netzilo app, the extension's Workplace page, the Enterprise Browser) and the address they typed | Their side: **Connect** on **Default Workplace**, or **Add Workplace** with the right address — the Netzilo app wants the management server address, the extension and Enterprise Browser the Workplace address (`47` §9.2) |
 | "I can't reach X" | `diag.route_match` for X, `diag.dns` for its name, `diag.probe`; `GET /api/policies` and `/api/routes` show whether anything reaching X applies to their device at all | Device if the name does not resolve or the route is missing locally; **administrator** if the route matches but the probe is refused (a policy, a group the person is not in, a posture check) |
 | "Some site is slow" / "everything is slow since Netzilo" | `diag.status` — relayed or direct; `diag.route_match` — is that traffic even going through Netzilo | Device for a relayed connection or a broad route; note it for the administrator if all peers relay |
 | "A posture warning" / "my device is non-compliant" | `diag.posture` — the exact signal and its value on this OS (`38-device-diagnosis-method.md` §3 for what each signal means per platform) | Device: update the OS, turn on the disk encryption or screen lock the warning names; **administrator** if the check cannot be true on this platform |

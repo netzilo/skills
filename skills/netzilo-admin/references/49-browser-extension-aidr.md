@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 20956
+chars: 21390
 sections:
 - id: '1'
   title: Model
@@ -17,7 +17,7 @@ sections:
   chars: 2097
 - id: '3'
   title: Sign-in and the stand-down rule
-  chars: 1788
+  chars: 2222
 - id: '4'
   title: '`fail_mode` (managed policy)'
   chars: 714
@@ -137,6 +137,12 @@ filters from management. The popup shows **Protection: Active** or **Protection:
 Inactive** (with a reason when protection is paused), and **Logout**. A refused token
 whose renewal failed shows a Login button again: the user is not signed in for real
 until they do.
+
+**The popup's header buttons:** **Workplace** (grid icon), Pause, Help (support) and
+Refresh. **Workplace** opens the extension's own Workplace page in a new tab: the same
+Workplace as the dashboard's (`47-agentic-access-workplace.md` §9), and, while the
+extension is signed out, the workplace picker (`47` §9.2), from which the user can also
+sign the extension in at a workplace. In the Enterprise Browser that page is the new tab.
 
 **Stand-down.** When the Netzilo desktop client on the same device governs the browser,
 the extension stands down: it neither judges nor reports, so nothing is governed twice.

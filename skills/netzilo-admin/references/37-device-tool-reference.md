@@ -8,7 +8,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 27308
+chars: 27343
 sections:
 - id: '0'
   title: The contract every tool shares
@@ -24,7 +24,7 @@ sections:
   chars: 1185
 - id: '4'
   title: '`diag.routes` and `diag.route_match` — what goes through Netzilo'
-  chars: 2064
+  chars: 2099
 - id: '5'
   title: '`diag.dns` and `diag.probe` — resolution and reachability from the device'
   chars: 4349
@@ -216,8 +216,9 @@ Never ask for the file's contents; it holds the WireGuard private key.
 `network`, `selected`, `domains[]`, and `resolvedIPs` as a map from domain to
 `{ips: [...]}`. It fails with `not connected` while the engine is down.
 
-**`selected` is only the person's choice** (`netzilo routes select`/`deselect`, or the
-tray's Network Routes menu; routes are selected by default). An absent `selected` means
+**`selected` is only the person's choice** (`netzilo routes select`/`deselect`, the only
+place to choose routes — the desktop app has no routes menu; routes are selected by
+default). An absent `selected` means
 the route exists for this device but is switched off here. `selected: true` does **not**
 mean the route is installed: a route whose routing peer is not connected carries nothing.
 Check the routing peer in `diag.status` `{"full": true}`: it should be in `peers[]` with
