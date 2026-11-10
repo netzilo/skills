@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 69930
+chars: 70499
 sections:
 - id: '1'
   title: Method
@@ -23,7 +23,7 @@ sections:
   chars: 40098
 - id: '5'
   title: The management log
-  chars: 19660
+  chars: 20229
 - id: '6'
   title: Correlating client and server
   chars: 1548
@@ -475,6 +475,7 @@ using Redis store engine (cached)  |  using Postgres store engine  |  using SQLi
 using Postgres as persistent backend for Redis cache                 ← only with the Redis engine
 GORM Config: …
 Database connection pool configured: MaxOpen=N, MaxIdle=N, MaxLifetime=…, MaxIdleTime=…
+database encryption on: key <id> wrapped by <provider> (<key>), N retired key(s) readable   ← only with database encryption on (52)
 starting cache warmup...
 backfill graph correlations: normalising N graph run(s)
 backfill graph correlations: run <uuid>: insert failed: … duplicate key value violates unique constraint …   ← WARN, benign on every restart
@@ -530,6 +531,7 @@ Rows marked **debug** appear only with `--log-level debug` (§5.5).
 | `ai usage: N endpoint record(s) dropped: not in a session of their user` (WARN) | a device sent records for a session that is not its user's (or, for a setup-key peer, not the peer's); they are dropped |
 | `aidr observations from peer <id>: <err>` (WARN), `… N dropped: they name another user's AI session` | the device's behaviour batch was refused, or part of it named a session that is not its user's and was dropped |
 | `auto migrate: …` / `failed creating Store` / `failed retrieving a new idp manager` / `unsupported store type` at start | fatal start-up problems — `03` §2 |
+| `database encryption: …` | database encryption (`52-database-encryption.md`). INFO lines at start (`created data encryption key`, `encrypting <table> done, N rows in …`, `key … rewrapped from … key version …`) are expected; `key provider <name>: … (retrying in …)` is an unreachable key store; `a value of <table>.<column> does not decrypt and is returned as stored` and `another instance turned encryption on` need action — `52` §9 |
 | `dropped table tools` / `dropped table discovered_tools` / `dropped table discovered_tool_calls`, `deleted N global guardrail row(s)`, `filter <id>: dropped N guardrail reference(s) that no longer exist`, `idx_events_account_timestamp created` — in the start sequence | the migration of the release that removed Edge Tools, discovered tools and the global guardrail catalogue, and that added an index on events. **Expected once**, at the first start after the upgrade; a filter line names a filter whose guardrail list was trimmed of ids that no longer exist. Not an error, whatever the level |
 
 Because API refusals are not logged at `info` and server failures are, a healthy server

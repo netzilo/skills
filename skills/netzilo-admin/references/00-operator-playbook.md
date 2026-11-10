@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 32269
+chars: 32614
 sections:
 - id: '1'
   title: Rules of engagement
@@ -23,10 +23,10 @@ sections:
   chars: 6960
 - id: '5'
   title: Canonical facts (memorize)
-  chars: 4935
+  chars: 5104
 - id: '6'
   title: Known product gaps to warn about proactively
-  chars: 4758
+  chars: 4934
 - id: '7'
   title: Closing a task
   chars: 329
@@ -332,7 +332,7 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Server ports (inbound) | 22 (admin CIDR), 80, 443, 3478 tcp+udp, 5349 tcp+udp; 49152–65535/udp on cloud templates; 8443/tcp for the clientless-access gateway; 6379 must never be public |
 | Server containers | `caddy dashboard management signal zitadel coturn postgres redis support-worker gateway reverse-proxy` (eleven; `support-worker` = AI Assistant agent, internal only, absent on engines/images published before 2026-09; `gateway` = clientless access on `8443`, absent on older installs and on plain-HTTP installs, added in place with `43` §6; `reverse-proxy` = published applications behind Caddy on `443`, present only when an application domain was given at install, added in place with `44` §8.3) |
 | Server state dirs | on-prem `/opt/netzilo`; images `/opt/netzilo/run` (compose) + `/opt/netzilo` (state); credentials `/opt/netzilo/CREDENTIALS` |
-| Server secrets that cannot be recovered | `ZITADEL_MASTERKEY` (`zitadel.env`). The installer also writes `DataStoreEncryptionKey` to `management.json`, but the server encrypts nothing with it |
+| Server secrets that cannot be recovered | `ZITADEL_MASTERKEY` (`zitadel.env`); with database encryption on, the key store's key (`52-database-encryption.md`). The installer also writes `DataStoreEncryptionKey` to `management.json`, but the server encrypts nothing with it |
 | Domain | permanent once installed; must not be `*.netzilo.com` |
 | Zitadel console | `https://<domain>/ui/console` |
 | Client binary / service | `netzilo` / service `Netzilo`; config `/etc/netzilo/config.json` or `%PROGRAMDATA%\Netzilo\config.json`; log `client.log` next to it |
@@ -347,7 +347,7 @@ It is a tool you may use; it is never evidence about the customer's environment.
 | Free plan limits (cloud) | 5 users, 100 peers; no posture-check edits, no event streaming; Enterprise needed for Profiles; filters and guardrails carry no plan gate; self-hosted runs unlimited |
 | AI Gateway | binary `netzilo-aigw`, installed and started as the service `netzilo-aigw` by `sudo netzilo-aigw up <run flags>` (systemd, launchd or a Windows service; `status` / `down` / `uninstall`), settings `/var/lib/netzilo-gateway/netzilo-aigw.json` (root only), data `/var/lib/netzilo-gateway` (`/var/lib/netzilo-aigw` for gateways moved from the earlier `aigw.env` unit); ports 8447 (AI door: on the peer's tunnel address always, public with `--ai-listen`) and 8443 (browser-access proxy, always on); `--workplace-url https://go.netzilo.com` on Cloud; callers send `Authorization: Bearer <token>` (never `x-api-key`); surfaces `<gateway>/v1/…`, `<gateway>/anthropic` (`…/v1/messages`), `<gateway>/mcp/<slug>`; model grants and guardrails on chat completions, the Responses API and the Anthropic surface, streamed answers included (held about 1 KB, so redactable); embeddings and text completions counted, not inspected; policy refusals HTTP 400 `type: netzilo_policy` (403 on gateways before October 2026); sign-in metadata on the gateway's own origin (`<gateway>/.well-known/oauth-authorization-server`, endpoints under `/.netzilo/oauth2/`); Claude Desktop endpoint `<gateway>/anthropic` + **Sign in with your organization**; logs `journalctl -u netzilo-aigw` (`27-ai-gateway.md`) |
 | Edge filters | endpoint: ≥1 group and ≥1 OS (`Browser` = the browser extension); gateway: ≥1 group and ≥1 model grant; guardrails optional on both, but without one nothing is judged (`29` §1) |
-| Provider keys, MCP credentials | stored as plain JSON in the management database (no field-level encryption), masked in the API and dashboard, pulled in clear by every gateway's service token (`14` §8, `45` §5) |
+| Provider keys, MCP credentials | stored in the management database, encrypted when database encryption is on (on Netzilo Cloud it is; self-hosted servers turn it on with `52`), plain JSON otherwise; masked in the API and dashboard, pulled in clear by every gateway's service token (`14` §8, `45` §5) |
 | Support | support@netzilo.com; docs `https://doc.netzilo.com` (for agents: index `https://doc.netzilo.com/llms.txt`, full text `https://doc.netzilo.com/llms-full.txt`); public rule corpus `github.com/netzilo/aidr-sigma` |
 
 ---
@@ -386,11 +386,13 @@ It is a tool you may use; it is never evidence about the customer's environment.
   chat completions, the Responses API and the Anthropic surface are governed (`27` §1).
   Streamed answers reach the caller about 1 KB behind the model so that they can be
   redacted; warn users of a short delay on long answers.
-- **Secrets in the management database are not encrypted at rest**: Edge provider keys,
-  users' MCP credentials, the AI provider keys under Integrations, integration secrets and
-  setup keys are stored in plain form, and activity events (with user names and e-mails)
-  likewise; access tokens are stored only as hashes. Anyone with database access, or a
-  gateway's service token for the gateway-side credentials, can read them
+- **Secrets in the management database are encrypted only with database encryption on**:
+  Edge provider keys, users' MCP credentials, the AI provider keys under Integrations,
+  integration secrets, setup keys, access tokens, activity event details (with user names
+  and e-mails) and AI conversations. Netzilo Cloud runs with it on. A self-hosted server
+  runs with it off until the operator configures a key store and turns it on
+  (`52-database-encryption.md`); until then anyone with database access or a backup can
+  read them. Either way a gateway's service token reads the gateway-side credentials
   (`14-data-handling-and-privacy.md` §8, `02-server-operations.md` §6.1). Restrict both.
 - **Profile domain settings saved from older dashboards**: an exception's **Expires in**
   entered in hours was stored as minutes (re-enter and save), and **Prevent LLM Prompt

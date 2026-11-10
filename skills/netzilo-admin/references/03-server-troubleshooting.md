@@ -6,14 +6,14 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 31597
+chars: 31976
 sections:
 - id: '1'
   title: Nothing loads / certificate problems
   chars: 1839
 - id: '2'
   title: A container is unhealthy or restarting
-  chars: 4277
+  chars: 4656
 - id: '3'
   title: Cannot log in to the dashboard
   chars: 2763
@@ -119,6 +119,7 @@ and rotate per `02-server-operations.md` §8.2.
 | `postgres` | `FATAL: … max_connections`, disk errors, `could not write` | disk full, too many clients | `df -h`; see §6; lower pool sizes (`02-server-operations.md` §5) |
 | `postgres` | `database files are incompatible with server` | someone changed the `postgres:16` tag | restore the `postgres:16` tag; never bump major without dump/restore |
 | `management` | `failed creating Store: …` / `NETBIRD_STORE_ENGINE_POSTGRES_DSN is not set` | DSN env missing/edited, DB down | check `docker-compose.yml` management env; `docker compose ps db` |
+| `management` | `failed creating Store: …: database encryption: …`, or `EncryptionConfig.…` at start | database encryption on, and the key store is unreachable or refuses the key, or the block is incomplete or was removed | the reason after `database encryption:` is in the table of `52-database-encryption.md` §9. Never turn encryption off by editing `management.json` alone |
 | `management` | `failed retrieving a new idp manager with err: … configuration is incomplete, X is missing` | `management.json` `IdpManagerConfig` broken | restore from backup (`config.tgz`); fields required: ClientID, ClientSecret, TokenEndpoint, ManagementEndpoint, GrantType |
 | `management` | `failed fetching OIDC configuration from endpoint https://<domain>/.well-known/openid-configuration` | Zitadel not up yet, or Caddy not resolving the domain internally | wait for Zitadel; check `extra_hosts` in compose maps `<domain>` to the host IP / `172.20.0.1`; `docker exec management getent hosts <domain>` |
 | `management` | `failed creating datadir` | volume permission | `sudo docker volume ls \| grep netzilo_management`, then `docker volume inspect <name>`; permissions on `/var/lib/docker` |

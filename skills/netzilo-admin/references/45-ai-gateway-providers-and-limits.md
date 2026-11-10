@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 14380
+chars: 14506
 sections:
 - id: '1'
   title: Providers
@@ -23,7 +23,7 @@ sections:
   chars: 1923
 - id: '5'
   title: Limits to state before a customer discovers them
-  chars: 1054
+  chars: 1180
 ---
 # Admin Skill — AI Gateway Providers, Models and Limits
 
@@ -245,8 +245,10 @@ lines (`27` §9.2).
 - **Embeddings and text completions are gated only by the virtual key** (`27` §1): an
   ungranted model there gets the upstream's own refusal, not Netzilo's `netzilo_policy` refusal; the chat,
   Responses and Anthropic surfaces get Netzilo's refusal.
-- **A key is stored on the server unencrypted**: the credential fields are kept as plain
-  JSON in the management database (no field-level encryption), write-only through the
+- **How a key is stored**: the credential fields are encrypted in the management database
+  when database encryption is on (Netzilo Cloud; self-hosted servers with
+  `52-database-encryption.md`) and kept as plain JSON otherwise; write-only through the
   API, never shown again in the dashboard (masked), and delivered in clear to the
-  gateways' service token. Treat database access and the gateway's service user as
-  holding every provider key (`14-data-handling-and-privacy.md`).
+  gateways' service token. Treat the gateway's service user, and on a server without
+  database encryption also database access, as holding every provider key
+  (`14-data-handling-and-privacy.md`).

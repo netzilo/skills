@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 24762
+chars: 24805
 sections:
 - id: '1'
   title: MCP server — field reference
@@ -35,7 +35,7 @@ sections:
   chars: 3457
 - id: '9'
   title: Limits to state before a customer discovers them
-  chars: 1356
+  chars: 1399
 ---
 # Admin Skill — MCP Servers, MCP Bundles and Sign-ins (AI Gateway)
 
@@ -385,8 +385,9 @@ result text.
 - **No tool listing on management.** Which tools a server has is known only to the
   gateway at runtime (the Tools tab of the Workplace's server dialog asks a gateway). A grant names tools by
   the names you type; a typo grants nothing and nothing warns.
-- **Secrets are stored on the server unencrypted at the field level** (masked in the
-  API, clear to the gateway's service token, as provider keys are).
+- **Secrets are stored as provider keys are**: encrypted in the database when database
+  encryption is on (`52-database-encryption.md`), masked in the API, clear to the
+  gateway's service token.
 - **Sign-in flows live in one management process** for 10 minutes — MCP-server
   sign-ins, connector sign-ins and device sign-ins alike; several replicas need session
   affinity, and a management restart drops sign-ins mid-flight.

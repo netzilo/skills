@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 89048
+chars: 90375
 sections:
 - id: '1'
   title: Know which layout you are on
-  chars: 2225
+  chars: 2364
 - id: '2'
   title: Service inventory and health
   chars: 6237
@@ -19,16 +19,16 @@ sections:
   chars: 1203
 - id: '4'
   title: Upgrading
-  chars: 29457
+  chars: 29646
 - id: '5'
   title: Configuration changes
-  chars: 2332
+  chars: 2520
 - id: '6'
   title: Backup
-  chars: 16379
+  chars: 16884
 - id: '7'
   title: Restore
-  chars: 9055
+  chars: 9361
 - id: '8'
   title: TLS certificates
   chars: 3490
@@ -117,7 +117,7 @@ Files in `$C` and what they hold:
 |---|---|---|
 | `docker-compose.yml` | 10 services (9 without the gateway, 11 with `reverse-proxy`), images, volumes, management env/command, gateway and reverse-proxy options | Postgres admin password, `NETZILO_MSP_KEY`, `SUPPORT_WORKER_TOKEN` |
 | `Caddyfile` | reverse proxy + TLS; all routes for dashboard, API, gRPC, Zitadel | — |
-| `management.json` | management server config | `DataStoreEncryptionKey`, `InternalAPIToken`, IdP client secret, TURN password, `SupportConfig.WorkerToken` |
+| `management.json` | management server config | `DataStoreEncryptionKey`, `InternalAPIToken`, IdP client secret, TURN password, `SupportConfig.WorkerToken`; with database encryption on, the `EncryptionConfig` block (a Vault token or a local key when those are used, `52-database-encryption.md`) |
 | `zitadel.env` | Zitadel runtime config | **`ZITADEL_MASTERKEY`** (irreplaceable), DB passwords |
 | `dashboard.env` | dashboard runtime config (auth, package mirror) | `NETZILO_MSP_KEY` |
 | `turnserver.conf` | coturn | TURN static credential |
@@ -517,6 +517,9 @@ customer wants to keep that rollback point.
 - It does not change `management.json`, the `Caddyfile`, `turnserver.conf` or the
   identity provider's keys. They are files on the host and the new version reads them as
   they are. If a version needs a setting that is missing, it says so in its log at start.
+  An `EncryptionConfig` block stays, and an upgrade never turns database encryption on;
+  after an upgrade of a server that has it on, run the checks of
+  `52-database-encryption.md` §6.2.
 - It does not require clients to be upgraded. There is no protocol version gate; clients
   keep working across a server upgrade (§16).
 - It does not renew or reissue certificates, change the domain, or alter the plan.
@@ -753,6 +756,7 @@ cd "$C" && sudo docker compose up -d --force-recreate <service>
 | Zitadel DB pool | `zitadel.env` `ZITADEL_DATABASE_POSTGRES_MAXOPENCONNS` etc. | `zitadel` |
 | Management DB pool | `docker-compose.yml` management env `NETBIRD_DB_MAX_OPEN_CONNS` (200) / `NETBIRD_DB_MAX_IDLE_CONNS` (100) | `management` |
 | Bind Redis to loopback | `docker-compose.yml` redis `ports: - "127.0.0.1:6379:6379"` | `redis` |
+| Database encryption (turn on, move the key, turn off) | `management.json` `EncryptionConfig`; never by editing alone — follow `52-database-encryption.md` §6, §8.3, §8.4 | `management` |
 
 **Do not** edit `management.json` OIDC/issuer fields, `zitadel.env` domain fields or
 `Caddyfile` site names to "move" the server to a new domain — see §8.
@@ -784,12 +788,13 @@ backup; never proceed with a destructive operation on the strength of one.
 
 | Artifact | Required? | Why |
 |---|---|---|
-| `netzilo` database dump | **Required** | accounts, peers, groups, policies, routes, setup keys, users, and every stored credential as written, unencrypted: Edge provider credentials (plain JSON), users' MCP credentials, the AI providers' API keys under Integrations, integration secrets, and the setup keys in clear. Access tokens are stored only as hashes. Treat every dump as a secret |
+| `netzilo` database dump | **Required** | accounts, peers, groups, policies, routes, setup keys, users, and every stored credential: Edge provider credentials, users' MCP credentials, the AI providers' API keys under Integrations, integration secrets, setup keys and access tokens. Without database encryption these are in the dump as written, in clear; with it they are ciphertext and the dump also holds the wrapped data key (`52-database-encryption.md` §8.1). Treat every dump as a secret |
 | `zitadel` database dump | **Required** | identities, passwords, OIDC applications, instance configuration |
 | Database roles (`globals.sql`, bundled database) | **Required** | the identity provider's login role and its password |
 | Management data volume (`/var/lib/netzilo` in the container) | **Required** | management data directory |
 | `docker-compose.yml` | **Required** | image references, database admin password, `NETZILO_MSP_KEY`, worker token, `extra_hosts` |
-| `management.json` | **Required** | IdP client secret, TURN password, worker token, `InternalAPIToken`; also `DataStoreEncryptionKey`, which the installer writes but current management does not read (nothing in the database is encrypted with it — restore it unchanged anyway) |
+| `management.json` | **Required** | IdP client secret, TURN password, worker token, `InternalAPIToken`, the `EncryptionConfig` block when database encryption is on; also `DataStoreEncryptionKey`, which the installer writes but current management does not read (nothing in the database is encrypted with it — restore it unchanged anyway) |
+| The database encryption key store | **Required** when database encryption is on; not part of this backup | the Vault, KMS or Key Vault key that wraps the data key, still enabled, and an identity of the restored server allowed to use it. With a local key, the key itself, kept apart from these backups (`52-database-encryption.md` §8.1) |
 | `zitadel.env` | **Required** | **`ZITADEL_MASTERKEY`** (without it the identity database is unreadable), database credentials |
 | `dashboard.env`, `Caddyfile`, `turnserver.conf` | **Required** | dashboard, proxy and relay configuration; all bound to the domain |
 | `certs/fullchain.pem`, `certs/privkey.pem` | **Required** in `provided`/`selfsigned` TLS mode | the certificate and key Caddy and coturn serve; not present in Let's Encrypt mode |
@@ -1147,6 +1152,10 @@ Constraints that cannot be worked around:
   `turnserver.conf`. Point the DNS `A` record at the new host.
 - `ZITADEL_MASTERKEY` must be the original (it is in `config.tgz`); restore
   `management.json` unchanged as well.
+- With database encryption on, the new host must reach the key store with an identity
+  allowed to use the key **before** management starts: a new VM has a new managed
+  identity or instance role to grant, and the key store's network rules must admit the
+  new host (`52-database-encryption.md` §5, §8.1).
 
 Procedure:
 

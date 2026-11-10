@@ -7,6 +7,37 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.12.0 — 2026-11-10
+
+Database encryption: the sensitive columns of the management database encrypted with a
+key in a key store the customer controls. Minor version: a new runbook.
+
+- New `52-database-encryption.md`: what it protects and what stays readable (§1), how it
+  works (data key wrapped by the key store's key, used at start only, background pass,
+  Redis, cost; §2), choosing a key store (§3), the pre-flight including the support check
+  and the two rules every customer must accept (§4); setting up HashiCorp Vault (transit
+  key, policy, token / AppRole / Kubernetes auth, every field; §5.1), AWS KMS (key, alias,
+  instance-role policy with the encryption context, the metadata hop limit for
+  containers, region; §5.2), Azure Key Vault (vault with purge protection and a delete
+  lock, a wrap/unwrap-only key, the role for the VM's managed identity, network, versionless
+  key URL; §5.3) and a local key (§5.4); turning it on for the on-prem one-liner and the
+  AWS and Azure images (§6.1), on servers installed before it existed and after every
+  update (§6.2), on Kubernetes with workload identity, IRSA or Vault Kubernetes auth and a
+  readiness probe (§6.3); every `NETZILO_ENCRYPTION_*` variable (§6.4); the `encryption
+  status` check (§7); backups and restore, key rotation per key store, moving the key with
+  `rewrap`, turning it off with `decrypt`, what never to do (§8); a troubleshooting table
+  of every start-up and runtime message (§9); security notes (§10).
+- `00`, `14` §2 and §8, `45`, `46`: stored credentials are encrypted when database
+  encryption is on (Netzilo Cloud runs with it on; self-hosted servers turn it on with
+  `52`). Corrected: access tokens are stored with the token itself as well as its hash,
+  not only as a hash.
+- `02`: §1 and §6.1 list `EncryptionConfig` and the key store among what a restore needs;
+  §4.9 an upgrade keeps the block and never turns encryption on; §5 a row for it; §7.2 the
+  new host's identity must be granted on the key before management starts.
+- `01` §1.6, §2.3, §3.2: database encryption is off after every install, with the key store
+  each delivery path uses. `03` §2, `13` §5.2 and §5.4: the start-up line and the
+  `database encryption:` families. `15` §4: a leaked copy of the management database.
+
 ## 4.11.0 — 2026-10-28
 
 The new Workplace: a menu instead of the header and tabs, the **AI Workspace** (a chat

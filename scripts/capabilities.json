@@ -300,5 +300,10 @@
     "requires": [
       "api"
     ]
+  },
+  "52-database-encryption.md": {
+    "requires": [
+      "server-shell"
+    ]
   }
 }

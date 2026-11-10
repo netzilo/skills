@@ -7,7 +7,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 12470
+chars: 13100
 sections:
 - id: '1'
   title: Before you touch anything
@@ -20,7 +20,7 @@ sections:
   chars: 1272
 - id: '4'
   title: Suspected compromised or leaked credential
-  chars: 1292
+  chars: 1922
 - id: '5'
   title: Departing employee
   chars: 949
@@ -114,6 +114,7 @@ that is now useless because the server no longer recognises the peer.
 | A setup key | Delete or expire it, then audit every peer that enrolled with it and remove any you do not recognise |
 | The AI inspection certificate authority key on a device | Treat the device as compromised, rebuild it. The key is per-device |
 | A server secret, such as the database password or the identity provider master key | This is a server rebuild. Follow `02-server-operations.md` for backup and restore, and change the secret as part of the restore rather than in place |
+| A copy of the management database (a dump, a backup, a snapshot) | With database encryption on (`52-database-encryption.md`) and the key store not exposed, the copy holds ciphertext for credentials, tokens, setup keys and conversations: confirm in the key store's audit log that no unexpected unwrap happened. Without it, treat every stored credential as leaked: rotate the AI Gateway provider keys and MCP credentials, the AI provider keys under Integrations, integration secrets, setup keys and access tokens; then turn encryption on so later copies are protected. Copies made before encryption was turned on stay plaintext |
 
 After any credential incident, check whether the same credential is embedded in
 automation. A deleted token breaks every script using it, which is correct but should be

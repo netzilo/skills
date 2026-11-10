@@ -6,20 +6,20 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 35335
+chars: 35922
 sections:
 - id: '0'
   title: What gets installed (all paths)
   chars: 5876
 - id: '1'
   title: Path A — On-prem / any Linux server (one-liner)
-  chars: 9087
+  chars: 9336
 - id: '2'
   title: Path B — AWS Marketplace (CloudFormation)
-  chars: 4206
+  chars: 4401
 - id: '3'
   title: Path C — Azure Marketplace (managed application)
-  chars: 2481
+  chars: 2624
 - id: '4'
   title: Variant — external PostgreSQL
   chars: 1119
@@ -298,6 +298,10 @@ if any required artifact (database dumps, `management.json`, `zitadel.env`,
 certificates) is missing. Agree a date for the isolated restore rehearsal (§6.4); until
 one has passed the customer is not disaster-recovery ready, and say so in the handover.
 
+**Database encryption** is off after every install. For production, set up a key store
+and turn it on (`52-database-encryption.md`; HashiCorp Vault on-prem, AWS KMS on the AWS
+image, Azure Key Vault on the Azure image); include it in the handover.
+
 The **AI Assistant** is installed and healthy but stays hidden until an owner connects
 an AI provider and approves a model for Assistant under Integrations → Artificial
 Intelligence (`30-activity-reports-and-integrations.md` §4a). No model key ships with
@@ -358,6 +362,10 @@ Credentials are in `/opt/netzilo/CREDENTIALS` and `/etc/motd`, and in SSM as abo
 Metering (`METERING_ENABLED=1`, dimension `users`) runs hourly — see
 `02-server-operations.md` §12.3.
 
+Database encryption with AWS KMS uses the instance role the stack created; it needs a KMS
+policy on that role and the instance metadata hop limit raised to 2
+(`52-database-encryption.md` §5.2).
+
 ### 2.4 What the AMI carries
 
 - **Ten containers, all baked.** The image ships every container including
@@ -411,7 +419,9 @@ DB parameters are not exposed in the wizard (container mode).
 4. Run the §1.5 gates.
 
 The VM has a system-assigned identity with `Reader` on the resource group; metering
-uses it to discover the managed-application resource id.
+uses it to discover the managed-application resource id. Database encryption with Azure
+Key Vault uses the same identity: grant it the key role on your vault's key
+(`52-database-encryption.md` §5.3).
 
 ### 3.3 What the Azure image carries
 
