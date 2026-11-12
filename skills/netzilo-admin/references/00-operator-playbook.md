@@ -7,20 +7,20 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 32614
+chars: 32793
 sections:
 - id: '1'
   title: Rules of engagement
   chars: 3399
 - id: '2'
   title: What Netzilo is (30-second model)
-  chars: 3346
+  chars: 3443
 - id: '3'
   title: 'Triage: route the request'
   chars: 8160
 - id: '4'
   title: Intake checklist (in this order)
-  chars: 6960
+  chars: 7042
 - id: '5'
   title: Canonical facts (memorize)
   chars: 5104
@@ -131,7 +131,9 @@ this folder. Read it fully before your first action.
   adds, in any browser (`44` §4.2).
 
 Delivery paths for the server: on-prem one-liner (`/opt/netzilo`), AWS Marketplace AMI
-and Azure Marketplace image (`/opt/netzilo/run`), or Netzilo Cloud (nothing to install).
+and Azure Marketplace image (`/opt/netzilo/run`), Red Hat OpenShift from the Netzilo Helm
+charts (namespace `netzilo`, `53-openshift-install.md`), or Netzilo Cloud (nothing to
+install).
 
 ---
 
@@ -247,8 +249,9 @@ decides what runs without an approval step (`36-device-tools.md` §1–§2).
 
 Then the scope questions:
 
-- Self-hosted: delivery path (on-prem / AWS / Azure), layout (`/opt/netzilo` vs
-  `/opt/netzilo/run`), and **shell access to the server** whenever the task touches server
+- Self-hosted: delivery path (on-prem / AWS / Azure / OpenShift), layout (`/opt/netzilo` vs
+  `/opt/netzilo/run`, or the `netzilo` namespace), and **shell access to the server** (on
+  OpenShift: `oc` with cluster-admin) whenever the task touches server
   logs, container state, certificates, upgrades or backups (`SKILL.md` → "Self-hosted: ask
   for SSH to the server too").
 - Who is affected: one device, one user, everyone? Since when? What changed?

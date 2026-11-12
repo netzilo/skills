@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 90704
+chars: 91106
 sections:
 - id: '1'
   title: Know which layout you are on
@@ -55,7 +55,7 @@ sections:
   chars: 884
 - id: '16'
   title: Answers to the architecture questions customers ask
-  chars: 1918
+  chars: 2320
 - id: '17'
   title: Migrating the database engine
   chars: 1191
@@ -1506,16 +1506,21 @@ consent.
 
 ## 16. Answers to the architecture questions customers ask
 
-**There is no high availability for the server.** Every delivery path builds a single
+**There is no high availability for the server.** Every VM delivery path builds a single
 host running one database, one identity provider instance with one master key, and one
-relay. There is no supported multi-node, clustered or load-balanced configuration.
+relay. On OpenShift each Netzilo component is one pod (Management and Signal keep each
+device's session in the pod that serves it, so they must not be scaled out); OpenShift
+restarts a failed pod and Postgres can have replicas (`53-openshift-install.md` §1).
+There is no supported multi-replica or load-balanced configuration of the server itself.
 Resilience comes from backup and restore to a new host, not from live failover. Say this
 directly: the question is asked in most enterprise reviews and a vague answer invites a
 follow-up. Routing-peer high availability is a different feature and is well supported.
 
-**Kubernetes is not a customer deployment target.** The three shipped paths are the
-on-premises installer, the AWS image and the Azure image. There is no published chart.
-Clients can of course run in Kubernetes; the server cannot.
+**Red Hat OpenShift is a deployment target; other Kubernetes distributions are not.** The
+shipped paths are the on-premises installer, the AWS image, the Azure image and, on
+OpenShift, the Netzilo Helm charts Netzilo gives the customer (`53-openshift-install.md`).
+There is no public chart repository: the charts come as a directory. Clients run in any
+Kubernetes.
 
 **Relay bandwidth is not capped.** The relay ships without per-session or per-user
 bandwidth limits, so throughput is bounded only by the host's network and processor.

@@ -305,5 +305,10 @@
     "requires": [
       "server-shell"
     ]
+  },
+  "53-openshift-install.md": {
+    "requires": [
+      "server-shell"
+    ]
   }
 }

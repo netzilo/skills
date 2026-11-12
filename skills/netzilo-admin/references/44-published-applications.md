@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 82980
+chars: 83121
 sections:
 - id: '1'
   title: How it works
@@ -43,7 +43,7 @@ sections:
   chars: 1532
 - id: '8'
   title: Self-hosted installation
-  chars: 10200
+  chars: 10341
 - id: '9'
   title: Configuration reference
   chars: 2880
@@ -782,6 +782,9 @@ printed (`02-server-operations.md` §4.10.2, case 1), which also holds the Caddy
 the `apps-certs/` it staged.
 
 ### 8.4 Kubernetes
+
+On Red Hat OpenShift the `net-reverse-proxy` chart deploys it when the install has an
+applications domain (`53-openshift-install.md` §6.7).
 
 The reverse proxy is its own Deployment with a data volume, a ClusterIP service on its
 publish port, an Ingress for `*.<domain>` with a wildcard certificate (DNS-01 through the

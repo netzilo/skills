@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 69480
+chars: 73135
 sections:
 - id: '1'
   title: How it works
@@ -16,7 +16,7 @@ sections:
   chars: 1901
 - id: '3'
   title: Turning it on for users
-  chars: 13647
+  chars: 15634
   requires:
   - api
   executable_on:
@@ -37,7 +37,7 @@ sections:
   chars: 4441
 - id: '8'
   title: Kubernetes and other orchestrators
-  chars: 1514
+  chars: 1707
 - id: '9'
   title: Configuration reference
   chars: 3266
@@ -46,7 +46,7 @@ sections:
   chars: 7823
 - id: '11'
   title: Troubleshooting
-  chars: 14042
+  chars: 15517
 - id: '12'
   title: Introducing it to existing installations
   chars: 2472
@@ -178,7 +178,7 @@ tab **Proxy**. API: the profile's `components.extension_proxy`:
 |---|---|
 | **Disabled (default)** | no proxy; the extension removes anything it installed |
 | **Automatic** | the computed PAC, following every change to routes, DNS and policies |
-| **Custom PAC** | the admin's script verbatim (must define `FindProxyForURL`, at most 64 KiB); route to the gateway with `"HTTPS <host>:<port>"` |
+| **Custom PAC** | the admin's script (must define `FindProxyForURL`, at most 64 KiB); route to the gateway with `"HTTPS <host>:<port>"`. With a corporate proxy, what the script leaves `DIRECT` goes to it (§3.3) |
 
 **Generate** (Custom PAC) fills the editor with what Automatic would serve for chosen user
 groups (1 to 200) on a chosen operating system, evaluating posture checks for a current
@@ -191,8 +191,20 @@ name. Avoid overlapping profiles with different proxy settings for the same user
 
 ### 3.3 Corporate proxies
 
-Automatic mode only. **Corporate proxy** = *None (direct)*, *Proxy host:port*, or *PAC
-URL*.
+Automatic and Custom PAC. **Corporate proxy** = *None (direct)*, *Proxy host:port*, or
+*PAC URL*.
+
+- **Custom PAC with a corporate proxy.** *Proxy host:port*: management serves the admin's
+  script chained with it. The script decides first and is not edited; every answer other
+  than `DIRECT` is kept, and `DIRECT` becomes `PROXY <host:port>; DIRECT`. The browser's
+  own machine (`localhost`, loopback, link-local) and the gateway host always stay direct.
+  A `DIRECT` the admin meant as "direct" also goes to the corporate proxy, as in Automatic.
+  *PAC URL*: the extension chains it behind the custom script, as in Automatic. The stored
+  profile keeps the admin's script as written; `GET /api/users/current/routing`
+  (`custom_pac`) and `/api/users/current/pac` serve the chained one. A management from
+  before this change refuses the combination with *the corporate proxy applies to
+  automatic mode; a custom PAC routes everything itself*: update management, then the
+  dashboard.
 
 - A proxy set in the **browser** (fixed or PAC) is detected by the extension and chained:
   everything the Netzilo PAC does not send to the gateway goes to it. Nothing to
@@ -214,11 +226,12 @@ gateway host).
 | Check | Evaluated against |
 |---|---|
 | OS version | the OS and version the browser reports. **Approximate for a session**: the gateway reads them from the User-Agent, where Chromium freezes macOS at `10.15.7` and Windows 11 still says `10.0`. Management's routing prefers the version the extension reads from the browser itself, so the PAC and the session can disagree (below) |
-| Netzilo version | the extension's version |
+| Netzilo version | the gateway's own version, the same for every session on that gateway (the guest inside the gateway is the client that evaluates the checks); the extension's version is not used |
 | Geolocation, peer network range | the browser's public IP address (§7.4 for a gateway on another host) |
 | Process | always fails for browser sessions |
 | Netzilo endpoint checks (firewall, antivirus, disk encryption, …) | always fail for browser sessions when enforced |
 | **Netzilo Gateway** (Advanced Endpoint Settings) | **passes only for browser sessions**: the guest reports itself as a gateway session; every device with the client reports false |
+| **Netzilo Extension** (Advanced Endpoint Settings) | passes only for the **extension's own sessions** (its credential carries the extension's device assertion); a session from curl or a script fails it |
 
 A **published application's** own posture checks are a different door: there the
 Workplace page collects richer evidence (the extension, the Enterprise Browser's
@@ -258,6 +271,15 @@ endpoint items, is recorded as *Peer access blocked* with the reason *Endpoint c
 cannot be satisfied by a browser session* (or the failing item's reason). Many browser users
 in the source groups of endpoint-gated policies therefore produce many such events; they
 record the design working, not a fault.
+
+**Connections the session's policy drops.** A connection to a route's address that no
+rule of the user's policies allows (a port the rule does not list, or a rule whose posture
+check the session fails) is dropped inside the session's own tunnel. The browser or curl
+waits for the 20-second connect timeout and gets `504`, and the activity log records
+*Target access blocked* (`peer.access.target.blocked`) for the session's peer with the
+target address and port. Together with the *Peer access blocked* event naming the policy
+and posture check, that explains a `504` without debug logs. Connections to another peer's
+own tunnel address are not reported this way.
 
 ### 3.4a Several servers: which one the extension follows
 
@@ -739,6 +761,10 @@ public IP, not the gateway's.
 
 ## 8. Kubernetes and other orchestrators
 
+On Red Hat OpenShift the `net-gateway` chart deploys the gateway on the ingress's address
+(`53-openshift-install.md` §5.1, §6.7); what follows is the container's contract for any
+other setup.
+
 The container contract, whatever runs it:
 
 | Item | Value |
@@ -851,7 +877,7 @@ management` (node mode), `session limit reached`, `no TLS certificate yet`, `dra
 ### 10.3 Sessions in the Peers list
 
 - Each browser session is a peer named `vp-<n>-PROXY` in the user's account, platform
-  *browser*, showing the browser's OS, the extension version as its client version, the
+  *browser*, showing the browser's OS, the gateway's version as its client version, the
   browser's public IP and location. The number is the gateway's own counter; two gateways
   can each have a `vp-1-PROXY` (their DNS labels differ); identify a session by its peer
   id, user and device.
@@ -919,7 +945,14 @@ defaults cap one gateway at 2000 sessions and 5 per user.
 ### 11.1 Test the path without a browser
 
 From any machine that can reach the gateway, with a real user's token (a personal access
-token works; the user name is free text):
+token works). The credential is HTTP Basic (`Proxy-Authorization: Basic`, which
+`--proxy-user` sends): the token goes in the **password**, the user name is free text
+except three reserved names. `netzilo` is the extension's and is challenged (`407`)
+without its device assertion; `netzilo-web` and `netzilo-api` belong to the published-app
+listener and are refused on the proxy port. A posture string after the user name
+(`user;v1;…`) is honoured only for `netzilo`. A `Bearer` header, an empty password or a
+service user's token (it names no current user) also gets `407`. All of one user's
+credentials without the extension's assertion share one session.
 
 ```bash
 export TOKEN=nzl_...     # the user's token; never paste it into a ticket
@@ -974,13 +1007,15 @@ matching enabled profile for the OS, or the profile is Disabled).
 | browser: "proxy connection failed" / `ERR_PROXY_CONNECTION_FAILED` / `ERR_TUNNEL_CONNECTION_FAILED` | `openssl s_client -connect <gw>:8443` from the user's network | port 8443 blocked (cloud rule, §6.4), wrong Gateway proxy address, or a certificate the browser does not trust or for another name |
 | browser: `ERR_EMPTY_RESPONSE` for internal sites | the PAC's proxy line | a custom PAC uses `PROXY host:8443`; the gateway speaks TLS, use `HTTPS host:8443` |
 | a password prompt for the proxy | the popup | the extension is not logged in or not the one answering: log in; a second proxy extension may be interfering |
-| `407` repeatedly with a correct token | gateway log `credential refused …` | token for another server, expired, or the user is outside the bound account (§4.3) |
+| `407` repeatedly with a correct token | gateway log `credential refused …` | token for another server, expired, or the user is outside the bound account (§4.3); a reserved user name, a `Bearer` header or a service user's token (§11.1). A refused token is remembered for 1 minute: retest after that |
 | `429 too many devices for this user` | log `already has 5 browser sessions` | idle sessions end after 60 minutes; or raise `--max-devices-per-user` |
 | `429 too many failed logins` | log `blocked for 5m0s` | wait 5 minutes; find what keeps presenting a wrong token |
 | `503` with `Retry-After` | `/readyz` | management unreachable, session limit, or the session's tunnel was not ready in 30 s; the browser retries |
 | `403` for one internal site, others work | the user's policies, guest line `Posture check … FAILED` | the policy excludes that resource for this user, or a posture check fails for browsers (§3.4) |
 | `403` for the gateway host or a link-local address | — | refused by design; reach that service another way |
-| `504` / `502` | debug log for that destination | the resource did not answer through the tunnel within 20 s, or refused; check the routing peer and the resource (`11-connectivity-diagnosis.md`) |
+| `504` | activity log *Target access blocked* for the session's peer; debug log `Route ACL check for <ip> … drop=true` | the session's own policy dropped the connection (no rule for that address or port, or the rule's posture check failed for the session: *Peer access blocked* names it, §3.4). Without that: the resource or routing peer did not answer within 20 s (`11-connectivity-diagnosis.md`) |
+| `502` | debug log for that destination | the connection was refused or failed at once, or the resource sent no response headers within 60 s |
+| a curl or script session fails `NBVersionCheck` although no policy has a version check | guest line `Failed to parse current NB version : Malformed version: ""` | a gateway from before the 11 November 2026 update: sessions without the extension reported no version, so a Netzilo Gateway or Netzilo Extension item reached them as a version requirement. Update the gateway |
 | internal site loads for some users only | §11.1 routing for each user | different groups or profiles; the PAC only sends what the user may reach |
 | public sites broke after enabling | popup reason | an OS-level proxy (§3.3) |
 | Peers show the gateway's IP for sessions | §7.4 | remote gateway behind the server's Caddy without `trusted_proxies` |

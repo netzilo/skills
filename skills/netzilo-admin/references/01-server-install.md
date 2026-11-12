@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 36409
+chars: 36504
 sections:
 - id: '0'
   title: What gets installed (all paths)
@@ -42,10 +42,12 @@ sections:
 # Netzilo Server — Installation Runbook (all delivery paths)
 
 **Audience:** an AI operator installing **Netzilo Server** for a customer on any of the
-three supported paths: bring-your-own Linux server (on-prem installer), AWS Marketplace
+three VM paths: bring-your-own Linux server (on-prem installer), AWS Marketplace
 (CloudFormation + AMI), or Azure Marketplace (managed application). This document also
 covers the variants the wizard does not expose (external database, air-gapped image
-loading, self-signed/provided TLS) and the legacy docker-compose path.
+loading, self-signed/provided TLS) and the legacy docker-compose path. **Red Hat
+OpenShift** (the Netzilo Helm charts, no VM) is its own runbook:
+`53-openshift-install.md`.
 
 **Contract:** follow the gates. Never invent input values — prompt the customer for each
 required value, echo the full set back (password masked) and get an explicit "yes" before

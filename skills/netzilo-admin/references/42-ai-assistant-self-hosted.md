@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 30617
+chars: 30785
 sections:
 - id: '1'
   title: What it is made of
@@ -28,7 +28,7 @@ sections:
   chars: 7619
 - id: '7'
   title: Kubernetes and other orchestrators
-  chars: 3253
+  chars: 3421
 - id: '8'
   title: Turning it on for people
   chars: 980
@@ -374,6 +374,9 @@ If the proxy inspects TLS, mount its CA bundle into the container and point `SSL
 at it.
 
 ## 7. Kubernetes and other orchestrators
+
+On Red Hat OpenShift the `net-support-worker` chart deploys the worker as part of the
+install (`53-openshift-install.md` §6.7); what follows is for wiring it by hand.
 
 The worker is an ordinary stateless container. What it needs:
 

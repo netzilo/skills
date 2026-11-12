@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 19812
+chars: 20180
 sections:
 - id: '1'
   title: Check types (cards in the Create/Update Posture Check modal)
-  chars: 8672
+  chars: 8777
 - id: '2'
   title: Creating and attaching
   chars: 1179
@@ -20,10 +20,10 @@ sections:
   chars: 2285
 - id: '4'
   title: Design guidance
-  chars: 1979
+  chars: 2028
 - id: '5'
   title: Diagnosis
-  chars: 4858
+  chars: 5072
 ---
 # Admin Skill — Posture Checks
 
@@ -104,8 +104,9 @@ device fails, instead of telling the customer the device is misconfigured:
   User-Agent.
 - *Netzilo Extension*: the Netzilo browser extension on the device. Not probed: a desktop
   client (Windows, macOS, Linux) and the Enterprise Browser always report it, iOS and
-  Android never do; a gateway browser session reports it (the extension is what it
-  serves), a reverse-proxy session does not. API field `netzilo_extension_check`; peer
+  Android never do; a gateway browser session reports it only when it is the extension's
+  own (its credential carries the extension's device assertion), never a session from
+  curl or a script, and a reverse-proxy session does not. API field `netzilo_extension_check`; peer
   signal `meta.netzilo_meta.is_netzilo_extension`, shown on the peer page beside the
   Gateway one. Old clients: see the version note under the Gateway item.
 - *Netzilo Gateway*: true only for a gateway's browser session (a `vp-<n>-PROXY` peer); it
@@ -221,7 +222,8 @@ pass each).
   dashboard's "Update available" indicator.
 - **Browser sessions (clientless access)** are evaluated against the browser, not a
   managed device: OS version from what the browser reports, Client Version from the
-  extension's version, Geolocation and Peer Network Range from the browser's public IP.
+  gateway's own version (the same for every session on that gateway), Geolocation and
+  Peer Network Range from the browser's public IP.
   Process checks and every Netzilo endpoint check (firewall, antivirus, disk encryption,
   screen lock, …) always fail for them when enforced, by design. A policy that should
   admit browser users needs no such checks; give them their own policy
@@ -263,8 +265,8 @@ the failing item with one of these strings:
 | `Peer is not using Netzilo Enterprise Workspace` | Enterprise Workspace (servers before this wording said `a Netzilo container`) |
 | `Peer is not using Netzilo Enterprise Browser` | Enterprise Browser (before: `a Netzilo browser`) |
 | `Peer is not a Netzilo gateway session` | Netzilo Gateway |
-| `Peer is not using the Netzilo extension` | Netzilo Extension: an iOS or Android device, a reverse-proxy session, or a client older than the item |
-| the Client Version reason, on a check that has no version item | a client before 5.0.455 received the Netzilo Gateway or Netzilo Extension item as a version requirement (§1); management logs "… sent as a version requirement" |
+| `Peer is not using the Netzilo extension` | Netzilo Extension: an iOS or Android device, a reverse-proxy session, a gateway session from curl or a script, or a client older than the item |
+| the Client Version reason, on a check that has no version item | a client before 5.0.455 received the Netzilo Gateway or Netzilo Extension item as a version requirement (§1); management logs "… sent as a version requirement". On a gateway session from curl or a script: a gateway from before the 11 November 2026 update, whose sessions without the extension reported no version; update the gateway |
 | `Endpoint checks cannot be satisfied by a browser session` | any endpoint item (Security Settings, Workspace, Browser, Virtual Device, Device Integrity, Registry, File & Folder, Processes, Domain) on a browser session; by design (`43-clientless-access-gateway.md` §3.4) |
 | `Peer is using a virtual device` | Virtual Device |
 | `Peer's device integrity is breached` | Device Integrity |

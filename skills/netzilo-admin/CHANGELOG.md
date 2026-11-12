@@ -7,6 +7,54 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.15.0 — 2026-11-12
+
+Netzilo Server on Red Hat OpenShift: a new delivery path, installed from the Netzilo
+images and the Netzilo Helm charts the customer gives you as a local directory. Minor
+version: a new runbook.
+
+- New `53-openshift-install.md`: what gets deployed and under which SCC (§1), inputs,
+  Gate 0 and DNS (§2), choosing Helm or the Terraform module (§3), the image list and the
+  mirror rewrite (§4), cluster prerequisites — MetalLB with a pool that does not
+  auto-assign, the ingress and the gateway sharing one address, an external load balancer
+  in front of node ports, the CloudNativePG operator without a fixed user (§5) — the Helm
+  install step by step with every values file (§6), the Terraform module's variables and
+  outputs (§7), six verification gates (§8), upgrades, certificate renewal, backups and
+  uninstall (§9), and every OpenShift-specific error with its cause and fix (§10). Every
+  command was run as written on an OpenShift 4.20 cluster.
+- `01`: the audience names the VM paths and points to `53` for OpenShift. `02` §16:
+  OpenShift is a deployment target (charts given as a directory, no public chart
+  repository); each Netzilo component is one pod. `00`: the OpenShift delivery path and
+  its intake question. `42` §7, `43` §8, `44` §8.4: on OpenShift the charts deploy the
+  worker, the gateway and the reverse proxy.
+- `SKILL.md`: routing row and delivery paths.
+
+## 4.14.0 — 2026-11-11
+
+Browser sessions on the gateway: whose version they report, when they count as the
+extension, how scripts authenticate and what a `504` means; Custom PAC profiles keep the
+corporate proxy. Minor version: changed behaviour and a new procedure.
+
+- `43` §3.3: the corporate proxy now applies to Custom PAC too. A *Proxy host:port* is
+  chained by management (the script decides first, unedited; its `DIRECT` answers go to
+  the corporate proxy; the browser's own machine and the gateway stay direct); a *PAC
+  URL* is chained by the extension as in Automatic. What `routing`/`pac` serve versus
+  what the profile stores; the refusal an older management gives. §3.2's Custom PAC row
+  points to it.
+- `43` §3.4: a session's Netzilo version is the gateway's own version, never the
+  extension's; new row for the Netzilo Extension item (passes only for the extension's
+  own sessions, never curl or a script); new paragraph on connections the session's own
+  policy drops: `504` after 20 s plus *Target access blocked* with the target.
+- `43` §11.1: the proxy credential is Basic with the token as the password; the reserved
+  user names (`netzilo`, `netzilo-web`, `netzilo-api`); posture strings honoured only for
+  `netzilo`; `Bearer`, empty passwords and service-user tokens get `407`; credentials
+  without the assertion share one session per user. §11.3: `407` row (reserved names,
+  1-minute memory of a refused token), `504` and `502` split, and a row for sessions that
+  failed `NBVersionCheck` with no version check configured (gateways from before this
+  change). §10.3: sessions show the gateway's version.
+- `21` §1/§4/§6 and `24` §1: the same version and extension-item facts for browser
+  sessions; the two reason-table rows extended.
+
 ## 4.13.0 — 2026-11-10
 
 The Workplace in three places (the dashboard, the new Netzilo desktop app and the
