@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 46452
+chars: 49004
 sections:
 - id: '1'
   title: Which file to use
@@ -46,7 +46,7 @@ sections:
   chars: 989
 - id: '13'
   title: Enterprise Browser — the MSI `netzilo_enterprise_browser.msi`
-  chars: 6170
+  chars: 8722
 - id: '14'
   title: Enterprise Browser — the EXE `netzilo_enterprise_browser.exe`
   chars: 3489
@@ -606,6 +606,50 @@ With `FORCETENANT=1` (EXE: `--netzilo-forcetenant`):
 Use it on managed machines where the browser must only ever reach your own Workplace
 (the usual case for a company-deployed Enterprise Browser). The lock does not restrict
 which websites the browser opens — that is the Enterprise Browser profile's job (`26`).
+
+### 13.6 Display language — set it for every Windows machine
+
+No installer property or switch sets the language. On Windows, set it with two machine
+registry policies, whichever way the browser was installed (MSI or EXE). Push them with
+ConfigMgr (SCCM), Group Policy Preferences or Intune; the user does nothing.
+
+| Value under `HKLM\SOFTWARE\Policies\Chromium` | Type | What it sets |
+|---|---|---|
+| `ApplicationLocaleValue` | `REG_SZ`, e.g. `tr`, `en-US` | the browser's own display language (menus, settings, the built-in Netzilo extension) |
+| `ForcedLanguages\1` | `REG_SZ`, same value | puts the language first in the browser's preferred languages, which is what the **Workplace** new tab follows |
+
+**Set both.** With `ApplicationLocaleValue` alone the browser switches language but the
+Workplace new tab stays in the old one.
+
+```bat
+:: Turkish
+reg add "HKLM\SOFTWARE\Policies\Chromium" /v ApplicationLocaleValue /t REG_SZ /d tr /f
+reg add "HKLM\SOFTWARE\Policies\Chromium\ForcedLanguages" /v 1 /t REG_SZ /d tr /f
+
+:: English
+reg add "HKLM\SOFTWARE\Policies\Chromium" /v ApplicationLocaleValue /t REG_SZ /d en-US /f
+reg add "HKLM\SOFTWARE\Policies\Chromium\ForcedLanguages" /v 1 /t REG_SZ /d en-US /f
+
+:: Remove both (back to the Windows display language and the user's own choice)
+reg delete "HKLM\SOFTWARE\Policies\Chromium" /v ApplicationLocaleValue /f
+reg delete "HKLM\SOFTWARE\Policies\Chromium\ForcedLanguages" /f
+```
+
+- **Takes effect** at the next browser start. Check it at `chrome://policy`: both
+  policies are listed with their values.
+- **Users cannot change it** in Settings → Languages while the policies are set.
+- **ConfigMgr:** a Configuration Item with the two registry values (remediation on),
+  in a baseline deployed to the device collection. That also puts the values back if
+  something removes them.
+- **A language picked in the Workplace wins** over the browser's for the Workplace and the
+  Netzilo extension's texts. A user who picked one there switches it once more, or their
+  site data for the Workplace is cleared.
+- **The key is the generic `Chromium` key.** Other plain Chromium builds on the machine
+  read it too; Google Chrome, Microsoft Edge and Brave do not (each has its own key).
+- **Without the policies** the browser uses the language chosen in its Settings →
+  Languages ("Display in this language"), else the Windows display language.
+- Workplace languages: English and Turkish; others fall back to English.
+- **macOS:** these policies do not apply; the browser follows the macOS language order.
 
 ---
 

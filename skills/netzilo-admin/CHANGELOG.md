@@ -7,6 +7,18 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.16.0 — 2026-11-12
+
+Enterprise Browser display language, set centrally on Windows. Minor version: a new
+procedure.
+
+- `48` §13.6: two machine registry policies under `HKLM\SOFTWARE\Policies\Chromium` —
+  `ApplicationLocaleValue` (the browser's own language) and `ForcedLanguages\1` (the
+  preferred language the Workplace new tab follows); both are needed. `reg add` and
+  `reg delete` commands for Turkish and English, the ConfigMgr baseline, `chrome://policy`
+  to check, what wins over the policies, and which other browsers read the same key.
+  Verified on Windows with MSI and EXE installs.
+
 ## 4.15.0 — 2026-11-12
 
 Netzilo Server on Red Hat OpenShift: a new delivery path, installed from the Netzilo
