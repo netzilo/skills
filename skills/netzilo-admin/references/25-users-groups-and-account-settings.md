@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16669
+chars: 17081
 sections:
 - id: '1'
   title: Roles and visibility
   chars: 1216
 - id: '2'
   title: Users page — reference
-  chars: 1799
+  chars: 2211
 - id: '3'
   title: Groups
   chars: 840
@@ -97,6 +97,12 @@ Agents page: "Use agents to create API tokens and avoid losing automated access.
 **Create Agent**: name, role. An agent's detail page shows only Name, Status, **User Role**,
 **Save Changes** and **Access Tokens** — no E-Mail, Block User, Last login, MFA,
 Auto-assigned groups or Password rows (an agent has no interactive login).
+
+An Agent with role **Admin** is also how a customer's web proxy authenticates when it
+forwards its users to a published application and names each one (`44-published-applications.md`
+§6.1). Its token's name names the PATs it then creates on regular users (one per user,
+365 days, visible under that user's **Access Tokens**) and their tunnels; deleting such a
+PAT is harmless, the next request makes a new one.
 
 ---
 

@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 83121
+chars: 90996
 sections:
 - id: '1'
   title: How it works
-  chars: 4877
+  chars: 4879
 - id: '2'
   title: Requirements and support
   chars: 2320
@@ -25,7 +25,7 @@ sections:
   - human-operator
 - id: '4'
   title: Publishing an application
-  chars: 21611
+  chars: 21945
   requires:
   - api
   executable_on:
@@ -37,7 +37,7 @@ sections:
   chars: 3858
 - id: '6'
   title: 'Non-interactive access: scripts and services'
-  chars: 2972
+  chars: 8010
 - id: '7'
   title: Where the reverse proxy runs
   chars: 1532
@@ -46,13 +46,13 @@ sections:
   chars: 10341
 - id: '9'
   title: Configuration reference
-  chars: 2880
+  chars: 3025
 - id: '10'
   title: Operating it
-  chars: 8691
+  chars: 9796
 - id: '11'
   title: Troubleshooting
-  chars: 14317
+  chars: 15286
 - id: '12'
   title: Supporting a user who cannot open an application
   chars: 3904
@@ -64,7 +64,7 @@ sections:
   - human-operator
 - id: '13'
   title: Limits
-  chars: 1545
+  chars: 1724
 ---
 # Published applications and the Netzilo reverse proxy
 
@@ -80,7 +80,8 @@ no TCP publishing, and nothing is reachable that the user's own tunnel cannot ro
 
 Read §1 first. Turning it on is §3 and §4 (API); restrictions inside the application's
 pages (watermark, redaction, clipboard, printing, downloads, uploads, blocked addresses)
-are §4.2. Users' questions are §5 and §12.
+are §4.2. Users' questions are §5 and §12. A customer's web proxy (Squid, a secure web
+gateway) forwarding its users and naming each one is §6.1.
 Installing the reverse proxy on a self-hosted server is §7 and §8; Netzilo Cloud
 customers skip those. Logs and health are §10; symptoms are §11.
 
@@ -114,8 +115,8 @@ customers skip those. Logs and health are §10; symptoms are §11.
    Denied** with the reason, or **Additional Protection Required** when the Netzilo
    extension alone is missing (§5). Every decision is an activity event (§4.1).
 6. From then on every request on that address is proxied through the user's **tunnel**:
-   a virtual peer of the user, named `vp-<n>-RPROXY`, registered in the account as an
-   ephemeral peer, with that user's policies, routes and DNS. The target is dialled
+   a virtual peer of the user, named `vp-<n>-RPROXY`, registered in the account (not
+   ephemeral, §10.3), with that user's policies, routes and DNS. The target is dialled
    through that tunnel and nowhere else. The application gets two headers naming the user
    (`X-Netzilo-User-Id`, `X-Netzilo-User-Email`), the address it was published under in
    `X-Forwarded-Host`, and, when **Forward the user's credential** is on (§4), the user's
@@ -242,6 +243,7 @@ that order and the two middle tabs may stay empty:
 | **Groups** | who may open it: the user must be in one of them (auto-groups and **All** count). Empty means nobody. |
 | **Send the address as Host header** (`preserve_host`) | off by default: the target sees its own host name. On for applications that compare the `Host` header with the address they were published under. |
 | **Forward the user's credential** (`forward_credential`) | off by default. On, the reverse proxy sends the signed-in user's token to the application as `Authorization: Bearer`, for applications that verify users with Netzilo themselves — an **AI Gateway** published this way (`27-ai-gateway.md` §5.3) identifies the caller from it. Leave it off for any other application: the token is the user's Netzilo credential. |
+| **Trusted Proxies** (`trusted_proxies`) | empty by default. IPs and CIDRs, comma-separated in the dashboard (`203.0.113.10, 198.51.100.0/24`, IPv6 too), at most 64; a bare IP is stored as `/32` or `/128`; start–end ranges are refused. The outgoing addresses of web proxies that forward their users here and name each user (§6.1). |
 | **Enable Application** | an application off is kept but not served (`404` at its address). |
 
 **Posture Checks** (second tab): the account's posture checks the accessing device must
@@ -580,6 +582,85 @@ curl https://grafana.apps.example.com/api/health \
   admitted to, from anywhere, with no browser posture in the way: treat it like a
   password.
 
+### 6.1 Through a forwarding web proxy
+
+A customer's web proxy (Squid, Zscaler, Netskope, Skyhigh, Broadcom ProxySG) already
+authenticates its users and decrypts their HTTPS. It can send them to a published
+application — typically an **AI Gateway**, with the provider hosts rewritten to it
+(`27-ai-gateway.md` §5.5) — and name each user, so the application sees that user with
+nothing installed or configured on the devices.
+
+What the proxy sends on every request:
+
+| Header | Value |
+|---|---|
+| `Authorization` | `Bearer <token>` of a **service user** (an Agent) of the account: the proxy's own credential |
+| `X-Authenticated-User` | the email address of the user the proxy authenticated |
+
+Setup (API or dashboard):
+
+1. A service user with role **Admin** (it creates the users' tokens) and a token for it
+   (`25-users-groups-and-account-settings.md`). The token's **name** names the users'
+   tunnels and PATs, so give it a recognizable one (`Skyhigh Prod`).
+2. The proxy's outgoing addresses in the application's **Trusted Proxies** (§4;
+   `trusted_proxies` on `PUT /api/published-apps/{id}`, which replaces the whole
+   application: send every field).
+3. The users exist with role **User**, the email the proxy sends, and are in the
+   application's groups (and, for an AI gateway, in a gateway filter). With one identity
+   provider behind both the proxy and Netzilo, users synced into Netzilo carry the same
+   address. Users who never reached Netzilo are refused.
+4. The proxy inserts the two headers (Squid: `27` §5.5).
+
+How the reverse proxy decides, per request:
+
+1. **The credential.** `Authorization: Bearer` must verify, and its user must be a
+   service user. The reverse proxy asks management with that token (the user list, which
+   for an Admin service user is the whole account with emails and roles; the published
+   applications, for this address's `trusted_proxies`; the token's own name) and keeps
+   the answer for 1 minute; a refused token is remembered for 30 seconds.
+2. **The address.** The client address (the connection's, or the last `X-Forwarded-For`
+   hop added by a front door listed in `--publish-trusted-proxies`, §9) must fall in the
+   application's **Trusted Proxies**. Otherwise the header is ignored and the request is
+   the token's own: the service user is normally in none of the application's groups, so
+   `403 not allowed to open this application`.
+3. **The user.** The email is matched case-insensitively among the account's users. No
+   match, a blocked user, or two users with the address: `403 unknown user`. A role other
+   than **User** (Admin, Owner): `403 this user cannot be served through a proxy` —
+   management makes PATs for regular users only.
+4. **The user's PAT.** Read with the service token from `GET /api/users/{id}/tokens`: the
+   unexpired token named like the proxy's token **and created by that service user** is
+   reused; otherwise one is made (`POST`, 365 days, the longest management allows) and
+   renewed in its last day. Kept in memory; after a restart management's copy is found
+   again, nothing new is made. A user's own token of the same name is never used.
+5. **As the user.** From here it is §6 with that PAT: admission by groups, the
+   application's posture checks, the user's tunnel, the identity headers to the target,
+   the PAT itself when **Forward the user's credential** is on.
+
+Answers: `401 credential refused` (the proxy's token), `403 a trusted proxy must name the
+user in X-Authenticated-User` (the service token from a trusted address without the
+header), the two `403` of step 3, `403 not allowed to open this application`, `503 the
+user's credential is being renewed` (the user's PAT was deleted: the next request makes a
+new one), `503 the user's credential could not be prepared` (management did not answer).
+
+Rules worth knowing:
+
+- `X-Authenticated-User` is stripped at every door, in every spelling, and never reaches
+  the application; a regular user's own token with the header is that user, never the one
+  named.
+- An address a trusted proxy authenticated from in the last 10 minutes is exempt from the
+  per-address failure budget (20 refusals → 5 minutes blocked, §6): one user's bad request
+  must not lock out everyone behind the proxy. Refusals of a named user never count.
+- Each user gets a tunnel per proxy, apart from their own: it registers as
+  `vp-<token name>-RPROXY` (lowercase, dashes; `Skyhigh Prod` → `vp-skyhigh-prod-RPROXY`),
+  owned by the user (§10.3). An AI gateway behind the application identifies the user
+  from that tunnel's address, as for any published caller.
+- The service token is an administrator's credential of the account held in the proxy's
+  configuration: it works against the management API from anywhere, not only from the
+  trusted addresses. Trust the proxy operator accordingly, and rotate it as any Admin
+  token (a new token's name renames the tunnels and PATs made from then on).
+- Capacity: one tunnel per user behind the proxy counts against `--max-sessions` (§9,
+  §10.5).
+
 ## 7. Where the reverse proxy runs
 
 | Deployment | Front door | Reverse proxy | Sign-in at |
@@ -805,7 +886,7 @@ The binary is the gateway's; these are the reverse-proxy options (the rest as
 | `--publish-tls` | `acme` | `acme`: obtains a certificate per published name itself; `file`: the proxy's own `--tls-cert`/`--tls-cert-dir`; `none`: a TLS-terminating proxy in front (the compose and Kubernetes layouts) |
 | `--publish-http` | off | with `acme`: a plain-HTTP address for ACME challenges and the redirect to HTTPS |
 | `--publish-acme-email`, `--publish-acme-directory` | — | ACME account and directory with `acme` |
-| `--publish-trusted-proxies` | none | CIDRs of the proxy in front whose `X-Forwarded-For`/`-Proto` are believed. Only that proxy: any host listed may state a browser address |
+| `--publish-trusted-proxies` | none | CIDRs of the proxy in front whose `X-Forwarded-For`/`-Proto` are believed. Only that proxy: any host listed may state a browser address. Not the place for a customer's web proxy: those go in an application's **Trusted Proxies** (§6.1), compared with the address this option yields |
 | `--workplace-url` | the management URL | where users sign in; on a self-hosted server the server's own domain, on Cloud the dashboard. A wrong value refuses every sign-in with *The sign-in did not come from the Workplace* |
 | `--publish-session-max-age` | `12h` | longest a sign-in on one address lasts before the user signs in again |
 | `--revalidate` | `10m` | how often a session's admission is re-read from management; also the interval at which a session is re-admitted (groups, checks, token) when nothing else prompts it |
@@ -854,7 +935,10 @@ finds the line.
 | `gateway: <email> at <address>: no longer authorized: <reason> <check> <detail>` | the 10-minute re-check refused a running session (groups, checks or the token changed); the browser is sent through the Workplace again |
 | management (debug): `published app <address>: door evidence for <user>: endpoint=<bool> goos=… client=… extension=… container=… browser=… gateway=…` | what management judged: `endpoint=false` means the page reached no Netzilo client on the device; `container`/`browser`/`extension` are the facts the Workspace, Enterprise Browser and extension items read |
 | `gateway: publish login for <address>: …` | the sign-in could not be checked (management unreachable, token refused): *Sign-in unavailable* / *Sign-in refused* |
-| `gateway: <email>: API access at <address> from <ip> (<id>)` | a non-interactive session started (§6) |
+| `gateway: <email>: API access at <address> from <ip> (<id>)` | a non-interactive session started (§6); for a user named by a trusted web proxy, `<ip>` is the proxy's address (§6.1) |
+| `gateway: made a PAT "<token name>" for <email>` | a web proxy's user was served for the first time; the PAT is reused from then on (§6.1) |
+| `gateway: proxy access at <address>: …` / `… for <email>: …` | the proxy's token or the user's PAT could not be read from management: `503` to the proxy |
+| `gateway: session vp-<n>-RPROXY (<email>) ready: peer <ip> vp-<token name>-rproxy….` | a web proxy's user's tunnel: numbered in the log, registered under the proxy's name (§10.3) |
 | `gateway: API access at <address>: …` | a non-interactive credential could not be checked |
 | `gateway: session vp-<n>-RPROXY (<email>) ready: peer <ip> <fqdn>, device <public ip> …` | the user's tunnel is up |
 | `gateway: session vp-<n>-RPROXY (<email>) stopped: idle` / `gateway shutting down` | the tunnel ended; the next request starts it again |
@@ -882,9 +966,16 @@ on-demand issuance and its errors; on Kubernetes the Certificate resource's stat
 
 ### 10.3 Reverse-proxy peers in the Peers list
 
-- One peer per **user**, named `vp-<n>-RPROXY`, platform *browser*, ephemeral
-  (management deletes it once offline for a while). All of that user's browsers and API
-  clients share it, from any address and system. It reports the address and operating
+- One peer per **user**, named `vp-<n>-RPROXY`, platform *browser*. Not ephemeral: the
+  reverse proxy brings the same identity back, so a returning user logs the existing peer
+  in instead of registering a new one; peer inactivity expiration, when on, removes it
+  like any offline peer. All of that user's browsers and API clients share it, from any
+  address and system.
+- One more per **user and web proxy** (§6.1), registered as `vp-<token name>-RPROXY`
+  (in the log and on the reverse proxy it is still numbered `vp-<n>-RPROXY`). Every user
+  behind the proxy has a peer of that hostname, each owned by its user; the DNS labels
+  get `-1`, `-2` suffixes. Filter the Peers list by the name to see who came through
+  which proxy. It reports the address and operating
   system of the latest browser it served, so location and OS posture are judged on
   that; an API client does not change them, and Safari's or Firefox's fixed
   "macOS 10.15.7" does not replace the real version Chrome reported.
@@ -892,9 +983,9 @@ on-demand issuance and its errors; on Kubernetes the Certificate resource's stat
   per user: after the idle stop or a restart the same
   `vp-<n>-RPROXY` reconnects instead of a new number appearing. Unused for 30 days, the
   identity is dropped (tunnels from before the one-per-user change are folded into the
-  most recently used, which stays the user's peer); management's
-  ephemeral cleanup
-  removes the peer meanwhile and it registers again under the same name on the next use.
+  most recently used, which stays the user's peer; a proxy tunnel is never folded); if
+  inactivity expiration removes the peer meanwhile, it registers again under the same
+  name on the next use.
 - **What it reports:** the user's public IP as its connection address (so **Country &
   Region** and **Peer Network Range** checks judge the user's location), the operating
   system and version the session was signed in from (the **Operating System** check
@@ -1004,6 +1095,10 @@ curl -sS -H "Authorization: Token $USER_TOKEN" https://<api-host>/api/users/curr
 | the application loads but links, redirects or logins go to its internal name | the application's configuration | it builds absolute URLs from its configured base address: set that to the published address, or turn on **Send the address as Host header** (§4) |
 | the application works for some users only | §11.1 with each user's token; their groups and policies | groups admit them differently, or their policies reach the target differently (§4) |
 | **Peers** show the server's or the ingress's IP for `vp-<n>-RPROXY` | the container's `--publish-trusted-proxies` | it does not cover the proxy in front (compose: `172.20.0.0/24`; Kubernetes: the pod network) |
+| users behind a web proxy get `403 not allowed to open this application` | the access line's `ip=` against the application's `trusted_proxies` | the address is not listed (a new egress address of the proxy; a change takes effect within 1 minute); or `ip=` is the front door's, because `--publish-trusted-proxies` misses it or the ingress loses client addresses (ingress-nginx: `externalTrafficPolicy: Local`) (§6.1) |
+| a web proxy's user gets `403 unknown user` / `cannot be served through a proxy` | the email the proxy sends against **Team → Users** | no such user, blocked, two users with the address, or an Admin/Owner (§6.1) |
+| a web proxy gets `403 a trusted proxy must name the user` | the proxy's header configuration | it sent its token from a trusted address without `X-Authenticated-User` |
+| a web proxy's user gets `503 the user's credential is being renewed` once | — | the user's PAT made for the proxy was deleted; the next request makes a new one |
 | a policy with a posture check never admits the reverse-proxy peer | the check's items | Endpoint items can never pass for it; an OS minimum above what the browser reports (Firefox and Safari freeze the version) blocks it (§10.3) |
 | API client gets `401` with a valid token | the header the client sends; the token's owner in **Team → Users** | the token is in `X-Netzilo-Bearer` (no longer read) or in `Proxy-Authorization` behind a proxy that drops it: send `Authorization: Bearer` (§6). Otherwise expired, revoked, for another server, or the user is blocked |
 | a restriction does not apply on a page | the application's `restrictions` (`GET /api/published-apps`); the coverage line (§10.1); the browser's console for *Netzilo: a restriction pattern cannot be used* | not saved, or the page was opened before the change (reload); the page is not HTML or its policy forbids scripts (`csp-none`, `csp-sandbox`); `slow`/`no-head`/`encoded` in the coverage line; a pattern the browser cannot compile or a nested quantifier, skipped (§4.2); a download the server starts itself or a service-worker page (§4.2 limits) |
@@ -1090,6 +1185,8 @@ line), the time, and the user's e-mail.
 - The reverse proxy trusts the proxy in front of it for client addresses and nothing
   else; behind a proxy that does not forward `Proxy-Authorization`, API clients must use
   `Authorization: Bearer` (§6).
+- A web proxy names users by email only (no `DOMAIN\user`, no base64 forms); only users
+  with role **User** are served this way; the proxy's token is an Admin credential (§6.1).
 - Restrictions (§4.2) are enforced inside the page: a deterrent against users who control
   their browser, no screenshot protection, no coverage of server-started downloads,
   service-worker pages or form-POST answers, no per-user exceptions.

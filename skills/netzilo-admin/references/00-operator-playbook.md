@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 32793
+chars: 33157
 sections:
 - id: '1'
   title: Rules of engagement
   chars: 3399
 - id: '2'
   title: What Netzilo is (30-second model)
-  chars: 3443
+  chars: 3807
 - id: '3'
   title: 'Triage: route the request'
   chars: 8160
@@ -128,7 +128,11 @@ this folder. Read it fully before your first action.
   request through the user's tunnel, a `vp-<n>-RPROXY` peer (`44-published-applications.md`).
   An application's **restrictions** (watermark, redaction, clipboard, printing, downloads,
   uploads, blocked addresses) are enforced inside its pages by a script the reverse proxy
-  adds, in any browser (`44` §4.2).
+  adds, in any browser (`44` §4.2). A customer's web proxy (Squid, a secure web gateway)
+  can forward its users to a published application and name each one by email, with an
+  Admin Agent's token, from addresses listed in the application's **Trusted Proxies**
+  (`44` §6.1); with an AI Gateway behind it, provider calls are governed with nothing
+  changed on the devices (`27-ai-gateway.md` §5.5).
 
 Delivery paths for the server: on-prem one-liner (`/opt/netzilo`), AWS Marketplace AMI
 and Azure Marketplace image (`/opt/netzilo/run`), Red Hat OpenShift from the Netzilo Helm

@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 108718
+chars: 111286
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -206,16 +206,16 @@ sections:
   chars: 171
 - id: post-api-edge-providers
   title: '`POST /api/edge/providers`'
-  chars: 1292
+  chars: 1625
 - id: post-api-edge-providers-discover
   title: '`POST /api/edge/providers/discover`'
-  chars: 1126
+  chars: 1459
 - id: get-api-edge-providers-providerid
   title: '`GET /api/edge/providers/{providerId}`'
   chars: 262
 - id: put-api-edge-providers-providerid
   title: '`PUT /api/edge/providers/{providerId}`'
-  chars: 1375
+  chars: 1708
 - id: delete-api-edge-providers-providerid
   title: '`DELETE /api/edge/providers/{providerId}`'
   chars: 284
@@ -386,7 +386,7 @@ sections:
   chars: 193
 - id: post-api-published-apps
   title: '`POST /api/published-apps`'
-  chars: 2785
+  chars: 3122
 - id: get-api-published-apps-check
   title: '`GET /api/published-apps/check`'
   chars: 250
@@ -398,7 +398,7 @@ sections:
   chars: 141
 - id: put-api-published-apps-appid
   title: '`PUT /api/published-apps/{appId}`'
-  chars: 2866
+  chars: 3203
 - id: delete-api-published-apps-appid
   title: '`DELETE /api/published-apps/{appId}`'
   chars: 240
@@ -504,6 +504,12 @@ sections:
 - id: put-api-tenant
   title: '`PUT /api/tenant`'
   chars: 435
+- id: get-api-tenant-language
+  title: '`GET /api/tenant/language`'
+  chars: 238
+- id: put-api-tenant-language
+  title: '`PUT /api/tenant/language`'
+  chars: 356
 - id: get-api-tenant-logo
   title: '`GET /api/tenant/logo`'
   chars: 215
@@ -534,6 +540,9 @@ sections:
 - id: get-api-users-current-ai-access
   title: '`GET /api/users/current/ai-access`'
   chars: 192
+- id: get-api-users-current-device
+  title: '`GET /api/users/current/device`'
+  chars: 301
 - id: get-api-users-current-mcp-connections
   title: '`GET /api/users/current/mcp-connections`'
   chars: 161
@@ -606,7 +615,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-10-17 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-11-13 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -1559,6 +1568,7 @@ Create a GatewayProvider
 
 Request body (JSON):
 - `name` (string, **required**)
+- `slug` (string, optional): Names the provider on the AI gateways, whose clients call its models <slug>/<model>; derived from the name when empty, immutable after creation, unique in the account. A provider of a type outside openai, anthropic, bedrock, cohere, gemini, huggingface, replicate and typesafe takes the type as its slug
 - `description` (string, optional)
 - `enabled` (boolean, optional)
 - `type` (string, **required**): One of the AI gateway's provider types (openai, anthropic, azure, bedrock, vertex, gemini, mistral, ollama, vllm, …)
@@ -1579,6 +1589,7 @@ List the models a provider offers
 
 Request body (JSON):
 - `name` (string, **required**)
+- `slug` (string, optional): Names the provider on the AI gateways, whose clients call its models <slug>/<model>; derived from the name when empty, immutable after creation, unique in the account. A provider of a type outside openai, anthropic, bedrock, cohere, gemini, huggingface, replicate and typesafe takes the type as its slug
 - `description` (string, optional)
 - `enabled` (boolean, optional)
 - `type` (string, **required**): One of the AI gateway's provider types (openai, anthropic, azure, bedrock, vertex, gemini, mistral, ollama, vllm, …)
@@ -1609,6 +1620,7 @@ Parameters:
 
 Request body (JSON):
 - `name` (string, **required**)
+- `slug` (string, optional): Names the provider on the AI gateways, whose clients call its models <slug>/<model>; derived from the name when empty, immutable after creation, unique in the account. A provider of a type outside openai, anthropic, bedrock, cohere, gemini, huggingface, replicate and typesafe takes the type as its slug
 - `description` (string, optional)
 - `enabled` (boolean, optional)
 - `type` (string, **required**): One of the AI gateway's provider types (openai, anthropic, azure, bedrock, vertex, gemini, mistral, ollama, vllm, …)
@@ -2224,6 +2236,7 @@ Request body (JSON):
   - `restrict_uploads` (array of string, optional): "all" blocks every file picked, dropped or pasted for upload; other entries are patterns a file's name must not match
   - `block_urls` (array of string, optional): Patterns of addresses within the application the user may not open
   - `show_gray_border` (boolean, optional): Frame protected pages
+- `trusted_proxies` (array of string, optional): Source addresses (IPs or CIDRs) of web proxies that forward their users to the application. A request from one of them with a service user's credential acts as the account user its X-Authenticated-User header names (by email). Empty means no proxy is trusted. — e.g. `['203.0.113.0/24']`
 
 Responses: `200` The published application, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
 
@@ -2283,6 +2296,7 @@ Request body (JSON):
   - `restrict_uploads` (array of string, optional): "all" blocks every file picked, dropped or pasted for upload; other entries are patterns a file's name must not match
   - `block_urls` (array of string, optional): Patterns of addresses within the application the user may not open
   - `show_gray_border` (boolean, optional): Frame protected pages
+- `trusted_proxies` (array of string, optional): Source addresses (IPs or CIDRs) of web proxies that forward their users to the application. A request from one of them with a service user's credential acts as the account user its X-Authenticated-User header names (by email). Empty means no proxy is trusted. — e.g. `['203.0.113.0/24']`
 
 Responses: `200` The published application, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
@@ -2648,6 +2662,24 @@ Request body (JSON):
 
 Responses: `200` The updated Tenant object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
+## `GET /api/tenant/language`
+
+Retrieve a tenant's default language
+
+Parameters:
+- `host` (query, required): The hostname the user reaches the dashboard or the server at
+
+Responses: `200` The tenant's default language, `400` Bad Request
+
+## `PUT /api/tenant/language`
+
+Update the tenant's default language
+
+Request body (JSON):
+- `language` (string ( | en | tr), **required**): The tenant's default language; empty is Automatic (the browser's language)
+
+Responses: `200` The updated Tenant object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
 ## `GET /api/tenant/logo`
 
 Retrieve the company logo
@@ -2729,6 +2761,15 @@ Responses: `200` A User object, `400` Bad Request, `401` Requires authentication
 What the caller may use through the AI gateways
 
 Responses: `200` Gateways, models, MCP servers and virtual MCPs granted, `401` Requires authentication
+
+## `GET /api/users/current/device`
+
+Check a device of the caller's
+
+Parameters:
+- `key` (query, required): The client's WireGuard public key
+
+Responses: `200` The caller's connected device, `401` Requires authentication, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
 ## `GET /api/users/current/mcp-connections`
 

@@ -7,11 +7,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 16870
+chars: 17067
 sections:
 - id: '1'
   title: Peer lifecycle
-  chars: 2460
+  chars: 2657
 - id: '2'
   title: Peers page — field and action reference
   chars: 3907
@@ -52,7 +52,7 @@ key design, and diagnosis of enrolment and peer-state problems.
 | Login expiration (SSO peers) | after the account's expiration period the peer needs re-login (**Login required** badge) | Settings → Authentication; per-peer toggle |
 | Inactivity expiration (SSO peers) | idle peers are expired after the configured period | Settings → Authentication |
 | Ephemeral (setup-key option) | peer is deleted 10 minutes after going offline | key setting |
-| Reverse-proxy tunnel (published applications) | one peer per **user** (any address, system, browser or API client), named `vp-<n>-RPROXY`, platform *browser*, always ephemeral, and kept: the same peer reconnects after the idle stop or a restart. Reports the latest browser's public IP and operating system, every browser it has served (*Chrome 154.0.0.0, Firefox 156.0*), its sessions (application, source IP, client, OS; live within 15 minutes), the reverse proxy's version, and the Netzilo Gateway posture item. Not a browser's gateway session (absent from `gateway-sessions` and the Workplace's Private access status); no device tools | `44-published-applications.md` §10.3 |
+| Reverse-proxy tunnel (published applications) | one peer per **user** (any address, system, browser or API client), named `vp-<n>-RPROXY`, platform *browser*, not ephemeral (removed by inactivity expiration when that is on), and kept: the same peer reconnects after the idle stop or a restart. A user served through a customer's web proxy has one more per proxy, registered as `vp-<proxy token name>-RPROXY` and owned by the user (`44` §6.1). Reports the latest browser's public IP and operating system, every browser it has served (*Chrome 154.0.0.0, Firefox 156.0*), its sessions (application, source IP, client, OS; live within 15 minutes), the reverse proxy's version, and the Netzilo Gateway posture item. Not a browser's gateway session (absent from `gateway-sessions` and the Workplace's Private access status); no device tools | `44-published-applications.md` §10.3 |
 | Browser session (clientless access) | a gateway registers one peer per user per browser, named `vp-<n>-PROXY`, platform *browser*, showing the browser's OS, the gateway's version and the browser's public IP; always ephemeral. Only that exact name with the browser platform is treated this way; any other device, whatever its name, is an ordinary peer. Two gateways can each have a `vp-1-PROXY`: tell them apart by peer id | `43-clientless-access-gateway.md` §10.3 |
 | Deletion | peer removed; device must re-enrol | Delete / bulk delete; deleting a user deletes their peers |
 

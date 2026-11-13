@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 51685
+chars: 56793
 sections:
 - id: '1'
   title: How it works
@@ -22,7 +22,7 @@ sections:
   chars: 4368
 - id: '5'
   title: Exposing the gateway to callers
-  chars: 4294
+  chars: 9402
 - id: '6'
   title: How a caller authenticates, and what it gets back
   chars: 6191
@@ -409,6 +409,8 @@ proxy (`44-published-applications.md`):
    the gateway identifies the user from it.
 3. Put the same address in the gateway filter's **Gateways** list so the Workplace shows
    it (`29` §2.2, `47`).
+4. Optional: let the customer's web proxy send its users' provider calls here and name
+   each user, with nothing changed on the devices (§5.5).
 
 **Sign-in through the published address.** The reverse proxy answers, on the published
 hostname, the sign-in metadata (`https://aigw.<application-domain>/.well-known/oauth-authorization-server`,
@@ -440,6 +442,96 @@ page instead of JSON; test with `GET /v1/models` first.
 `--ai-listen :8447` on a host with a public address, TLS as in §5.1, firewall open on
 8447. Callers use `https://<host>:8447`. Every caller must present a bearer token; the
 public door never identifies by address.
+
+### 5.5 Through a customer's web proxy (Squid and secure web gateways)
+
+When users' traffic already passes a proxy that decrypts HTTPS (Squid with `ssl-bump`,
+Zscaler, Netskope, Skyhigh, ProxySG), the proxy rewrites the provider calls to the
+published address (§5.3) and the gateway governs them. The proxy never connects to the
+provider; the gateway calls it with its own keys. Rewrites:
+
+| Intercepted | Sent to | Why that path |
+|---|---|---|
+| `https://api.openai.com/<path>` | `https://aigw.<domain>/<path>` (`/v1/...`) | the OpenAI-compatible root: a bare model (`gpt-4o`) gets its provider from the user's grants. Not `/openai/...`: that route fixes the requested provider to the literal `openai`, which matches only a provider whose ID is `openai` |
+| `https://api.anthropic.com/<path>` | `https://aigw.<domain>/anthropic/<path>` | the Anthropic base Claude Code uses; bare models resolve by grants |
+
+Who the caller is — two scenarios:
+
+- **The proxy names the user** (no device change). The proxy replaces the tool's key with
+  `Authorization: Bearer <service user token>` and adds `X-Authenticated-User: <email>`;
+  the application lists the proxy's egress in **Trusted Proxies**. Mechanism, setup,
+  answers and rules: `44-published-applications.md` §6.1. Admins and owners are refused
+  on this path; the first call per user takes a few seconds (PAT made, tunnel started).
+- **Users bring their Netzilo token.** The tool's API key is the user's Netzilo token
+  (OpenAI clients send `Authorization: Bearer`; Anthropic clients must send it as an auth
+  token, e.g. `ANTHROPIC_AUTH_TOKEN`, because `x-api-key` is not read). The proxy only
+  rewrites; **Trusted Proxies** stays empty. A provider key that reaches the gateway gets
+  `401 credential refused`.
+
+**Squid (tested with 6.9, Alpine/Debian `squid-openssl` builds).** Scenario one; for
+scenario two drop the two `request_header_add` lines and the `Authorization` access line:
+
+```
+http_port 3128 ssl-bump generate-host-certificates=on dynamic_cert_mem_cache_size=4MB tls-cert=/etc/squid/ca.pem tls-key=/etc/squid/ca.key
+sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/cache/squid/ssl_db -M 4MB
+auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd   # or Kerberos/LDAP
+acl authenticated proxy_auth REQUIRED
+acl ai_providers ssl::server_name api.openai.com api.anthropic.com
+acl ai_provider_hosts dstdomain api.openai.com api.anthropic.com
+acl ai_gateway dstdomain aigw.apps.example.com
+acl step1 at_step SslBump1
+http_access deny !authenticated
+http_access allow authenticated
+http_access deny all
+ssl_bump bump step1 ai_providers      # bump at step 1: never peek (see below)
+ssl_bump splice all
+url_rewrite_program /etc/squid/aigw-rewrite.sh
+url_rewrite_children 5
+url_rewrite_access allow ai_provider_hosts
+url_rewrite_access deny all
+request_header_access Authorization deny ai_gateway
+request_header_access X-Api-Key deny ai_gateway
+request_header_access X-Authenticated-User deny all
+request_header_add Authorization "Bearer <PROXY-AGENT-TOKEN>" ai_gateway
+request_header_add X-Authenticated-User "%ul" ai_gateway
+cache deny all
+```
+
+```sh
+#!/bin/sh
+# /etc/squid/aigw-rewrite.sh
+GW=https://aigw.apps.example.com
+while read -r url rest; do
+  case "$url" in
+    https://api.openai.com/*)    echo "OK rewrite-url=$GW${url#https://api.openai.com}" ;;
+    https://api.anthropic.com/*) echo "OK rewrite-url=$GW/anthropic${url#https://api.anthropic.com}" ;;
+    *)                           echo "ERR" ;;
+  esac
+done
+```
+
+Facts verified with Squid, worth stating to a customer:
+
+- `%ul` is the name the user signed in to Squid with and must be the email (Kerberos: the
+  UPN, compared case-insensitively). Short names need an external ACL helper that returns
+  the address.
+- `peek` before `bump` makes Squid connect to the provider and pin the decrypted requests
+  to it: the rewrite then fails with `ERR_CANNOT_FORWARD`. Bump at step 1.
+- Squid speaks TLS to whatever it rewrote a decrypted request to: an `http://` gateway
+  address fails with `ERR_SECURE_CONNECT_FAIL … wrong version number`. Use the published
+  `https://` address.
+- Requests carry the user Squid authenticated on the `CONNECT`; an unauthenticated tool
+  gets `407` from Squid, never reaching Netzilo.
+- Hosts not in `ai_providers` are spliced (not decrypted). Block the AI services the
+  gateway does not serve (`acl ai_unmanaged dstdomain …` + `http_access deny ai_unmanaged`
+  before the allow), or tools go around it.
+- The devices must trust Squid's CA.
+
+Secure web gateways do the same with their own features: TLS inspection of the provider
+hosts, a URL or forwarding rule to the published address, and header insertion of the
+service token and the authenticated user's email. Whether a product can put the
+*authenticated username* (not only a fixed value) into an inserted header differs per
+product and version: confirm it before promising scenario one; otherwise use scenario two.
 
 ---
 

@@ -7,6 +7,32 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.17.0 — 2026-11-13
+
+A customer's web proxy in front of a published application, typically an AI Gateway:
+the proxy names each user and nothing changes on the devices. Minor version: a new
+procedure.
+
+- `44` §6.1 (new): a web proxy forwards its users with an Admin Agent's token and
+  `X-Authenticated-User: <email>`, believed only from the application's new **Trusted
+  Proxies** (IPs and CIDRs, §4). How the reverse proxy decides (service user, address,
+  email among the account's users, role **User** only), the per-user PAT it makes once
+  (365 days, named after the proxy's token, created by the Agent, reused after restarts),
+  every answer, the failure-budget exemption for the proxy's address, and the security
+  facts (the token is an Admin credential). §9, §10.1, §11.2 and §13 updated.
+- `44` §10.3, `24`: reverse-proxy peers are **not** ephemeral (inactivity expiration removes
+  them); a web proxy's users get one more tunnel each, registered as
+  `vp-<proxy token name>-RPROXY` and owned by the user.
+- `27` §5.5 (new): AI traffic through Squid or a secure web gateway — the two scenarios
+  (the proxy names the user; users bring their Netzilo token), the rewrites and why OpenAI
+  calls keep their `/v1` path, a Squid 6.9 configuration and rewrite helper tested end to
+  end, and the Squid errors you meet (`ERR_CANNOT_FORWARD` after `peek`,
+  `ERR_SECURE_CONNECT_FAIL` against an `http://` address).
+- `25`, `00`: the Admin Agent as a web proxy's credential; the overview names the path.
+- `33` regenerated from the current OpenAPI description: `trusted_proxies` on published
+  applications, the providers' `slug`, `GET`/`PUT /api/tenant/language`, and
+  `GET /api/users/current/device`.
+
 ## 4.16.0 — 2026-11-12
 
 Enterprise Browser display language, set centrally on Windows. Minor version: a new
