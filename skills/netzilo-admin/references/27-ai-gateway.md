@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 56793
+chars: 57516
 sections:
 - id: '1'
   title: How it works
@@ -25,7 +25,7 @@ sections:
   chars: 9402
 - id: '6'
   title: How a caller authenticates, and what it gets back
-  chars: 6191
+  chars: 6312
   requires:
   - api
   executable_on:
@@ -34,7 +34,7 @@ sections:
   - human-operator
 - id: '7'
   title: What the gateway pulls from management, and when
-  chars: 1904
+  chars: 2420
   requires:
   - api
   executable_on:
@@ -52,7 +52,7 @@ sections:
   - human-operator
 - id: '9'
   title: Operating it
-  chars: 4371
+  chars: 4457
 - id: '10'
   title: Troubleshooting
   chars: 7656
@@ -541,8 +541,9 @@ product and version: confirm it before promising scenario one; otherwise use sce
 |---|---|
 | `Authorization: Bearer <token>` | a user's **personal access token** (`nzl_…`), the signed-in user's identity-provider token (what the Workplace holds), or the token a client obtained by **signing in at the gateway** — an MCP connector by authorization code, Claude Desktop or another device client by device authorization (below; `46` §6) |
 
-The token is checked against management (`GET /api/users` as that token; the entry marked
-current is the caller) and cached 60 s (10 s for a refused one; never past a token's
+The token is checked against management (`GET /api/users/current` as that token: the
+caller's own record and account; an older management without that endpoint is asked for
+`GET /api/users` and the entry marked current is the caller) and cached 60 s (10 s for a refused one; never past a token's
 expiry). The gateway's own secret and the caller's token are removed before the request
 reaches the upstream; the upstream only ever sees `X-Netzilo-User-*` headers the gateway
 sets itself. Anything a caller sends as `X-Netzilo-*`, `Nz-*`, `X-Forwarded-*`,
@@ -605,8 +606,11 @@ All with the service token:
 
 | Call | When | Purpose |
 |---|---|---|
-| `GET /api/users` | at start ("bound to an account with N users"), then every 60 s and on demand | which users belong to the account; who a token is |
-| `GET /api/peers` | when a tunnel-door caller is seen | which peer and user a tunnel address belongs to |
+| `GET /api/users/current` | once at start ("bound to account <id>") | the gateway's own account; a caller is a member when its token's account is that one |
+| `GET /api/users/current` with a **caller's** token | once per token per 60 s | who a bearer token is, and its account |
+| `GET /api/peers?key=<wireguard key>&ip=<address>` | when a tunnel-door caller's peer is seen for the first time; kept 10 minutes | the one peer behind that address, by the key the gateway's own engine accepts its packets from, so a reused address is never taken for its previous owner |
+| `GET /api/users/{id}` | once per tunnel-door user; kept 10 minutes | that user's email and name |
+| older management only | instead of the above | `GET /api/users` and `GET /api/peers` lists, as before |
 | `GET /api/edge/filters/effective?type=gateway&user=…` and `GET /api/edge/filters/{id}/expanded` | per user, on first request, then every `--ai-policy-refresh`; everyone re-checked on a policy change | the user's gateway filters, with guardrails inline; only changed filter versions are fetched |
 | `GET /api/ai-gateway/providers` | at start, every `--ai-policy-refresh`, on policy change | providers with their enabled models and keys; applied to the upstream |
 | `GET /api/ai-gateway/mcp`, `GET /api/ai-gateway/mcp-credentials` | same schedule | MCP servers, bundles and the users' stored sign-ins and header values |
@@ -691,7 +695,7 @@ the AI door.
 |---|---|
 | `gateway: data directory <dir>` | which state is in use |
 | `gateway: version <v> starting in node mode (management <url>, egress public)` | start |
-| `gateway: bound to an account with N users` | the service token resolved the account |
+| `gateway: bound to account <id>` | the service token resolved the account (with an older management: *management names no account; its users are listed to check callers*) |
 | `gateway: peer <name> connected (…)` | the gateway peer logged in |
 | `aigw: agent gateway netzilo-aigw serving on http://127.0.0.1:<port> (data <dir>)` | the built-in upstream is up |
 | `aigw: the agent gateway did not become healthy in 15s` | it is not; the process exits |

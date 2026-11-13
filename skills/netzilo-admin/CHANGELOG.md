@@ -29,8 +29,15 @@ procedure.
   end, and the Squid errors you meet (`ERR_CANNOT_FORWARD` after `peek`,
   `ERR_SECURE_CONNECT_FAIL` against an `http://` address).
 - `25`, `00`: the Admin Agent as a web proxy's credential; the overview names the path.
+- Gateways and AI gateways read single records instead of whole lists (`27` §6–§7, `43`,
+  `13`): `GET /api/users/current` (new: the caller's record and `account_id`) for tokens
+  and the account binding, `GET /api/peers?key=&ip=` (new filters) and `GET /api/users/{id}`
+  for tunnel callers, each kept 10 minutes; the log says `bound to account <id>`. Older
+  managements are still served by the old lists. `GET /api/users/{id}` now lets the
+  **Owner** read other users (it allowed Admins only).
 - `33` regenerated from the current OpenAPI description: `trusted_proxies` on published
-  applications, the providers' `slug`, `GET`/`PUT /api/tenant/language`, and
+  applications, the `email` filter on `GET /api/users`, `GET /api/users/current`,
+  the `key`/`ip` filters on `GET /api/peers`, the providers' `slug`, `GET`/`PUT /api/tenant/language`, and
   `GET /api/users/current/device`.
 
 ## 4.16.0 — 2026-11-12

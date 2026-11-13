@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 111286
+chars: 111750
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -317,7 +317,7 @@ sections:
   chars: 311
 - id: get-api-peers
   title: '`GET /api/peers`'
-  chars: 224
+  chars: 390
 - id: get-api-peers-stream
   title: '`GET /api/peers-stream`'
   chars: 230
@@ -533,10 +533,13 @@ sections:
   chars: 311
 - id: get-api-users
   title: '`GET /api/users`'
-  chars: 337
+  chars: 442
 - id: post-api-users
   title: '`POST /api/users`'
   chars: 899
+- id: get-api-users-current
+  title: '`GET /api/users/current`'
+  chars: 193
 - id: get-api-users-current-ai-access
   title: '`GET /api/users/current/ai-access`'
   chars: 192
@@ -1953,6 +1956,10 @@ Responses: `200` MFA settings, `400` Bad Request, `401` Requires authentication,
 
 List all Peers
 
+Parameters:
+- `key` (query, optional): Returns only the peer with this WireGuard public key
+- `ip` (query, optional): Returns only the peer with this tunnel address
+
 Responses: `200` A JSON Array of Peers, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
 ## `GET /api/peers-stream`
@@ -2738,6 +2745,7 @@ List all Users
 
 Parameters:
 - `service_user` (query, optional): Filters users and returns either regular users or service users
+- `email` (query, optional): Returns only the users with this email address, compared case-insensitively
 
 Responses: `200` A JSON array of Users, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
 
@@ -2755,6 +2763,12 @@ Request body (JSON):
 - `password_change_required` (boolean, optional): Indicates whether the user is required to change their password on first login — e.g. `True`
 
 Responses: `200` A User object, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/users/current`
+
+Retrieve the current User
+
+Responses: `200` The caller's User object, with account_id, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
 
 ## `GET /api/users/current/ai-access`
 

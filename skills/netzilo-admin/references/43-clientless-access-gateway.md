@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 73135
+chars: 73125
 sections:
 - id: '1'
   title: How it works
@@ -34,7 +34,7 @@ sections:
   chars: 9258
 - id: '7'
   title: Running the gateway on another host
-  chars: 4441
+  chars: 4436
 - id: '8'
   title: Kubernetes and other orchestrators
   chars: 1707
@@ -43,7 +43,7 @@ sections:
   chars: 3266
 - id: '10'
   title: Operating it
-  chars: 7823
+  chars: 7818
 - id: '11'
   title: Troubleshooting
   chars: 15517
@@ -712,7 +712,7 @@ sudo docker logs --tail=30 netzilo-gateway | grep 'gateway:'
   --tls-domain gw.example.com` instead. Any other PEM pair works with `--tls-cert/--tls-key`.
 - **Binding**: `NZ_GATEWAY_SERVICE_PAT` binds the gateway to one account (§4.3). Required
   against Netzilo Cloud; recommended whenever the gateway is not on the server itself.
-  Expected log: `gateway: bound to an account with <n> users`.
+  Expected log: `gateway: bound to account <account id>`.
 - **Egress**: `--egress public` (default) lets the gateway fetch public addresses from its
   own host for requests the user's tunnel does not cover; `--egress off` allows only the
   tunnel. Private ranges on the gateway host's side are refused unless listed in
@@ -846,7 +846,7 @@ Key lines:
 |---|---|
 | `gateway: version <v> starting in shared mode (management <url>, egress public)` | start; the version and mode in use |
 | `gateway: <what>: management not reachable yet, retrying in <d>` | management down or still starting; the gateway waits up to 5 minutes, then exits (and restarts under `restart: unless-stopped`) |
-| `gateway: bound to an account with <n> users` / `any user of <url> may start a session (no account binding)` | binding state (§4.3) |
+| `gateway: bound to account <account id>` / `any user of <url> may start a session (no account binding)` | binding state (§4.3) |
 | `gateway: TLS certificate loaded from <file>` / `reloaded from <file>` | certificate in use / renewal picked up |
 | `gateway: no TLS certificate yet (<source>): <reason>` | nothing to serve yet (Caddy still obtaining it, wrong domain, wrong mount); handshakes fail and `/readyz` says so |
 | `gateway: proxy listening on [::]:8443 (https)` | serving |

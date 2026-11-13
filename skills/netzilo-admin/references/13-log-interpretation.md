@@ -596,7 +596,7 @@ refused caller saw.
 ```
 gateway: data directory <dir>
 gateway: version <v> starting in node mode (management <url>, egress public)
-gateway: bound to an account with N users                                ← the service token resolved the account
+gateway: bound to account <account id>                                   ← the service token resolved the account
 gateway: peer <name> connected (…)                                       ← the gateway's own peer logged in
 aigw: agent gateway netzilo-aigw serving on http://127.0.0.1:<port> (data <dir>)   ← the built-in upstream is up
 gateway ai: listening on tunnel <ip>:8447 (inside the tunnel, plain) → …   /   gateway ai: listening on http://[::]:8447 → …

@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 90996
+chars: 91277
 sections:
 - id: '1'
   title: How it works
@@ -37,7 +37,7 @@ sections:
   chars: 3858
 - id: '6'
   title: 'Non-interactive access: scripts and services'
-  chars: 8010
+  chars: 8291
 - id: '7'
   title: Where the reverse proxy runs
   chars: 1532
@@ -614,17 +614,21 @@ Setup (API or dashboard):
 How the reverse proxy decides, per request:
 
 1. **The credential.** `Authorization: Bearer` must verify, and its user must be a
-   service user. The reverse proxy asks management with that token (the user list, which
-   for an Admin service user is the whole account with emails and roles; the published
-   applications, for this address's `trusted_proxies`; the token's own name) and keeps
-   the answer for 1 minute; a refused token is remembered for 30 seconds.
+   service user. The reverse proxy asks management with that token (`GET
+   /api/users?service_user=true`; the published applications, for this address's
+   `trusted_proxies`; the token's own name, once) and keeps the answer for the
+   revalidation interval (10 minutes), or until the application changes (its version,
+   watched every 10 seconds, §9); a refused token is remembered for 30 seconds.
 2. **The address.** The client address (the connection's, or the last `X-Forwarded-For`
    hop added by a front door listed in `--publish-trusted-proxies`, §9) must fall in the
    application's **Trusted Proxies**. Otherwise the header is ignored and the request is
    the token's own: the service user is normally in none of the application's groups, so
    `403 not allowed to open this application`.
-3. **The user.** The email is matched case-insensitively among the account's users. No
-   match, a blocked user, or two users with the address: `403 unknown user`. A role other
+3. **The user.** The email is looked up with `GET /api/users?email=<address>`
+   (case-insensitive), one user at a time, and kept for 10 minutes (an unknown address for
+   1 minute, so a user just synced is found soon). A user blocked or deleted meanwhile is
+   refused by their own PAT's revalidation. No match, a blocked user, or two users with
+   the address: `403 unknown user`. A role other
    than **User** (Admin, Owner): `403 this user cannot be served through a proxy` —
    management makes PATs for regular users only.
 4. **The user's PAT.** Read with the service token from `GET /api/users/{id}/tokens`: the
@@ -1095,7 +1099,7 @@ curl -sS -H "Authorization: Token $USER_TOKEN" https://<api-host>/api/users/curr
 | the application loads but links, redirects or logins go to its internal name | the application's configuration | it builds absolute URLs from its configured base address: set that to the published address, or turn on **Send the address as Host header** (§4) |
 | the application works for some users only | §11.1 with each user's token; their groups and policies | groups admit them differently, or their policies reach the target differently (§4) |
 | **Peers** show the server's or the ingress's IP for `vp-<n>-RPROXY` | the container's `--publish-trusted-proxies` | it does not cover the proxy in front (compose: `172.20.0.0/24`; Kubernetes: the pod network) |
-| users behind a web proxy get `403 not allowed to open this application` | the access line's `ip=` against the application's `trusted_proxies` | the address is not listed (a new egress address of the proxy; a change takes effect within 1 minute); or `ip=` is the front door's, because `--publish-trusted-proxies` misses it or the ingress loses client addresses (ingress-nginx: `externalTrafficPolicy: Local`) (§6.1) |
+| users behind a web proxy get `403 not allowed to open this application` | the access line's `ip=` against the application's `trusted_proxies` | the address is not listed (a new egress address of the proxy; a change takes effect within a minute); or `ip=` is the front door's, because `--publish-trusted-proxies` misses it or the ingress loses client addresses (ingress-nginx: `externalTrafficPolicy: Local`) (§6.1) |
 | a web proxy's user gets `403 unknown user` / `cannot be served through a proxy` | the email the proxy sends against **Team → Users** | no such user, blocked, two users with the address, or an Admin/Owner (§6.1) |
 | a web proxy gets `403 a trusted proxy must name the user` | the proxy's header configuration | it sent its token from a trusted address without `X-Authenticated-User` |
 | a web proxy's user gets `503 the user's credential is being renewed` once | — | the user's PAT made for the proxy was deleted; the next request makes a new one |
