@@ -7,23 +7,23 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 17203
+chars: 19281
 sections:
 - id: '1'
   title: Model
-  chars: 3232
+  chars: 3670
 - id: '2'
   title: Field reference (Create New Filter / Edit Filter)
-  chars: 4023
+  chars: 4586
 - id: '3'
   title: API
-  chars: 2096
+  chars: 2384
 - id: '4'
   title: Design patterns
-  chars: 1807
+  chars: 1990
 - id: '5'
   title: Diagnosis — "the filter is not applying"
-  chars: 4536
+  chars: 5127
 ---
 # Admin Skill — Edge Filters (binding AI policy to devices and to gateway users)
 
@@ -37,7 +37,7 @@ A filter is the object that makes AI governance happen. It has a **type**:
 | Type | Targets | Carries | Enforced by |
 |---|---|---|---|
 | **Endpoint** | devices: groups × operating systems; with the OS **Browser**, the signed-in user's browser extension | Agents (process paths to intercept), Guardrails | the Netzilo client on each device (`10-ai-security-aidr.md`); the browser extension for OS Browser (`49-browser-extension-aidr.md`) |
-| **Gateway** | users: groups | Models (grants), Limits, MCP servers and bundles (grants), Gateways (addresses users reach), Guardrails | the AI Gateway, per user (`27-ai-gateway.md`) |
+| **Gateway** | users: groups | Models (grants), Limits, MCP servers and bundles (grants), Gateways (addresses users reach), Routing rules, Guardrails | the AI Gateway, per user (`27-ai-gateway.md`) |
 
 Without a matching, enabled filter a device records and enforces nothing, and a gateway
 user is refused every model. Endpoints never see gateway filters; gateways never load
@@ -88,6 +88,11 @@ desktop client claim that browser, and the extension in it stands down (`49` §3
   shown on the Workplace and probed there. A filter with models but no address grants
   the models, but the Workplace shows no card and users have nothing to paste.
 - **Limits**: by id; each applies per user (`45` §2).
+- **Routing rules**: by id; they send the users' requests to other providers and models
+  (`54-ai-gateway-routing-rules.md`). A user in several gateway filters gets every rule
+  those filters carry, evaluated together by priority. A filter must grant every target
+  and fallback of the rules it carries, and a **Requested model** target needs the whole
+  provider (`54` §5). Endpoint filters, including those for the browser, carry none.
 
 **Guardrails are optional on both types.** A filter without guardrails still targets,
 grants and limits, but governs nothing on the content side: no prompt, answer or tool
@@ -115,7 +120,7 @@ expanded filter has a content version; a gateway fetches only versions it does n
 | Guardrails | Guardrails | "Add or browse guardrails that will be applied through this filter (optional)" | **Browse Guardrails** / **New Guardrail**; optional, recommended (§1) |
 | Name | Name of the Filter *, Description | "Set an easily identifiable name for your filter (required)", placeholder "e.g., Developers AI access" | |
 
-### 2.2 Gateway filter — tabs Targets | Models | Limits | MCP | Gateways | Guardrails | Name
+### 2.2 Gateway filter — tabs Targets | Models | Limits | MCP | Gateways | Routing | Guardrails | Name
 
 | Tab | Field | UI help | Rule |
 |---|---|---|---|
@@ -125,10 +130,11 @@ expanded filter has a content version; a gateway fetches only versions it does n
 | Limits | Limits | "Apply spend budgets and rate limits to each user of this filter (optional). The lowest value wins when several filters apply." → **Browse Limits** / **Add Limit** | optional |
 | MCP | MCP Servers, MCP Bundles | "Grant the MCP servers and MCP bundles users of this filter may call. A server grants all of its tools or the names you type." → **Browse MCP Servers** (per server: **All Tools** or names), **Browse MCP Bundles** | optional |
 | Gateways | Gateways | "Where users of this filter reach their gateways. Shown in the Workplace with the models and MCP endpoints granted." → **Add Gateway**; each row a URL (placeholder `https://llm.example.com`); ⋯ → **Gateway Settings** (Name + URL); rows can be reordered | http(s) URL, trailing `/` trimmed; name defaults to the URL (422 `gateway address "…" must be an http(s) URL`) |
+| Routing | Routing Rules | "Route the requests of this filter's users to other providers and models." → **Browse Routing Rules** (pick existing rules) / **Add Routing Rule** (create one in place); the list reads "Evaluated by priority; the first match routes the request." Empty: "No routing rules yet — Requests of this filter's users go to the model they ask for." | optional; the filter must grant every target and fallback of each rule (422 `filter "…" does not grant …, a target of routing rule "…"`, `54` §5). Only on gateway filters |
 | Guardrails | Guardrails | as above | optional |
 | Name | Name of the Filter *, Description | as above | |
 
-In create mode **Continue** walks Targets → Models → Limits → Guardrails → Name; the
+In create mode **Continue** walks Targets → Models → Limits → Routing → Guardrails → Name; the
 **MCP** and **Gateways** tabs are not on that path and must be opened by clicking them —
 a common reason a new gateway filter ends up with no Workplace card.
 
@@ -162,20 +168,23 @@ Gateway filter:
 {"name":"Developers gateway","enabled":true,"type":"gateway","groups":["<group-id>"],
  "models":["<provider-id>/claude-sonnet-4-6","<provider-id2>/*"],
  "limits":["<limit-id>"],
+ "routing_rules":["<routing-rule-id>"],
  "mcp":[{"server_id":"<server-id>","tools":["*"]},{"server_id":"<server-id2>","tools":["search_docs"]}],
  "virtual_mcps":["<bundle-id>"],
  "gateways":[{"name":"Acme AI Gateway","url":"https://aigw.apps.example.com"}],
  "guardrails":["<guardrail-id>"]}
 ```
 
-Rules: `type` empty means endpoint; on an endpoint filter the gateway-only fields are
-reset to empty; `scanners` is accepted as an alias of `guardrails` and echoed back;
+Rules: `type` empty means endpoint; on an endpoint filter the gateway-only fields
+(models, limits, routing rules, MCP, gateways) are reset to empty; an omitted
+`routing_rules` on a `PUT` keeps the filter's rules, an empty list removes them; `scanners` is accepted as an alias of `guardrails` and echoed back;
 refusals name the cause (`model id "…" must be provider/model`, `provider of model …
 does not exist`, `model … does not exist`, `MCP server … does not exist`, `MCP bundle …
-does not exist`, `limit … does not exist`, `group … does not exist`, `guardrail … does
-not exist`). Deleting a filter checks nothing. Events: **Filter created / updated /
+does not exist`, `limit … does not exist`, `routing rule … does not exist`, `group … does not exist`,
+`guardrail … does not exist`, `filter "…" does not grant …, a target of routing rule
+"…"`). Deleting a filter checks nothing. Events: **Filter created / updated /
 deleted** (`filter.*`; meta includes `type` and the counts of guardrails, agents, models,
-limits, mcp, gateways).
+limits, routing rules, mcp, gateways).
 
 `/effective` is what the gateway asks per user; use it with an admin token to see which
 gateway filters (or, with `type=endpoint&peer=`, which endpoint filters) apply to someone,
@@ -194,6 +203,7 @@ before touching anything.
 | Everyone may use approved models through the gateway | gateway; group `All`; Models = the approved provider's models; Gateways = the published address; a monthly spend Limit; the baseline guardrails |
 | A team with more | a second gateway filter for its group with the extra models and MCP servers; grants add up, the **lowest** limit still wins, so keep the baseline's limit generous or leave it off the baseline |
 | MCP-focused team | gateway; MCP grants and a gateway address, plus the one model the team is meant to use (a gateway filter must grant at least one model); guardrails on tool calls and results |
+| A team's traffic to a cheaper model, a region or a fallback provider | gateway; grant the target and fallback models too, then carry a routing rule on the team's filter (`54` §8) |
 
 Precedence when several filters match: endpoint guardrails are merged and evaluated
 together, most severe rule first; a block from any wins; an `allow` rule in one filter
@@ -259,6 +269,9 @@ rule bound in the baseline reaches everyone.
 | Workplace's AI Workspace shows no gateway though models work by token | Gateways tab empty | add the address |
 | A user gets more than intended | another filter (the `All` baseline) grants it too; grants are a union | narrow the baseline |
 | A user gets less than intended | another filter carries a lower limit | find it with `/effective` and the filters' `limits` |
+| Requests go to another model than the one asked for | a routing rule on one of the user's gateway filters (the session's step shows **Routed by**), or a guardrail that changes the model | `54` §9 |
+| No Routing tab in the filter dialog | the filter's type is Endpoint; routing rules exist only on gateway filters | use the user's gateway filter |
+| Filter save fails `filter "…" does not grant …, a target of routing rule "…"` | the filter carries a rule whose target or fallback it does not grant, or the save drops such a grant | grant it, or remove the rule from the filter (`54` §5) |
 | Group cannot be deleted | referenced by a filter | edit the filter first |
 
 Events: `filter.created/updated/deleted`; verdicts `ai.blocked/redacted/redirected/detected` (allowed calls are in AI sessions, not events).

@@ -6,11 +6,11 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12701
+chars: 12875
 sections:
 - id: administration
   title: Administration
-  chars: 6081
+  chars: 6255
 - id: access-control
   title: Access Control
   chars: 816
@@ -32,8 +32,8 @@ sections:
 ---
 # Event catalogue — what each activity is called
 
-Generated from Netzilo Server's activity table on 2026-10-22 by
-`scripts/gen-event-codes.py`. 169 activities.
+Generated from Netzilo Server's activity table on 2026-11-15 by
+`scripts/gen-event-codes.py`. 172 activities.
 
 Every event the API returns carries all three columns: `activity` (the display
 name), `activity_code` (the stable identifier) and `activity_category`. **Say the
@@ -85,6 +85,9 @@ rows written before they were retired still show their name.
 | Provider created | `gateway_provider.created` |
 | Provider deleted | `gateway_provider.deleted` |
 | Provider updated | `gateway_provider.updated` |
+| Routing rule created | `gateway_routing_rule.created` |
+| Routing rule deleted | `gateway_routing_rule.deleted` |
+| Routing rule updated | `gateway_routing_rule.updated` |
 | MCP bundle created | `gateway_virtual_mcp.created` |
 | MCP bundle deleted | `gateway_virtual_mcp.deleted` |
 | MCP bundle updated | `gateway_virtual_mcp.updated` |

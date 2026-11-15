@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 33157
+chars: 33562
 sections:
 - id: '1'
   title: Rules of engagement
@@ -17,7 +17,7 @@ sections:
   chars: 3807
 - id: '3'
   title: 'Triage: route the request'
-  chars: 8160
+  chars: 8565
 - id: '4'
   title: Intake checklist (in this order)
   chars: 7042
@@ -174,7 +174,8 @@ first; go to the device to see what the account cannot.
 | "Watermark / block copy, print, downloads or uploads on a published application" / "users can't copy or download in the app" / "a restriction does not apply" | `44-published-applications.md` §4.2, §11.2 |
 | "Govern AI agents / Claude Code hooks / SDK / browser extension / Enterprise Browser / which enforcement point (device or AI gateway) / test detection rules" | `10-ai-security-aidr.md` (the gateway side continues in `27-ai-gateway.md`) |
 | "Set up / run the AI gateway", connect Claude Code / Cursor / Codex / Claude Desktop to it, 400 / 401 / 403 / 405 / 429 from the gateway, the Workplace card shows Offline | `27-ai-gateway.md` (install, doors, refusals, logs) + `47-agentic-access-workplace.md` (what the user sees and pastes) |
-| "Providers, models, limits" / "model X is not granted" / spend or token quotas | `45-ai-gateway-providers-and-limits.md` |
+| "Providers, models, limits" / "model X is not granted" / spend or token quotas / a self-hosted model server on the LAN | `45-ai-gateway-providers-and-limits.md` |
+| "Send requests to a cheaper model / keep EU data in the EU / fall back to another provider / move Claude Code to another model" / "Routing Rules" / "a routing rule does not route" / "answered by another model than asked" | `54-ai-gateway-routing-rules.md` |
 | "MCP servers, bundles, MCP sign-in, Needs Attention, Claude Desktop connector" | `46-ai-gateway-mcp-servers-and-bundles.md` |
 | "Guardrails" (write, test, bind, why a rule did not fire) | `28-edge-guardrails.md` |
 | "Filters" — endpoint (devices) vs gateway (users); "the filter is not applying" | `29-edge-filters.md` |
@@ -203,6 +204,7 @@ it not applying" diagnosis) — load the one matching the dashboard page in ques
 | Edge → Providers (tabs MCP Servers \| MCP Bundles) | `46-ai-gateway-mcp-servers-and-bundles.md` |
 | Edge → Governance → Guardrails | `28-edge-guardrails.md` |
 | Edge → Governance → Limits | `45-ai-gateway-providers-and-limits.md` §2 |
+| Edge → Governance → Routing Rules; a gateway filter's Routing tab | `54-ai-gateway-routing-rules.md` |
 | Edge → Governance → Filters (endpoint and gateway) | `29-edge-filters.md` |
 | The AI gateway itself (`netzilo-aigw`: install, doors, refusals, logs) | `27-ai-gateway.md` |
 | Workplace: the AI Workspace chat, its Gateways & MCP Servers panel (Agentic Access), Applications status, the Devices panel and private access (what users see) | `47-agentic-access-workplace.md` |

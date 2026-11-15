@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 29329
+chars: 29861
 sections:
 - id: '1'
   title: Model
@@ -17,7 +17,7 @@ sections:
   chars: 5270
 - id: '3'
   title: Minimal rule template
-  chars: 3733
+  chars: 3963
 - id: '4'
   title: Testing a rule
   chars: 4601
@@ -29,7 +29,7 @@ sections:
   chars: 885
 - id: '7'
   title: Diagnosis
-  chars: 3685
+  chars: 3987
 - id: '8'
   title: Limits to state before a customer discovers them
   chars: 3213
@@ -220,8 +220,11 @@ fail-closed. Field modifiers: `|contains`, `|startswith`, `|endswith`, `|re`, `|
 `scan` with an instruction and the built-in classifier both run through management
 (`POST /api/ai/scanprompt`; the built-in classifier needs prompt scanning enabled on the
 server, the AI judge needs a model approved for **Threat Analysis** under Integrations →
-Artificial Intelligence). A scan that cannot run (management unreachable, no approved
-model, timeout) is an **error for the rule's `on_error`**, not an allow by default.
+Artificial Intelligence, and a `system_one()` check a **System One** model approved for
+Threat Analysis, `30` §4a). A scan that cannot run (management unreachable, no approved
+model, timeout) is an **error for the rule's `on_error`**, not an allow by default; a
+`system_one()` call that cannot run returns its `error` ("No System One model is approved
+for Threat Analysis") for the script to handle.
 
 Two tested PII templates, prompt direction. The response rule is the same with
 `event_type: llm_response` and its own `id`; the API body carries
@@ -387,6 +390,7 @@ silently at expansion, and the next save of such a filter fails with
 | An MCP result redaction rewrote one item, but a pattern spanning two items did not match | each text of an MCP result (content item, resource text, `structuredContent` string) is judged on its own (`10-ai-security-aidr.md` §7) | write the rule for one text's content |
 | Redaction not visible | redaction applies to matched content only; a match longer than about 1 KB in a streamed answer has its start released before the rule sees all of it; a Cursor streamed request is blocked instead of redacted | check the event's content |
 | AI panel and ✦ button missing from the guardrail dialog | no model approved for **Assistant** (the header's AI Assistant button is missing too), or the user is not an owner or admin | Integrations → Artificial Intelligence → approve a model for Assistant; a Threat Analysis approval does not enable it |
+| A rule's `system_one()` check returns "No System One model is approved for Threat Analysis" | the System One provider has no model approved for Threat Analysis (or is disabled) | Integrations → Artificial Intelligence → the System One provider → **Configure** → tick **Threat Analysis** (`30` §4a) |
 | AI panel: "The assistant is still answering in this conversation in another window" (`409`) | that thread is answering a message sent from another tab or window | wait for that answer, or close the other dialog, then send again |
 | The assistant wrote a rule, but the guardrail did not change | the assistant never saves; the rule is only in the editor | review it, **Save**; **Undo** puts back the previous content |
 | Editor does not accept typing; Save and Replay greyed out | the assistant is answering; the editor and the dialog's fields are locked until it finishes | wait for the answer, or press **Esc** to stop it |

@@ -7,6 +7,55 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.18.0 — 2026-11-15
+
+AI Gateway routing rules: send gateway requests to other providers and models by
+condition, split by weight, with fallbacks. System One providers gain approvals, and a
+provider's endpoint may be on the customer's private network. Minor version: a new
+runbook.
+
+- `54` (new): routing rules end to end — what they are for (cost, data residency,
+  resilience, moving an agent such as Claude Code, local models); the **Routing Rules**
+  tab under Edge → Governance (Priority, Active, Conditions, Targets, **Routed (7 days)**,
+  Used By; Delete disabled while a filter uses a rule); the dialog tab by tab (Conditions
+  in Builder or CEL with every field, operator and limit and each CEL refusal; Targets with
+  weights, **Requested model** and **First token timeout**; **Chain Rule**; ordered
+  Fallbacks; Name and Priority); how the gateway evaluates them (gateway filters only,
+  users in several filters, lowest priority first, older first on a tie, chain rules,
+  weights, fallbacks, a guardrail that changes the model wins, about a minute to reach the
+  gateways); the grant rules between rules, filters and providers with every 412/422;
+  the records (AI usage, **Routed by** in a session, the three activity events); the API
+  with a worked example (create, add to a filter, stats) and example bodies (80/20 split,
+  Claude Code to a cheaper model, a fallback chain); procedures; troubleshooting by
+  symptom with a test request; and what is not available (complexity routing, adaptive
+  routing).
+- `29` §1, §2.2, §3, §4, §5: gateway filters gain a **Routing** tab (Browse Routing Rules /
+  Add Routing Rule; Continue walks Targets → Models → Limits → Routing → Guardrails →
+  Name) and the `routing_rules` field (omitted on update keeps them); endpoint and browser
+  filters carry none; the grant a rule needs and its 422.
+- `45` §1.1, §3, §4: models and providers a routing rule uses cannot be removed, disabled
+  or deleted (412 naming the rule); disabling a whole provider is allowed and stops its
+  rules. A provider endpoint an admin sets may be on a private network (RFC 1918, ULA);
+  link-local addresses stay blocked.
+- `27` §1, §7, §8, §9.2, §10: routing in the request's path, the gateway's
+  `GET /api/ai-gateway/routing-rules` pull, the rule in usage records, the `gateway ai:
+  routing …` log lines, a troubleshooting row.
+- `30` §4a, §6: System One providers carry approvals — **Threat Analysis** for guardrail
+  rules' `system_one()` checks, **Log Analysis** reserved for routing classification,
+  never **Assistant**; a System One model is used only when approved; new providers start
+  with Threat Analysis and existing ones were granted it once at upgrade; a named model
+  must be approved; "No System One model is approved for Threat Analysis" and its fix;
+  `GET /api/ai/models` and `/api/ai/capabilities` count text models only. §3 names
+  **Routed by** and **Asked for** in a session's steps.
+- `32` (the `system_one` builtin), `28` §3, §7, `10`, `08`: the Threat Analysis approval a
+  `system_one()` check needs.
+- `00` §3, `09` §2–§3, `35`, `SKILL.md`: routing rules in the task and page tables, the API
+  catalogue and the filter and provider bodies.
+- `33` regenerated from the current OpenAPI description: `/api/edge/routing-rules`
+  (list, create, get, update, delete, stats), `GET /api/ai-gateway/routing-rules`, the
+  filters' `routing_rules`, and the System One protocol description. `34` regenerated:
+  **Routing rule created / updated / deleted** (172 activities).
+
 ## 4.17.0 — 2026-11-13
 
 A customer's web proxy in front of a published application, typically an AI Gateway:

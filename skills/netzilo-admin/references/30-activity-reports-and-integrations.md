@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 41672
+chars: 44499
 sections:
 - id: '1'
   title: Activity → Events
@@ -20,16 +20,16 @@ sections:
   chars: 3523
 - id: '3'
   title: Dashboard home
-  chars: 10072
+  chars: 10338
 - id: '4'
   title: Integrations
-  chars: 7913
+  chars: 9872
 - id: '5'
   title: Procedures
   chars: 2036
 - id: '6'
   title: Diagnosis
-  chars: 5620
+  chars: 6222
 ---
 # Admin Skill — Activity Events, Reports, Dashboard Home and Integrations
 
@@ -289,7 +289,10 @@ back arrow or **Escape** goes up one; **Escape** on the first page closes it. Le
    verdicts and kill-chain steps marked; long texts show a preview, the whole on click.
    A tool call refused before the agent got it has a row of its own (the tool, **Blocked**)
    whose **Verdict** names the rule and the reason it gave — for a judge rule, the judge's
-   explanation.
+   explanation. A model step shows **Model**, **Asked for** (when the caller named another
+   model) and **Provider**; a step a routing rule sent elsewhere adds **Routed by**, the
+   rule's name ("A deleted routing rule" once it is deleted; `54-ai-gateway-routing-rules.md`
+   §6).
    An MCP call the model asked for sits on the model's tool step; a direct call (no model
    loop) is a step of its own; a call from an MCP client with no model whose User-Agent
    names no known agent is shown under the client's name (**Unknown client** if it never
@@ -394,19 +397,48 @@ API key, a **Priority** (lower wins when several providers can serve the same
 feature), and a list of **models**.
 
 A **System One (TypeSafe)** provider (`typesafe-systemone`) answers typed questions
-and never generates text. Only AIDR detection rules call it, through the `system_one()`
-builtin (`32-detection-rule-authoring.md`); it is approved for no feature, so its models
-step has nothing to tick and its card reads "Called by AIDR rules". A rule may name one
-of its models (`model="jev-preview"`); otherwise the highest-priority System One
-provider's first model answers. The key stays in management: hosts reach it through
-management (`POST /api/ai/systemone`), and every call is a paid round trip.
+and never generates text. Like a text provider it carries **approvals**, but only two of
+the three features apply to it (the dialog offers only those):
+
+- **Threat Analysis** — its models answer the `system_one()` checks of guardrail rules
+  (`32-detection-rule-authoring.md`). Dashboard: "Answering the System One checks of
+  guardrail rules".
+- **Log Analysis** — reserved for classifying requests for routing rules ("Classifying
+  requests for routing rules"); nothing uses it yet (`54-ai-gateway-routing-rules.md`
+  §10).
+- Never **Assistant**. Features that generate text never use a System One model, and a
+  System One approval enables none of them: Smart Search and the assistant still need a
+  text model.
+
+A System One model is used for a feature only when it is approved for it, at provider
+level or by its own override. A new System One provider starts approved for **Threat
+Analysis**, and models it discovers or that are added by hand inherit the provider's
+approvals. System One providers that existed before approvals were granted Threat
+Analysis once, automatically, when the server was upgraded; a provider an admin had
+already given approvals kept them. Defaults are kept per kind: the starred System One
+model for Threat Analysis is a separate choice from the starred text model (the AI
+judge).
+
+A `system_one()` call that names no model gets the starred System One model for Threat
+Analysis, otherwise the first approved model of the highest-priority System One provider.
+A rule may name one (`model="jev-preview"`), which must be approved for Threat Analysis —
+unlike `llm_call()`, which may name any model of an enabled text provider; otherwise the
+call's error reads `System One model "…" is not available: provider "…" does not approve
+it for Threat Analysis`. With no System One model approved at all, every `system_one()`
+check reports "No System One model is approved for Threat Analysis. Add a System One
+provider under Integrations → Artificial Intelligence and approve a model for Threat
+Analysis." Fix: **Configure** the System One provider, tick **Threat Analysis** for the
+provider (or the model the rules name), save. The key stays in management: hosts reach
+it through management (`POST /api/ai/systemone`), and every call is a paid round trip.
 
 **Approval is per feature.** There are three: **Assistant** (`assistant`) is
 the admin assistant in the chat panel and the guardrail editor (the dialog's AI
 panel, `28-edge-guardrails.md` §2.1); **Log Analysis** (`log-analysis`) covers AI
-Smart Search and log analysis; **Threat Analysis** (`threat-analysis`) covers only
-the AI judge of guardrail rules — `scan` rules with a `prompt`, the `llm_call()`
-builtin and prompt scanning (`32-detection-rule-authoring.md`). The dashboard
+Smart Search and log analysis (for a System One model: classifying requests for
+routing, see above); **Threat Analysis** (`threat-analysis`) covers only the AI judge of
+guardrail rules — `scan` rules with a `prompt`, the `llm_call()` builtin and prompt
+scanning (`32-detection-rule-authoring.md`) — and, for a System One model, the
+`system_one()` checks. The dashboard
 describes them as "The admin assistant in the chat panel and the guardrail editor"
 and "Judging content for guardrails — AI scans and judge rules". A rule's
 `llm_call(..., model=...)` may name any model an enabled text provider lists, approved
@@ -458,8 +490,8 @@ work.
 | `DELETE /api/ai/providers/{id}` | remove (owner only) |
 | `POST /api/ai/providers/verify` | test a draft; nothing is stored |
 | `POST /api/ai/providers/{id}/verify` | test a stored provider and record the result |
-| `GET /api/ai/models?use=assistant` | the models approved for a feature (`assistant`, `log-analysis`, `threat-analysis`) |
-| `GET /api/ai/capabilities` | which features this account can serve |
+| `GET /api/ai/models?use=assistant` | the text models approved for a feature (`assistant`, `log-analysis`, `threat-analysis`); System One models are not listed |
+| `GET /api/ai/capabilities` | which features this account can serve with a text model |
 
 Reads need admin; writes need owner. Adding, changing, removing and verifying
 a provider are all audited (`ai.provider.create`, `.update`, `.delete`,
@@ -516,7 +548,9 @@ if it does, the dashboard is out of date.
 | No events for a device | client not connected; nothing matched a policy/filter/profile; AI events are verdicts only, so clean AI traffic is in Edge → Sessions, not in events | `netzilo status`; check bindings; look in AI Sessions |
 | `user.login` events missing (self-hosted) | login-event import from the identity provider requires the built-in provider and the service account roles created at install | verify identity provider health (`04` §9) |
 | CSV export incomplete | only the current page is exported | raise rows per page or use the API |
-| AI Smart Search greyed / AI Insights Disabled | no model approved for Log Analysis | Integrations → Artificial Intelligence → approve a model |
+| AI Smart Search greyed / AI Insights Disabled | no text model approved for Log Analysis (a System One approval does not count) | Integrations → Artificial Intelligence → approve a text model |
+| A guardrail's `system_one()` check reports "No System One model is approved for Threat Analysis" | the System One provider has no model approved for Threat Analysis, or it is disabled | Integrations → Artificial Intelligence → the System One provider → **Configure** → tick **Threat Analysis** → save |
+| `System One model "…" is not available: provider "…" does not approve it for Threat Analysis` | the rule names a System One model that is not approved for Threat Analysis | approve that model for Threat Analysis, or drop `model=` from the rule |
 | Assistant button missing from the header | no model approved for `assistant` | Integrations → Artificial Intelligence → approve a model |
 | "The model … cannot serve Assistant" | approval withdrawn while a chat was open | re-approve it, or pick another model in the chat's picker |
 | No AI panel in the guardrail dialog (Edge → Governance → Guardrails) | no model approved for Assistant (the header's Assistant button is missing too), or the user is not an admin | Integrations → Artificial Intelligence → approve a model for Assistant (`28-edge-guardrails.md` §2.1) |

@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 45431
+chars: 45667
 sections:
 - id: '1'
   title: Architecture in one page
-  chars: 5018
+  chars: 5044
 - id: '2'
   title: Rollout runbook
-  chars: 3860
+  chars: 3897
 - id: '3'
   title: Client-side mechanics you must know when troubleshooting
   chars: 4266
@@ -29,10 +29,10 @@ sections:
   chars: 5084
 - id: '7'
   title: The AI Gateway and MCP
-  chars: 2709
+  chars: 2825
 - id: '8'
   title: Writing and testing rules (Guardrails)
-  chars: 4443
+  chars: 4500
 - id: '9'
   title: Troubleshooting
   chars: 7055
@@ -88,7 +88,8 @@ Ways traffic enters the device-side engine:
 
 Central policy objects (Dashboard → **Edge**): **Providers** (`45`), with **MCP
 Servers** and **MCP Bundles** as its tabs (`46`); **Governance**, with the tabs
-**Filters** (`29`), **Guardrails** (`28`), **Limits** (`45`) and **Actions** (`51`);
+**Filters** (`29`), **Guardrails** (`28`), **Limits** (`45`), **Routing Rules** (`54`) and
+**Actions** (`51`);
 **Sessions** (`30` §1a). The earlier addresses (`/ai-edge/guardrails`, `/ai-edge/filters`,
 `/ai-edge/limits`, `/ai-edge/mcp`, `/ai-sessions`) redirect there. Users meet the gateway
 side at Workplace → **AI Workspace**: a chat over the gateway and the panel of their
@@ -119,8 +120,8 @@ gateway on port 41338. MCP servers are admin-defined objects served by the AI Ga
    for **Threat Analysis** (the judge) and **Assistant** (the chat panel and the
    guardrail editor's AI panel, `28` §2.1) (`30` §4a). Judge rules
    (LLM-as-judge) use the same providers: `llm_call()` on the Threat Analysis model or a
-   model the rule names, and `system_one()` on a **System One** provider (`32`). This is
-   not the gateway's provider list (`45`).
+   model the rule names, and `system_one()` on a **System One** provider's model approved
+   for Threat Analysis (`32`). This is not the gateway's provider list (`45`).
 3. **Guardrails:** Edge → Governance → Guardrails → Add Guardrail; start from the public library
    (`github.com/netzilo/aidr-sigma`) in report mode (`28` §6).
 4. **Create an endpoint Filter** (Edge → Governance → Filters → Add Filter → Filter Type Endpoint):
@@ -383,6 +384,8 @@ filters (model grants, limits, MCP grants, guardrails) and records usage facts.
 
 - Install, run, expose, identity, refusals, logs: `27-ai-gateway.md`.
 - Providers (the model catalogue) and Limits: `45-ai-gateway-providers-and-limits.md`.
+- Routing rules (which provider and model serve a request, weights, fallbacks):
+  `54-ai-gateway-routing-rules.md`.
 - MCP servers and bundles, admin and per-user sign-ins, MCP clients that sign in through
   OAuth: `46-ai-gateway-mcp-servers-and-bundles.md`.
 - What users see and paste at Workplace → AI Workspace (and its chat): `47-agentic-access-workplace.md`.
@@ -465,7 +468,8 @@ Rules share state within a session (`32`, "Session State"), so one rule can foll
 session and another decide on it — for example Netzilo's **Cruise Control Patrol**
 (follows an agent session in the background and reports when it drifts from what the user
 asked) and **Cruise Control Gate** (judges risky tool calls inline against the session and
-blocks harmful ones); both need a System One provider. Bind them as a pair: the gate reads
+blocks harmful ones); both need a System One provider with a model approved for
+**Threat Analysis** (`30` §4a). Bind them as a pair: the gate reads
 what the patrol keeps. `mode`, `timeout_ms` and the session
 builtins need a current engine on the host: an older client, gateway or browser
 extension runs a background rule inline and fails a script that uses the session

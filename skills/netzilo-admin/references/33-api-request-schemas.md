@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 111750
+chars: 116913
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -30,6 +30,9 @@ sections:
 - id: get-api-ai-gateway-providers
   title: '`GET /api/ai-gateway/providers`'
   chars: 194
+- id: get-api-ai-gateway-routing-rules
+  title: '`GET /api/ai-gateway/routing-rules`'
+  chars: 206
 - id: post-api-ai-gateway-usage
   title: '`POST /api/ai-gateway/usage`'
   chars: 2300
@@ -47,13 +50,13 @@ sections:
   chars: 171
 - id: post-api-ai-providers
   title: '`POST /api/ai/providers`'
-  chars: 1352
+  chars: 1451
 - id: post-api-ai-providers-verify
   title: '`POST /api/ai/providers/verify`'
-  chars: 1380
+  chars: 1479
 - id: put-api-ai-providers-providerid
   title: '`PUT /api/ai/providers/{providerId}`'
-  chars: 1455
+  chars: 1554
 - id: delete-api-ai-providers-providerid
   title: '`DELETE /api/ai/providers/{providerId}`'
   chars: 261
@@ -137,7 +140,7 @@ sections:
   chars: 485
 - id: post-api-edge-filters
   title: '`POST /api/edge/filters`'
-  chars: 2090
+  chars: 2321
 - id: get-api-edge-filters-effective
   title: '`GET /api/edge/filters/effective`'
   chars: 572
@@ -146,7 +149,7 @@ sections:
   chars: 263
 - id: put-api-edge-filters-filterid
   title: '`PUT /api/edge/filters/{filterId}`'
-  chars: 2143
+  chars: 2374
 - id: delete-api-edge-filters-filterid
   title: '`DELETE /api/edge/filters/{filterId}`'
   chars: 267
@@ -219,6 +222,24 @@ sections:
 - id: delete-api-edge-providers-providerid
   title: '`DELETE /api/edge/providers/{providerId}`'
   chars: 284
+- id: get-api-edge-routing-rules
+  title: '`GET /api/edge/routing-rules`'
+  chars: 183
+- id: post-api-edge-routing-rules
+  title: '`POST /api/edge/routing-rules`'
+  chars: 1544
+- id: get-api-edge-routing-rules-stats
+  title: '`GET /api/edge/routing-rules/stats`'
+  chars: 350
+- id: get-api-edge-routing-rules-ruleid
+  title: '`GET /api/edge/routing-rules/{ruleId}`'
+  chars: 252
+- id: put-api-edge-routing-rules-ruleid
+  title: '`PUT /api/edge/routing-rules/{ruleId}`'
+  chars: 1592
+- id: delete-api-edge-routing-rules-ruleid
+  title: '`DELETE /api/edge/routing-rules/{ruleId}`'
+  chars: 277
 - id: get-api-edge-virtual-mcps
   title: '`GET /api/edge/virtual-mcps`'
   chars: 180
@@ -618,7 +639,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-11-13 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-11-15 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -697,6 +718,12 @@ Responses: `204` The peer is the account's AI gateway, `401` Requires authentica
 Providers for an AI gateway
 
 Responses: `200` The providers, `304` Not modified, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `GET /api/ai-gateway/routing-rules`
+
+Routing Rules for an AI gateway
+
+Responses: `200` The routing rules, `304` Not modified, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
 
 ## `POST /api/ai-gateway/usage`
 
@@ -792,7 +819,7 @@ Create an AI provider
 
 Request body (JSON):
 - `name` (string, **required**)
-- `protocol` (string (anthropic-messages | openai-completions | typesafe-systemone), **required**): The wire protocol a provider's endpoint speaks. A "typesafe-systemone" provider is called only by AIDR rules and is approved for no use.
+- `protocol` (string (anthropic-messages | openai-completions | typesafe-systemone), **required**): The wire protocol a provider's endpoint speaks. A "typesafe-systemone" provider answers typed questions only: it may be approved for "threat-analysis" and "log-analysis", never "assistant", and features that generate text never use it.
 - `base_url` (string, optional)
 - `api_key` (string, optional)
 - `headers` (object, optional)
@@ -816,7 +843,7 @@ Verify a draft AI provider without storing it
 Request body (JSON):
 - `id` (string, optional)
 - `name` (string, **required**)
-- `protocol` (string (anthropic-messages | openai-completions | typesafe-systemone), **required**): The wire protocol a provider's endpoint speaks. A "typesafe-systemone" provider is called only by AIDR rules and is approved for no use.
+- `protocol` (string (anthropic-messages | openai-completions | typesafe-systemone), **required**): The wire protocol a provider's endpoint speaks. A "typesafe-systemone" provider answers typed questions only: it may be approved for "threat-analysis" and "log-analysis", never "assistant", and features that generate text never use it.
 - `base_url` (string, optional)
 - `api_key` (string, optional)
 - `headers` (object, optional)
@@ -840,7 +867,7 @@ Parameters:
 
 Request body (JSON):
 - `name` (string, **required**)
-- `protocol` (string (anthropic-messages | openai-completions | typesafe-systemone), **required**): The wire protocol a provider's endpoint speaks. A "typesafe-systemone" provider is called only by AIDR rules and is approved for no use.
+- `protocol` (string (anthropic-messages | openai-completions | typesafe-systemone), **required**): The wire protocol a provider's endpoint speaks. A "typesafe-systemone" provider answers typed questions only: it may be approved for "threat-analysis" and "log-analysis", never "assistant", and features that generate text never use it.
 - `base_url` (string, optional)
 - `api_key` (string, optional)
 - `headers` (object, optional)
@@ -1257,6 +1284,7 @@ Request body (JSON):
 - `guardrails` (array of string, optional): Guardrail ids applied to the filter's traffic. Optional; a filter without guardrails only grants.
 - `models` (array of string, optional): Gateway filters only, where at least one is required. Model ids as provider/model, or provider/* for every model of a provider.
 - `limits` (array of string, optional): Gateway filters only. Limit ids; each user gets their own counters, the lowest value wins across filters.
+- `routing_rules` (array of string, optional): Gateway filters only. Routing rule ids applied to the filter's users; a user in several filters gets all their filters' rules, by priority. Omitted on update keeps the filter's rules.
 - `mcp` (array of object, optional): Gateway filters only. MCP servers granted, each whole or by tool names
   - `server_id` (string, **required**)
   - `tools` (array of string, optional): ["*"] or empty for every tool, else tool names
@@ -1306,6 +1334,7 @@ Request body (JSON):
 - `guardrails` (array of string, optional): Guardrail ids applied to the filter's traffic. Optional; a filter without guardrails only grants.
 - `models` (array of string, optional): Gateway filters only, where at least one is required. Model ids as provider/model, or provider/* for every model of a provider.
 - `limits` (array of string, optional): Gateway filters only. Limit ids; each user gets their own counters, the lowest value wins across filters.
+- `routing_rules` (array of string, optional): Gateway filters only. Routing rule ids applied to the filter's users; a user in several filters gets all their filters' rules, by priority. Omitted on update keeps the filter's rules.
 - `mcp` (array of object, optional): Gateway filters only. MCP servers granted, each whole or by tool names
   - `server_id` (string, **required**)
   - `tools` (array of string, optional): ["*"] or empty for every tool, else tool names
@@ -1644,6 +1673,92 @@ Delete a GatewayProvider
 
 Parameters:
 - `providerId` (path, required)
+
+Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `500` Internal Server Error
+
+## `GET /api/edge/routing-rules`
+
+List all Routing Rules
+
+Responses: `200` A JSON array of Routing Rules, `401` Requires authentication, `403` Forbidden, `500` Internal Server Error
+
+## `POST /api/edge/routing-rules`
+
+Create a Routing Rule
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional): false when omitted
+- `priority` (integer, optional): Lower is evaluated first (0-9999); ties by creation time
+- `chain_rule` (boolean, optional): After this rule routes, evaluate the rules again with the routed provider and model
+- `condition_mode` (string (builder | cel), optional)
+- `condition` (object, optional): Conditions and nested groups joined with and or or
+  - `id` (string, optional)
+  - `combinator` (string (and | or), **required**)
+  - `rules` (array of object, **required**): RoutingCondition objects, and RoutingGroup objects (those with rules)
+- `cel_expression` (string, optional): CEL mode only; computed from condition in builder mode
+- `targets` (array of object, **required**)
+  - `provider_id` (string, **required**)
+  - `model` (string, optional): A model of the provider; empty keeps the requested model
+  - `weight` (integer, **required**): Whole percent of the matching requests; a rule's targets add up to 100
+  - `ttft_timeout_ms` (integer, optional): Streaming only. Move on when no first token arrived in this time; 0 is off
+- `fallbacks` (array of string, optional): provider_id/model, tried in order when the targets fail
+
+Responses: `200` The created Routing Rule, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `409` Conflict, `412` Precondition failed, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/edge/routing-rules/stats`
+
+Requests routed by each Routing Rule
+
+Parameters:
+- `days` (query, optional): The window, 1 to 90 days (default 7)
+
+Responses: `200` One entry per rule that routed a request in the window, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/edge/routing-rules/{ruleId}`
+
+Retrieve a Routing Rule
+
+Parameters:
+- `ruleId` (path, required)
+
+Responses: `200` A Routing Rule object, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `500` Internal Server Error
+
+## `PUT /api/edge/routing-rules/{ruleId}`
+
+Update a Routing Rule
+
+Parameters:
+- `ruleId` (path, required)
+
+Request body (JSON):
+- `name` (string, **required**)
+- `description` (string, optional)
+- `enabled` (boolean, optional): false when omitted
+- `priority` (integer, optional): Lower is evaluated first (0-9999); ties by creation time
+- `chain_rule` (boolean, optional): After this rule routes, evaluate the rules again with the routed provider and model
+- `condition_mode` (string (builder | cel), optional)
+- `condition` (object, optional): Conditions and nested groups joined with and or or
+  - `id` (string, optional)
+  - `combinator` (string (and | or), **required**)
+  - `rules` (array of object, **required**): RoutingCondition objects, and RoutingGroup objects (those with rules)
+- `cel_expression` (string, optional): CEL mode only; computed from condition in builder mode
+- `targets` (array of object, **required**)
+  - `provider_id` (string, **required**)
+  - `model` (string, optional): A model of the provider; empty keeps the requested model
+  - `weight` (integer, **required**): Whole percent of the matching requests; a rule's targets add up to 100
+  - `ttft_timeout_ms` (integer, optional): Streaming only. Move on when no first token arrived in this time; 0 is off
+- `fallbacks` (array of string, optional): provider_id/model, tried in order when the targets fail
+
+Responses: `200` The updated Routing Rule, `400` Bad Request, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `409` Conflict, `422` Validation failed, `500` Internal Server Error
+
+## `DELETE /api/edge/routing-rules/{ruleId}`
+
+Delete a Routing Rule
+
+Parameters:
+- `ruleId` (path, required)
 
 Responses: `200` Delete status code, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `412` Precondition failed, `500` Internal Server Error
 

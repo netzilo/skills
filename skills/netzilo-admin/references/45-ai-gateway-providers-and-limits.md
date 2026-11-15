@@ -7,20 +7,20 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 17249
+chars: 18732
 sections:
 - id: '1'
   title: Providers
-  chars: 8252
+  chars: 9049
 - id: '2'
   title: Limits
   chars: 2635
 - id: '3'
   title: Procedures
-  chars: 1322
+  chars: 1500
 - id: '4'
   title: Diagnosis
-  chars: 2523
+  chars: 2830
 - id: '5'
   title: Limits to state before a customer discovers them
   chars: 1180
@@ -37,13 +37,15 @@ spend budget, a token quota and/or a request quota, applied per user. Neither re
 user on its own: a **gateway filter** (`29-edge-filters.md` §2.2) grants models from
 providers and attaches limits to the users of its groups. The gateway
 (`27-ai-gateway.md`) pulls providers and keys with its service token and enforces the
-grants and limits per request.
+grants and limits per request. **Routing rules** (`54-ai-gateway-routing-rules.md`) can
+send a request to another provider or model than the one it names; the models they use
+are held in place here (§1.1).
 
 **Not the same thing as Integrations → Artificial Intelligence.** That page
 (`30-activity-reports-and-integrations.md` §4a, `/api/ai/providers`) holds the AI
 provider management itself uses for the dashboard assistant (including the guardrail
-editor's AI panel), log analysis and threat analysis (the AI judge of guardrail rules,
-prompt scanning). Edge → Providers are what
+editor's AI panel), log analysis and threat analysis (the AI judge and the System One
+checks of guardrail rules, prompt scanning). Edge → Providers are what
 users' agents talk to through the gateway. The two lists are independent; a key
 entered in one is not known to the other.
 
@@ -58,18 +60,24 @@ entered in one is not known to the other.
 | Name | required; unique in the account, case-insensitive (409 `a provider named "…" exists`) |
 | **ID** (`slug`) | the name clients call the provider by: its models are `<ID>/<model>` on every gateway (e.g. `netzilo-builtin/gpt-4o`). Dashboard help: "Clients call this provider's models as ID/model on every gateway; cannot change once created". Default = the name made into a slug; a typed ID is slugified (lowercase letters, digits, single dashes). Unique in the account, **immutable after create** (an update keeps the stored one). A provider whose ID equals its type (`openai`, `anthropic`, …) is served as that standard provider; another type's name is reserved (`the slug "…" is reserved for the … provider type`). Only `openai`, `anthropic`, `bedrock`, `cohere`, `gemini`, `huggingface`, `replicate` and `typesafe` take an ID of your choice; every other type is served under its type's name only: ID = type, fixed in the dialog, and **one provider of that type per account** (`a … provider is served under the slug "…" only`, `the provider "…" already serves …; an account holds one … provider`) |
 | Provider type | one of: `openai, anthropic, azure, bedrock, bedrock_mantle, cohere, vertex, mistral, ollama, opencode-go, opencode-zen, groq, sgl, parasail, perplexity, cerebras, deepseek, gemini, openrouter, elevenlabs, huggingface, nebius, xai, replicate, vllm, runway, runware, fireworks, sarvam, wafer, github-copilot, databricks, typesafe` (dashboard labels: OpenAI, Anthropic, Azure OpenAI, AWS Bedrock, AWS Bedrock Mantle, Cohere, DeepSeek, Vertex AI, Mistral AI, Ollama, OpenCode Go, OpenCode Zen, Groq, Parasail, ElevenLabs, Perplexity, SGLang, Cerebras, Gemini, OpenRouter, Hugging Face, Nebius Token Factory, xAI, Replicate, vLLM, Runway, Runware, Fireworks AI, Sarvam AI, Wafer, Databricks, GitHub Copilot, Typesafe) |
-| Endpoint (`base_url`) | optional http(s) URL; empty = the vendor's own API. **Required** for `ollama`, `vllm`, `sgl` ("An endpoint is required for this type"). Must be reachable **from the gateway host**, through the gateway peer's routes first and the host network second — not from the admin's browser or from management |
+| Endpoint (`base_url`) | optional http(s) URL; empty = the vendor's own API. **Required** for `ollama`, `vllm`, `sgl` ("An endpoint is required for this type"). Must be reachable **from the gateway host**, through the gateway peer's routes first and the host network second — not from the admin's browser or from management. An endpoint the admin sets may be on a **private network** (RFC 1918 or IPv6 ULA addresses, e.g. a vLLM or Ollama server on the LAN or in the cluster); link-local addresses (`169.254.x.x`, where clouds serve instance metadata) stay blocked |
 | Credential | fields depend on the type (§1.2); write-only; the API returns `••••` plus the last 4 characters; sending the mask or an empty value keeps the stored value, **unless the type changed** (then the stored credential is discarded) |
 | Extra headers | sent with every request to the provider (an organisation id, for example) |
 | Skip TLS Verification (`insecure_skip_verify`) | accept the endpoint's certificate unverified: for a local or internal endpoint with its own CA |
 | Models | the **catalogue**: `name` (no spaces, unique in the provider, "model name … must not contain spaces", "model … is listed twice"), optional display name, enabled switch. In a filter's grants a model is `<provider id>/<name>` (the provider's record id, `29` §2.2); on the gateways clients call it `<ID>/<name>` |
-| Enable Provider | "A disabled provider is removed from every gateway; filters that grant its models grant nothing from it." |
+| Enable Provider | "A disabled provider is removed from every gateway; filters that grant its models grant nothing from it." Routing rules that target it stop applying until it is enabled again (`54` §5); disabling is allowed even while rules use it |
 
 Catalogue versus grants: the provider's model list says what **exists**; a filter's
 Models tab says what a group **may use**. Removing a model from the catalogue removes
 that model from every filter grant that named it; a filter left with no grant still
 exists and refuses its users (§3 of `29`). A provider cannot be deleted while a filter
 grants anything from it (412 `provider is used by filter(s): …`).
+
+**Models a routing rule uses are held in place** (`54` §5): a model a rule targets or
+falls back to cannot be removed from the catalogue nor disabled (412 `model <model> is
+used by routing rule "<rule>"`), and a provider a rule targets, falls back to or names in
+its conditions cannot be deleted (412 `provider is used by routing rule "<rule>"`).
+Change or delete the rule first, or disable the whole provider to stop it at once.
 
 ### 1.2 Credential fields per type
 
@@ -221,6 +229,8 @@ requests_max, requests_reset`).
   (an in-network name `<peer>.netzilo.network` works when the gateway peer has a policy
   to it; a LAN address works when the gateway host reaches it with `--egress public`
   and, for private ranges, `--egress-allow`), no credential; Refresh lists the models.
+  Private addresses (RFC 1918, ULA) are accepted as an endpoint; link-local ones are not.
+  To send part of the traffic there, grant its models and add a routing rule (`54` §8).
 - **Rotate a provider key:** edit the provider, type the new key, save; the gateway
   applies it at its next refresh (≤60 s) with no user impact; users' counters are kept.
 - **Cap a team's spend:** Add Limit (Spend per Month) → the team's gateway filter →
@@ -242,6 +252,7 @@ requests_max, requests_reset`).
 | 502 / provider errors through the gateway for one provider | endpoint unreachable **from the gateway host**; TLS (private CA) → Skip TLS Verification or add the CA; wrong `base_url` form (`/v1` is not appended twice) | `journalctl -u netzilo-aigw` shows the upstream error at `--ai-upstream-log-level debug` |
 | Provider deleted/disabled, users still see its models in the Workplace | the Workplace card lists what the gateway answered at its last probe (30 s) | wait, or reload |
 | Cannot delete a provider / limit (412) | referenced by filters | edit the filters first |
+| Cannot remove or disable a model, or delete a provider: 412 `model … is used by routing rule "…"` / `provider is used by routing rule "…"` | a routing rule targets it, falls back to it or names the provider in its conditions | change or delete the rule (`54` §5); to stop a provider at once, disable it |
 | Limit refuses on the first request | the user's counters carried over from before the limit was lowered? No: changing a limit restarts counters. Check the window (`hourly` with a small `max`) and other filters with a lower value | `GET /api/edge/filters/effective?type=gateway&user=` then each filter's `limits` |
 | Costs look wrong | cost is the upstream's pricing catalogue, in USD, at the time of the request; self-hosted models cost 0 | — |
 

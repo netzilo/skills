@@ -310,5 +310,10 @@
     "requires": [
       "server-shell"
     ]
+  },
+  "54-ai-gateway-routing-rules.md": {
+    "requires": [
+      "api"
+    ]
   }
 }

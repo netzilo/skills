@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 57516
+chars: 59070
 sections:
 - id: '1'
   title: How it works
-  chars: 7678
+  chars: 8193
 - id: '2'
   title: Requirements
   chars: 1514
@@ -34,7 +34,7 @@ sections:
   - human-operator
 - id: '7'
   title: What the gateway pulls from management, and when
-  chars: 2420
+  chars: 2654
   requires:
   - api
   executable_on:
@@ -43,7 +43,7 @@ sections:
   - human-operator
 - id: '8'
   title: Usage telemetry
-  chars: 3147
+  chars: 3187
   requires:
   - api
   executable_on:
@@ -52,10 +52,10 @@ sections:
   - human-operator
 - id: '9'
   title: Operating it
-  chars: 4457
+  chars: 4890
 - id: '10'
   title: Troubleshooting
-  chars: 7656
+  chars: 7885
 - id: '11'
   title: Limits to state before a customer discovers them
   chars: 2569
@@ -85,8 +85,9 @@ administration surface.
 Related files: `45-ai-gateway-providers-and-limits.md` (what the gateway routes to and
 how much a user may spend), `46-ai-gateway-mcp-servers-and-bundles.md` (MCP servers,
 bundles, sign-ins), `29-edge-filters.md` (the gateway filter that grants all of it),
-`28-edge-guardrails.md` (the rules it applies), `47-agentic-access-workplace.md` (what
-users see and paste), `44-published-applications.md` §6 (the reverse proxy in front of
+`28-edge-guardrails.md` (the rules it applies), `54-ai-gateway-routing-rules.md` (the
+routing rules that send requests to other providers and models),
+`47-agentic-access-workplace.md` (what users see and paste), `44-published-applications.md` §6 (the reverse proxy in front of
 it), `30-activity-reports-and-integrations.md` (the Agentic Activity panel and the AI
 Usage report).
 
@@ -154,6 +155,13 @@ gateway filters that target the user's groups (cached for `--ai-policy-refresh`,
    (arguments and result) as the caller sent and received them, after the guardrails,
    sent separately from usage and shown to administrators in the session's trajectory
    (§8.1).
+
+**Routing.** The routing rules the user's gateway filters carry decide which provider and
+model actually serve the request: by model, provider, header, query parameter or request
+type, split by weight, with ordered fallbacks (`54-ai-gateway-routing-rules.md`). The
+request is still the user's: their guardrails judge it once, their limits count it, and it
+is recorded with the rule that routed it. A guardrail that changes the model
+(`replacemodel`) wins: routing rules and fallbacks do not apply to that request.
 
 **Which API surfaces are governed.** This is the fact customers trip over, so say it
 before they ask:
@@ -614,6 +622,7 @@ All with the service token:
 | `GET /api/edge/filters/effective?type=gateway&user=…` and `GET /api/edge/filters/{id}/expanded` | per user, on first request, then every `--ai-policy-refresh`; everyone re-checked on a policy change | the user's gateway filters, with guardrails inline; only changed filter versions are fetched |
 | `GET /api/ai-gateway/providers` | at start, every `--ai-policy-refresh`, on policy change | providers with their enabled models and keys; applied to the upstream |
 | `GET /api/ai-gateway/mcp`, `GET /api/ai-gateway/mcp-credentials` | same schedule | MCP servers, bundles and the users' stored sign-ins and header values |
+| `GET /api/ai-gateway/routing-rules` | same schedule (ETag) | the enabled routing rules some enabled gateway filter carries, in evaluation order, each with those filters (`54` §4); applied once the providers they name are in place |
 | `POST /api/ai-gateway/usage` | every 15 s, or when 1000 records are waiting | usage facts (§8) |
 | `POST /api/edge/events` | on a refused credential | the **Credential refused at gateway** activity |
 
@@ -631,9 +640,9 @@ which **restarts that user's counters**.
 ## 8. Usage telemetry
 
 One record per model request (user, gateway name, provider, model asked for and model
-served, streamed or not, status `ok`/`error`/`blocked`/`limited`, tokens by kind, cost in
-US dollars from the upstream's pricing catalogue, latency, the tool calls the answer asked
-for) and one per MCP tool call (server, tool, status `ok`/`error`/`blocked`/`redacted`/
+served, the routing rule that routed it if any, streamed or not, status
+`ok`/`error`/`blocked`/`limited`, tokens by kind, cost in US dollars from the upstream's
+pricing catalogue, latency, the tool calls the answer asked for) and one per MCP tool call (server, tool, status `ok`/`error`/`blocked`/`redacted`/
 `limited`, latency, argument and result sizes, MCP client name and version, MCP session
 id). No prompt, answer, argument or result content is included.
 
@@ -706,6 +715,9 @@ the AI door.
 | `gateway ai: filters for user <id> peer <id>: […]` | which filters a user got |
 | `gateway ai: providers <hash>: N provider(s) from management` / `… applied to the upstream as <name> (N model(s))` | provider sync |
 | `gateway ai: mcp <hash>: N server(s), N virtual MCP(s) from management` / `… applied to the upstream as /mcp/<slug> (<auth>, generation N)` / `… credential of <user> for /mcp/<slug> written to the upstream` / `… waits for a credential before it can be created` | MCP sync; the last line is normal for a per-user server nobody has connected yet |
+| `gateway ai: routing <version>: N rule(s) from management` | routing rules loaded (`54`) |
+| `gateway ai: routing rule "<name>" not applied: <reason>` | a rule left out until what it names is served here: `provider … is not served by this gateway yet` (the provider is disabled or not applied yet), `model … of … is not enabled` |
+| `gateway ai: routing: management has no routing rules` | management is older than routing rules |
 | `gateway ai: refused <model> for <user>: <reason>` | a model-access or limit refusal |
 | `gateway ai: cannot identify <addr>: <err>` / `… unattributed request from <addr> refused (N so far)` / `… passed through …` | identity at the door |
 | `gateway: credential refused at ai <host> for <ip>: <reason>` | a refused bearer (also an activity event) |
@@ -755,6 +767,7 @@ and users are fetched afresh.
 | 400 `model X is not granted to this user` | the filter grants other models/providers | grant the model (or `provider/*`), or tell the user which models `GET /v1/models` lists for them |
 | Every request refused (400 `no model is granted…`) for everyone after a policy change | the filters failed to load (`N failed` in the policy line is about guardrails; a fetch failure shows as `gateway ai: cannot …`) | management reachable from the host? service token still valid (401 in the log)? |
 | 429 / 402 before any real use | a limit's window and counters | `45` §3; counters restart when grants or limits change |
+| Requests answered by another model than the one asked for, or a routing rule that does not route | routing rules on the user's gateway filters (the session's step shows **Routed by**); `gateway ai: routing …` lines | `54` §9 |
 | Guardrail does not fire for a user | the request went to `/v1/embeddings`, `/v1/completions` or another surface guardrails do not inspect (§1); or the rule is not bound by one of the user's gateway filters; or it needs an endpoint-only context (process, file) | check which path the client calls; `GET /api/edge/filters/effective?type=gateway&user=<id>`; test the rule in report mode through the gateway (`28` §4) |
 | 503 `Netzilo AI Gateway: too many large requests at once; retry shortly` | the body budget is full: many large requests (files) at once | clients retry after 5 s; raise `NZ_AI_BODY_BUDGET_MB` or the gateway's memory (§9.4) |
 | A file the user sent was not blocked or redacted | the client sent text, not a file (Claude Code reading a CSV, Claude Cowork), the file was not read (`not scanned` in the session), or no file rule is bound for the user | `50` §8 |

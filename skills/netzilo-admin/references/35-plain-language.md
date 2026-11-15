@@ -6,14 +6,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 12131
+chars: 12281
 sections:
 - id: '1'
   title: When an identifier belongs in the answer
   chars: 817
 - id: '2'
   title: Areas of the product
-  chars: 8170
+  chars: 8320
 - id: '3'
   title: 'Objects: names, not ids'
   chars: 599
@@ -80,6 +80,7 @@ dashboard; if a customer's build shows a different label, theirs wins.
 | an MCP bundle | Edge → Providers → MCP Bundles tab | `/api/edge/virtual-mcps` |
 | a guardrail (detection rule) | Edge → Governance → Guardrails tab | `/api/edge/guardrails` |
 | a limit (spend, token or request quota) | Edge → Governance → Limits tab | `/api/edge/limits` |
+| a routing rule (where a gateway request goes) | Edge → Governance → Routing Rules tab; a gateway filter's Routing tab | `/api/edge/routing-rules` |
 | a filter — an endpoint filter (devices) or a gateway filter (users) | Edge → Governance → Filters tab | `/api/edge/filters` |
 | a response action — an isolation (the AI Kill Switch) or an inspection | Edge → Governance → Actions tab; a session's **Response Action** menu | `/api/ai/controls` |
 | the user's gateways and MCP servers, their AI Gateway token | Workplace → AI Workspace → Gateways & MCP Servers panel | `/api/users/current/ai-access` |
