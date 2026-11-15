@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 26159
+chars: 27650
 sections:
 - id: '1'
   title: What a routing rule is, and when to use one
@@ -17,25 +17,25 @@ sections:
   chars: 1878
 - id: '3'
   title: The rule dialog
-  chars: 5660
+  chars: 5902
 - id: '4'
   title: How the gateway applies rules
   chars: 2313
 - id: '5'
   title: Grants, providers and the rules that hold them
-  chars: 2048
+  chars: 2302
 - id: '6'
   title: 'Records: what a routed request leaves behind'
-  chars: 1040
+  chars: 1047
 - id: '7'
   title: API
-  chars: 4887
+  chars: 5871
 - id: '8'
   title: Procedures
   chars: 1335
 - id: '9'
   title: Troubleshooting
-  chars: 3564
+  chars: 3568
 - id: '10'
   title: Not available
   chars: 822
@@ -131,7 +131,7 @@ least one condition). A live CEL preview shows below. Without conditions the dia
 | Field | Operators | Value |
 |---|---|---|
 | **Model** | equals, does not equal, is in list, is not in list, contains, begins with, ends with, matches (regex) | a model name as the provider's catalogue lists it, typed or picked from the providers' catalogues |
-| **Provider** | equals, does not equal, is in list, is not in list, matches (regex), does not exist, exists | providers, shown by name and stored by their **ID** (`45` §1.1) |
+| **Provider** | equals, does not equal, is in list, is not in list, matches (regex), does not exist, exists | providers, shown by name and stored by their **slug** — the value the provider dialog labels **ID** (`45` §1.1) and `GET /api/edge/providers` returns as `slug`, e.g. `anthropic-production`. Never the provider's record `id` (e.g. `db4scbta5gic73bpm1p0`): that is refused with 422 `no provider is named "…"` |
 | **Request Type** | equals, does not equal, is in list, is not in list, matches (regex) | Chat Completion, Chat Completion (Streaming), Responses, Responses (Streaming), Text Completion, Text Completion (Streaming), Embeddings, Image Generation, Image Generation (Streaming), Image Edit, Image Edit (Streaming), Image Variation, Speech, Speech (Streaming), Transcription, Transcription (Streaming), Count Tokens, Rerank, Decisions, Video Generation. A streamed request is its own value: "Chat Completion" does not match a streamed chat |
 | **Header** | equals, does not equal, contains, begins with, ends with, matches (regex), does not exist, exists | a header name, written in lowercase (it matches the header however the caller capitalises it), and a value; values are compared case-sensitively |
 | **Query Parameter** | as Header | a parameter name and a value |
@@ -240,7 +240,8 @@ and providers consistent. Every refusal names the rule, the filter or the model.
 
 | Rule | Refusal |
 |---|---|
-| Targets and fallbacks exist and are **enabled** models of **enabled** providers | 422 `provider <id> does not exist`, `provider <name> is disabled`, `<provider> has no model <model>`, `model <model> of <provider> is disabled`, `fallback "…" must be provider/model` |
+| Conditions name providers by slug | 422 `no provider is named "<value>"` — the value is not a provider's slug (typically the record `id` was used); use `slug` from `GET /api/edge/providers` |
+| Targets and fallbacks exist and are **enabled** models of **enabled** providers | 422 `provider <id> does not exist` (typically the slug was used where the record `id` belongs), `provider <name> is disabled`, `<provider> has no model <model>`, `model <model> of <provider> is disabled`, `fallback "…" must be provider/model` |
 | Every filter that carries the rule **grants** every target and every fallback (Models tab, `29` §2.2); a **Requested model** target needs the whole provider granted (**All models**, `provider/*`) | 422 `filter "<filter>" does not grant <provider>/<model>, a target of routing rule "<rule>"` (or `… a fallback of …`, or `<provider> (requested model)`). Raised when the filter is saved with the rule, and when the rule is changed while filters carry it |
 | A filter cannot drop a grant one of its rules needs | the same 422, on the filter's save: remove the rule from the filter, or change its targets, first |
 | A rule carried by a filter cannot be deleted | 412 `routing rule is used by filter(s): <names>` |
@@ -270,7 +271,7 @@ gateway fields.
 - **Activity.** **Routing rule created / updated / deleted**
   (`gateway_routing_rule.created|updated|deleted`, category *Administration*; meta
   `name, enabled, priority, chain_rule, condition` (the CEL), `targets`
-  (`<provider id>/<model>:<weight>`), `fallbacks`). Adding a rule to a filter is a
+  (`<provider record id>/<model>:<weight>`), `fallbacks`). Adding a rule to a filter is a
   **Filter updated** event.
 
 ---
@@ -279,6 +280,16 @@ gateway fields.
 
 Admin token (`SKILL.md` "First things first"; the `nz` helper there). Schemas:
 `33-api-request-schemas.md`.
+
+**Two provider identifiers — use the right one.** `GET /api/edge/providers` returns both:
+
+| Identifier | Looks like | Used in |
+|---|---|---|
+| `slug` (the dialog's **ID**) | `anthropic-production` | a **Provider** condition's `value`, `provider == "…"` in CEL, and the model name clients send (`<slug>/<model>`) |
+| `id` (record id) | `db4scbta5gic73bpm1p0` | `targets[].provider_id`, `fallbacks` (`"<id>/<model>"`) and filter grants (`"<id>/<model>"`, `"<id>/*"`) |
+
+A condition written with the record id is refused (422 `no provider is named "<id>"`); a
+target or fallback written with the slug is refused (422 `provider <slug> does not exist`).
 
 ```
 GET/POST /api/edge/routing-rules ; GET/PUT/DELETE /api/edge/routing-rules/{ruleId}
@@ -296,23 +307,27 @@ Body (`POST`, and every `PUT`, which replaces the whole rule):
 | `priority` | 0–9999, lower first |
 | `chain_rule` | boolean |
 | `condition_mode` | `builder` (default) or `cel` |
-| `condition` | builder: `{"id","combinator":"and"\|"or","rules":[…]}`; a condition is `{"id","field","operator","key","value"}` with `field` `model`, `provider`, `request_type`, `headers`, `params`; `operator` `=`, `!=`, `in`, `notIn`, `contains`, `beginsWith`, `endsWith`, `matches`, `null` (does not exist), `notNull` (exists); `key` the header or parameter name; `value` a string, a list for `in`/`notIn`, none for `null`/`notNull`; `provider` values are provider IDs; a nested group is an object with `rules`. The server computes `cel_expression` from it |
+| `condition` | builder: `{"id","combinator":"and"\|"or","rules":[…]}`; a condition is `{"id","field","operator","key","value"}` with `field` `model`, `provider`, `request_type`, `headers`, `params`; `operator` `=`, `!=`, `in`, `notIn`, `contains`, `beginsWith`, `endsWith`, `matches`, `null` (does not exist), `notNull` (exists); `key` the header or parameter name; `value` a string, a list for `in`/`notIn`, none for `null`/`notNull`; `provider` values are provider **slugs** (`slug`, never the record `id`); a nested group is an object with `rules`. The server computes `cel_expression` from it |
 | `cel_expression` | `cel` mode only |
-| `targets` | `[{"provider_id","model","weight","ttft_timeout_ms"}]`; `provider_id` the provider's record id; `model` empty = **Requested model** |
-| `fallbacks` | `["<provider id>/<model>", …]`, in order |
+| `targets` | `[{"provider_id","model","weight","ttft_timeout_ms"}]`; `provider_id` the provider's record `id` (not the slug); `model` empty = **Requested model** |
+| `fallbacks` | `["<provider record id>/<model>", …]`, in order |
 
 Which filters carry a rule: the `routing_rules` of `GET /api/edge/filters`. On a filter
 `PUT`, an omitted `routing_rules` keeps the filter's rules; an empty list removes them.
 
 **Worked example** — keep EU data in the EU, for the `developers` gateway filter:
 
-1. Find the EU provider's record id and model names, and the filter:
+1. Find the EU provider's record `id` (for targets and fallbacks), its `slug` (for a
+   Provider condition, if you add one) and model names, and the filter:
    ```bash
    nz /edge/providers | jq '.[] | {id, slug, name, enabled, models: [.models[] | select(.enabled) | .name]}'
    nz /edge/filters | jq '.[] | select(.type == "gateway") | {id, name, models, routing_rules}'
    ```
    The filter's `models` must grant the targets and fallbacks below
-   (`"<eu-provider-id>/*"`, or each model).
+   (`"<eu-provider-id>/*"`, or each model). To limit the rule to requests for that
+   provider, add a condition
+   `{"id": "c2", "field": "provider", "operator": "=", "value": "<eu-provider-slug>"}` —
+   the slug, not the id.
 2. Create the rule:
    ```bash
    nz /edge/routing-rules -X POST --data '{
@@ -406,7 +421,7 @@ worked example:
 curl -sS https://<gateway>/v1/chat/completions \
   -H "Authorization: Bearer <user's gateway token>" -H 'Content-Type: application/json' \
   -H 'x-data-region: eu' \
-  -d '{"model":"<provider ID>/gpt-5.1","messages":[{"role":"user","content":"Say hi"}]}'
+  -d '{"model":"<provider slug>/gpt-5.1","messages":[{"role":"user","content":"Say hi"}]}'
 ```
 
 Then open the user's latest session in Edge → Sessions: the step's **Routed by** names the
@@ -415,7 +430,7 @@ rule, **Model** the target. Within a minute **Routed (7 days)** counts it.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Rule never routes; **Routed (7 days)** stays 0 | no filter carries it (**Used By**: No filters); the filter that carries it is an endpoint filter (endpoint and browser filters have no Routing tab) or disabled; the user is in none of that filter's groups | add it to the user's **gateway** filter; check `GET /api/edge/filters/effective?type=gateway&user=<id>` (`29` §5.2) |
-| Rule is carried but does not route | the rule is disabled (**Active** off); a rule with a lower Priority (or the same priority and older) matches first and is not a Chain Rule; the conditions do not match the request (a header value differing in case, a streamed request against a non-streaming Request Type, a Model value written with the provider ID in front: the model is compared without it) | switch it on; read the grid by Priority and the conditions of the rules above it; test the condition values against the request |
+| Rule is carried but does not route | the rule is disabled (**Active** off); a rule with a lower Priority (or the same priority and older) matches first and is not a Chain Rule; the conditions do not match the request (a header value differing in case, a streamed request against a non-streaming Request Type, a Model value written with the provider slug in front: the model is compared without it) | switch it on; read the grid by Priority and the conditions of the rules above it; test the condition values against the request |
 | Changed a rule, the old behaviour continues | propagation: gateways apply changes within about a minute | wait a minute, send the test request again |
 | Rule stopped applying | a target's provider was disabled (§5); the gateway logs `gateway ai: routing rule "<name>" not applied: provider … is not served by this gateway yet` or `… model … of … is not enabled` (`journalctl -u netzilo-aigw`, `27` §9.2) | enable the provider, or point the rule elsewhere |
 | A request a guardrail changed the model of ignores the routing rules | expected: guardrails win (§4) | — |
