@@ -7,6 +7,24 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.19.0 — 2026-11-18
+
+The AI Gateway without any other Netzilo component: a customer's proxy names its users
+straight to the gateway's public door. Minor version: a new procedure.
+
+- `27` §5.6 (new): a proxy listed in `--ai-trusted-proxies` sends an Admin agent's token
+  and `X-Authenticated-User`; the gateway resolves the user itself (no reverse proxy,
+  client or extension). Setup, the per-request decision, answers (`401`, `403 unknown
+  user`, `503`), the 10-minute window, what applies (user filters, grants, limits,
+  sessions) and what does not (no device), rules and log lines; certificates for a door
+  reached by IP address.
+- `27` §5.5: the "proxy names the user" scenario can target the published address or the
+  public door, with the differences. §5.1: the plain-HTTP warning when trusted proxies are
+  set. §5.4: the one exception to "never by address". Flag table: `--ai-trusted-proxies`.
+- `44` §6.1: the proxy's token is read with `GET /api/users/current`; the same lookups
+  serve the AI Gateway's public door.
+- `00` and `SKILL.md`: pointers to §5.6.
+
 ## 4.18.0 — 2026-11-15
 
 AI Gateway routing rules: send gateway requests to other providers and models by

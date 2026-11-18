@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 59070
+chars: 64021
 sections:
 - id: '1'
   title: How it works
@@ -19,10 +19,10 @@ sections:
   chars: 6060
 - id: '4'
   title: '`netzilo-aigw run` — flag reference'
-  chars: 4368
+  chars: 4572
 - id: '5'
   title: Exposing the gateway to callers
-  chars: 9402
+  chars: 14149
 - id: '6'
   title: How a caller authenticates, and what it gets back
   chars: 6312
@@ -363,7 +363,7 @@ is empty).
 | `--tls-cert` / `--tls-key` | | PEM certificate and key, given together; serve HTTPS on `--listen`, `--ai-listen` and (with `--publish-tls file`) the publish door |
 | `--tls-cert-dir` / `--tls-domain` | | take the certificate for `--tls-domain` from a Caddy storage directory, renewals picked up; given together, not with `--tls-cert` |
 | `--ai-insecure-plain-http` | off | silence the warning about a plain-HTTP public AI door |
-| `--ai-trusted-proxies` | | CIDRs of a TLS-terminating proxy in front of `--ai-listen`; their `X-Forwarded-For`/`-Proto`/`-Host` are believed (also silences the plain-HTTP warning) |
+| `--ai-trusted-proxies` | | CIDRs of the proxies in front of `--ai-listen` (a load balancer, a TLS terminator, the customer's web proxy): their `X-Forwarded-For`/`-Proto`/`-Host` are believed, and an agent's token from them may name the user in `X-Authenticated-User` (§5.6). Without a certificate the gateway then warns that tokens travel in clear between the proxies and the gateway |
 | `--ai-allow-unattributed` | off | public door: pass requests with no identifiable user through ungoverned instead of 401 |
 | `--ai-policy-refresh` | `60s` | how long a user's filters are trusted before management is asked again; also the provider and MCP reconcile interval. A policy change reaches the gateway with its next network-map sync and re-checks everyone at once |
 | `--workplace-url` | `--management-url` | the Workplace users sign in at (`https://go.netzilo.com` on Cloud): the browser origin allowed to call the gateway (the Workplace's gateway cards probe it), the MCP connect link in refusals, the sign-in for published applications. **Set it on Cloud**, where the Workplace host differs from the management host |
@@ -392,7 +392,12 @@ deployments are a private network, a host behind a TLS-terminating proxy, or the
 Where callers reach the public door across the Internet, give it a certificate
 (`--tls-cert`/`--tls-key`, or `--tls-cert-dir`/`--tls-domain` from a Caddy on the host) or
 put a TLS proxy in front and name it in `--ai-trusted-proxies`. The bearer token in every
-request is the user's Netzilo credential; on plain HTTP it travels in clear.
+request is the user's Netzilo credential; on plain HTTP it travels in clear. With
+`--ai-trusted-proxies` set and no certificate, the gateway logs `listener on :8447 serves
+plain HTTP: tokens from the trusted proxies, a proxy's service token among them, travel
+unencrypted between them and the gateway`: a proxy's agent token can name any user
+(§5.6), so give the door a certificate unless the hop is loopback or otherwise private;
+`--ai-insecure-plain-http` silences it.
 
 ### 5.2 Inside the network (tunnel door)
 
@@ -449,7 +454,8 @@ page instead of JSON; test with `GET /v1/models` first.
 
 `--ai-listen :8447` on a host with a public address, TLS as in §5.1, firewall open on
 8447. Callers use `https://<host>:8447`. Every caller must present a bearer token; the
-public door never identifies by address.
+public door never identifies by address. The one exception is a proxy listed in
+`--ai-trusted-proxies` naming the user it authenticated (§5.6).
 
 ### 5.5 Through a customer's web proxy (Squid and secure web gateways)
 
@@ -466,10 +472,17 @@ provider; the gateway calls it with its own keys. Rewrites:
 Who the caller is — two scenarios:
 
 - **The proxy names the user** (no device change). The proxy replaces the tool's key with
-  `Authorization: Bearer <service user token>` and adds `X-Authenticated-User: <email>`;
-  the application lists the proxy's egress in **Trusted Proxies**. Mechanism, setup,
-  answers and rules: `44-published-applications.md` §6.1. Admins and owners are refused
-  on this path; the first call per user takes a few seconds (PAT made, tunnel started).
+  `Authorization: Bearer <service user token>` and adds `X-Authenticated-User: <email>`.
+  It can send the calls to either door:
+  - the **published address** (§5.3): the application lists the proxy's egress in
+    **Trusted Proxies**; each user gets a tunnel, so the call is attributed to a device
+    (`vp-<token name>-RPROXY`). Mechanism, setup, answers and rules:
+    `44-published-applications.md` §6.1. Admins and owners are refused on this path;
+    the first call per user takes a few seconds (PAT made, tunnel started).
+  - the gateway's **public door** (§5.4), with the proxy in `--ai-trusted-proxies`: no
+    other Netzilo component is needed (no reverse proxy, no client, no extension). No
+    tunnel and no token are made, admins can be named, and calls carry the user but no
+    device. §5.6.
 - **Users bring their Netzilo token.** The tool's API key is the user's Netzilo token
   (OpenAI clients send `Authorization: Bearer`; Anthropic clients must send it as an auth
   token, e.g. `ANTHROPIC_AUTH_TOKEN`, because `x-api-key` is not read). The proxy only
@@ -540,6 +553,72 @@ hosts, a URL or forwarding rule to the published address, and header insertion o
 service token and the authenticated user's email. Whether a product can put the
 *authenticated username* (not only a fixed value) into an inserted header differs per
 product and version: confirm it before promising scenario one; otherwise use scenario two.
+
+### 5.6 A proxy naming the user at the public door (no other Netzilo component)
+
+The customer's own proxy — a secure web gateway, Squid, a corporate egress proxy, any
+internal hop that authenticates users — sends calls straight to the gateway's public
+door with an agent's token and the user's email. The gateway resolves the user itself:
+no reverse proxy, no Netzilo client, no extension anywhere in the stack.
+
+What the proxy sends on every request:
+
+| Header | Value |
+|---|---|
+| `Authorization` | `Bearer <token>` of an **agent** (service user) of the gateway's account |
+| `X-Authenticated-User` | the email address of the user the proxy authenticated |
+
+Setup:
+
+1. Under **Team → Agents**, an agent with role **Admin** and a token for it
+   (`25-users-groups-and-account-settings.md`). The gateway reads the account's users
+   with that token.
+2. The gateway started with `--ai-listen` and the proxy's address in
+   `--ai-trusted-proxies` (the address the connection comes from: the proxy itself, or the
+   load balancer in front of the gateway that the proxy's traffic passes).
+3. The users exist in Netzilo with the email the proxy sends and are in a gateway filter
+   (`29`). Any role but an agent can be named: users, admins and owners.
+4. The proxy rewrites the provider hosts to the door as in §5.5
+   (`https://<gateway>:8447/...`, `https://<gateway>:8447/anthropic/...`) and inserts the two
+   headers. The door needs TLS the proxy trusts (§5.1): reached by IP address, its
+   certificate must name that IP (public CAs issue none for private addresses: use an
+   internal CA, or a DNS name with a certificate for it).
+
+How the gateway decides, per request:
+
+1. **The address.** Only a connection from `--ai-trusted-proxies` is believed. From any
+   other address the header is stripped and the call is the token's own.
+2. **The token.** `GET /api/users/current` with it: an agent's token is a proxy's; any other
+   user's token is that user, the header meaning nothing. A token management refuses, or
+   an agent of another account: `401 a Netzilo credential is required`.
+3. **The user.** `GET /api/users?email=<address>` with the agent's token, case-insensitive.
+   No match, a blocked user, an agent, or two users with the address: `403 unknown user`.
+4. **As the user.** The call carries that user (identity path `proxy` in usage records):
+   the user's filters, grants, limits, AI controls and sessions apply. There is no peer:
+   device controls, device posture and per-device sessions do not.
+
+The token and the user are kept 10 minutes (an unknown address 1 minute, a refused token
+30 seconds), so a blocked user or a revoked agent token stops working within 10 minutes;
+concurrent requests for the same user wait on one lookup, and steady traffic costs
+management one lookup per token and per user every 10 minutes. Management out of reach
+on a first lookup: `503 management is not reachable, try again`.
+
+Rules worth knowing:
+
+- `X-Authenticated-User` never reaches the providers or the upstream; neither does the
+  agent's token.
+- The agent's token from a trusted address **without** the header is served as the agent
+  itself, as before: it gets only what the agent's own gateway filters grant.
+- The tunnel door never reads the header: callers there are their peer (§5.2).
+- Any agent token of the account can name users from a trusted address. Keep agent tokens
+  as secret as an administrator's, and list only the hops the proxy's traffic arrives
+  from.
+- Gateways from before this change ignore the header on the public door: the call is the
+  agent's own.
+
+Log lines: `gateway ai: trusted proxy at <ip:port> named no servable user` (debug, with
+the `403`), the plain-HTTP warning of §5.1, and for a refused agent token `gateway:
+credential refused at ai …`.
 
 ---
 

@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 91277
+chars: 91562
 sections:
 - id: '1'
   title: How it works
@@ -37,7 +37,7 @@ sections:
   chars: 3858
 - id: '6'
   title: 'Non-interactive access: scripts and services'
-  chars: 8291
+  chars: 8576
 - id: '7'
   title: Where the reverse proxy runs
   chars: 1532
@@ -615,8 +615,9 @@ How the reverse proxy decides, per request:
 
 1. **The credential.** `Authorization: Bearer` must verify, and its user must be a
    service user. The reverse proxy asks management with that token (`GET
-   /api/users?service_user=true`; the published applications, for this address's
-   `trusted_proxies`; the token's own name, once) and keeps the answer for the
+   /api/users/current`, or the account's service users from a management without it; the
+   published applications, for this address's `trusted_proxies`; the token's own name,
+   once) and keeps the answer for the
    revalidation interval (10 minutes), or until the application changes (its version,
    watched every 10 seconds, §9); a refused token is remembered for 30 seconds.
 2. **The address.** The client address (the connection's, or the last `X-Forwarded-For`
@@ -654,6 +655,9 @@ Rules worth knowing:
 - An address a trusted proxy authenticated from in the last 10 minutes is exempt from the
   per-address failure budget (20 refusals → 5 minutes blocked, §6): one user's bad request
   must not lock out everyone behind the proxy. Refusals of a named user never count.
+- The same token and user lookups serve the AI gateway's own public door, where a proxy
+  can name users with no reverse proxy in between (`27-ai-gateway.md` §5.6): no tunnel,
+  no token made, admins and owners allowed, no device.
 - Each user gets a tunnel per proxy, apart from their own: it registers as
   `vp-<token name>-RPROXY` (lowercase, dashes; `Skyhigh Prod` → `vp-skyhigh-prod-RPROXY`),
   owned by the user (§10.3). An AI gateway behind the application identifies the user

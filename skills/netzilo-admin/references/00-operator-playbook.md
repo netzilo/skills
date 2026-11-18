@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 33562
+chars: 33734
 sections:
 - id: '1'
   title: Rules of engagement
   chars: 3399
 - id: '2'
   title: What Netzilo is (30-second model)
-  chars: 3807
+  chars: 3979
 - id: '3'
   title: 'Triage: route the request'
   chars: 8565
@@ -132,7 +132,9 @@ this folder. Read it fully before your first action.
   can forward its users to a published application and name each one by email, with an
   Admin Agent's token, from addresses listed in the application's **Trusted Proxies**
   (`44` §6.1); with an AI Gateway behind it, provider calls are governed with nothing
-  changed on the devices (`27-ai-gateway.md` §5.5).
+  changed on the devices (`27-ai-gateway.md` §5.5). The proxy can also name users straight
+  to the AI Gateway's public door, listed in its `--ai-trusted-proxies`, with no other
+  Netzilo component in the stack (`27` §5.6).
 
 Delivery paths for the server: on-prem one-liner (`/opt/netzilo`), AWS Marketplace AMI
 and Azure Marketplace image (`/opt/netzilo/run`), Red Hat OpenShift from the Netzilo Helm
