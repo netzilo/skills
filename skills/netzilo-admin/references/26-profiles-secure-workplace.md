@@ -7,14 +7,14 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 33944
+chars: 43736
 sections:
 - id: '1'
   title: Model
   chars: 5216
 - id: '2'
   title: Enterprise Workspace — reference
-  chars: 5518
+  chars: 5456
 - id: '3'
   title: Enterprise Browser — reference
   chars: 994
@@ -23,19 +23,25 @@ sections:
   chars: 636
 - id: '5'
   title: Domain Settings (Browser Extension and Enterprise Browser)
-  chars: 4918
+  chars: 5159
 - id: 5a-proxy-clientless-access
   title: 5a. Proxy (clientless access)
   chars: 1305
+- id: 5b-modify-headers-header-rules
+  title: 5b. Modify Headers (header rules)
+  chars: 4753
+- id: 5c-variables-netzilo-name
+  title: 5c. Variables (`%netzilo.<name>%`)
+  chars: 3543
 - id: '6'
   title: API
-  chars: 1343
+  chars: 1450
 - id: '7'
   title: Procedures
   chars: 1358
 - id: '8'
   title: Diagnosis
-  chars: 1722
+  chars: 2932
 - id: '9'
   title: Troubleshooting the Workspace
   chars: 10397
@@ -133,7 +139,7 @@ distribute software.
 | Setting | Help text | Value |
 |---|---|---|
 | Enforce Isolation | "Creates an isolated enclave on the endpoint for work apps" | opens Settings (below) |
-| Add Watermark | "Adds a watermark to the graphical user interface of work apps" | text, Dense / Sparse. Tokens replaced at display time: `%netzilo.username%`, `%netzilo.hostname%`, `%netzilo.ip%`, `%netzilo.region%`, `%netzilo.deviceid%`, e.g. `%netzilo.username% - CONFIDENTIAL`. Older `[USERNAME] - [DATE]` placeholders are printed literally — replace them |
+| Add Watermark | "Adds a watermark to the graphical user interface of work apps" | text, Dense / Sparse. Any `%netzilo.<name>%` variable of §5c is filled in per user and device, e.g. `%netzilo.username% - CONFIDENTIAL`. Older `[USERNAME] - [DATE]` placeholders are printed literally — replace them |
 | Restrict Clipboard Access | "Restrict copying and pasting data from work apps to non-work apps" | **from** workspace = users cannot copy out of work apps; **to** workspace = users cannot paste into them; **to and from** = both |
 | Restrict Printing | "Prevents work apps from printing sensitive data" | toggle |
 | Restrict Screen Sharing | "Prevents screen capturing or sharing apps to grab the screens of work apps" | toggle; mutually exclusive with Record Desktop Activity — turning one on turns the other off |
@@ -217,21 +223,23 @@ Header: "Configure protection settings for the web domain". Domain field: e.g.
 | Restrict Content → Add Watermark | "Adds a watermark to web site while visiting" | text, Dense/Sparse |
 | Restrict Content → Restrict Clipboard | "Restrict copying and pasting data from matching web domains" | toggle; Enterprise Browser variant adds allowed paste domains |
 | Restrict Content → Restrict Printing | "Prevents browser from printing sensitive data from matching domains" | toggle |
-| Restrict Content → Restrict Uploading Source Code | "Detect and block source code uploads heuristically" | toggle |
-| Restrict Content → Restrict Viewing Source Code | "Detect and redact source code snippets in pages" | toggle |
 | Restrict Content → Restrict Viewing Classified Content | "Block access to content based on your organization's data classification labels" | labels Public / Private / Confidential / Secret (custom allowed, max 10); must match the organisation's DLP labels |
 | Restrict Screen Sharing (Enterprise Browser only) | "Prevents screen capturing or sharing apps to grab the screens of work apps" | toggle |
 | Restrict Key Logging (Enterprise Browser only) | "Prevents key logging apps from logging keystrokes" | toggle |
 | Show Gray Border | "Draws a gray border around protected web content" | toggle |
+| Modify Headers | "Set, append or remove HTTP request and response headers for this domain" | rows of Request/Response, Set/Append/Remove, Header, Value; values may hold `%netzilo.*%` variables (§5b, §5c) |
 | Allow Exceptions | "Define exceptions for restrictions for certain users" | **Allow temporary removal of restrictions** on/off; **Expires in** 1–180 **Hours** or **Minutes** (default 24 hours; stored in seconds as `allow_exception.expiration`); **Provide a link to the following support site:**; **Allow exceptions for the following groups:** |
 
 The Enterprise Browser's domain settings are therefore Use Enterprise Workspace, Use
 Disposable Browser, Restrict Downloads, Restrict Uploads, Block URLs, Restrict Content,
-Restrict Screen Sharing, Restrict Key Logging, Show Gray Border and Allow Exceptions; the
+Restrict Screen Sharing, Restrict Key Logging, Show Gray Border, Modify Headers and Allow Exceptions; the
 extension's are the same without Restrict Uploads, Restrict Screen Sharing and Restrict
 Key Logging. Older dashboards also show **Prevent LLM Prompt Injections**, **Make
 Session Cookies Temporary** and, for the Enterprise Browser, **Verify Workspace
-Integrity**: nothing on the device acts on them. Govern AI chats with guardrails
+Integrity**: nothing on the device acts on them. They also offer **Restrict Uploading
+Source Code** and **Restrict Viewing Source Code** under Restrict Content
+(`restrict_upload_source`, `restrict_view_source`); the dashboard no longer does, and
+saving a domain's Restrict Content turns both off. Govern AI chats with guardrails
 (`49-browser-extension-aidr.md`); the Enterprise Workspace keeps its own **Verify
 Workspace Integrity** (§2).
 
@@ -274,6 +282,113 @@ and every "unavailable" reason: `43-clientless-access-gateway.md` §3 and §11.2
 
 ---
 
+## 5b. Modify Headers (header rules)
+
+A domain setting's **Modify Headers** card changes HTTP headers on every request the
+browser makes to the domain and its subdomains (pages, frames, scripts, fetch/XHR,
+images, fonts, media, WebSockets) and on their responses. The extension applies them in
+Chrome, Edge, Firefox, Safari and the Enterprise Browser on desktop; the Enterprise
+Browser takes the rules of the profile's **Enterprise Browser** section, a browser with
+the extension those of its **Enterprise Browser Extension** section. Field `headers` on
+each entry of `browser_extension[]` and `enterprise_browser.domain_settings[]`:
+
+```json
+"headers": [
+  {"target": "request",  "operation": "set",    "name": "X-Forwarded-For", "value": "%netzilo.externalip%, %netzilo.localip%"},
+  {"target": "request",  "operation": "remove", "name": "X-Client-Data"},
+  {"target": "response", "operation": "set",    "name": "Cache-Control",   "value": "no-store"}
+]
+```
+
+| Field | Values | Meaning |
+|---|---|---|
+| `target` | `request` / `response` | the request to the domain, or its response |
+| `operation` | `set` | send the header with this value, replacing one the page or the server set |
+| | `append` | add the value to the header (comma-joined after an existing value; the header alone when there is none). On **requests** browsers append only to `Accept`, `Accept-Encoding`, `Accept-Language`, `Access-Control-Request-Headers`, `Cache-Control`, `Connection`, `Content-Language`, `Cookie`, `Forwarded`, `If-Match`, `If-None-Match`, `Keep-Alive`, `Range`, `TE`, `Trailer`, `Transfer-Encoding`, `Upgrade`, `User-Agent`, `Via`, `Want-Digest`, `X-Forwarded-For`; on responses to any header. Chrome and Edge need version 128 or later to append to a request header |
+| | `remove` | drop the header (no `value`) |
+| `name` | an HTTP header name (letters, digits and ``!#$%&'*+.^_`|~-``, at most 256) | |
+| `value` | one line, at most 1024 characters, for `set` and `append` | may hold any variable of §5c, filled in per user and device before delivery |
+
+**Rules.**
+- A rule whose value names a variable without a value in that mode (e.g. `%netzilo.localip%`
+  for the extension without the client, §5c) is **left out**: the header is not sent, never
+  sent half-filled. A rule whose filled-in value would contain a line break is left out too.
+- A domain setting changes a header at most once per direction (two rows for
+  `X-Forwarded-For` on requests are refused; one on requests and one on responses are two
+  changes).
+- A `*` domain setting covers every domain that no other domain setting of the user's
+  profiles names (also one without header rules), never the Netzilo sites themselves
+  (`netzilo.com`).
+- Where two profiles change the same header of a domain, the earlier profile wins.
+- **Allow Exceptions** does not lift header rules: a temporary exception removes
+  restrictions, not the headers (tenant restrictions stay in force).
+- The domain may be written as a host (`app.example.com`, `.example.com`, `*.example.com`
+  — all cover the subdomains) or a URL; a scheme, path and port are ignored, and
+  international names are converted. An entry that is no host name is ignored.
+- Changes reach a device with a client at its next update from management (seconds), and
+  the extension alone within half a minute. The extension from 5.6.640 on applies header
+  rules (it no longer sends the former `X-Netzilo-Config` header to any site).
+
+**Typical rules.**
+
+| Goal | Rule |
+|---|---|
+| Microsoft tenant restrictions | on `login.microsoftonline.com`, `login.microsoft.com`, `login.windows.net`: set `Restrict-Access-To-Tenants: contoso.com,fabrikam.com` and `Restrict-Access-Context: <directory ID>` |
+| Google Workspace allowed domains | on `.google.com`: set `X-GoogApps-Allowed-Domains: example.com` |
+| Pass the device's addresses to an app or its WAF | set `X-Forwarded-For: %netzilo.externalip%, %netzilo.localip%`; or append `%netzilo.ip%` to the one the page sends |
+| Tell an app who and what is calling | set `X-User: %netzilo.email%`, `X-Device: %netzilo.hostname% (%netzilo.os% %netzilo.osversion%)` |
+| Strip a header | remove `X-Client-Data`, or remove `Server` on responses |
+| Keep pages out of the disk cache | response: set `Cache-Control: no-store` |
+
+The profiles API refuses (HTTP 422, the message names the domain setting and the
+header) a header name that is not a token, a value with a line break or over 1024
+characters, `remove` with a value, `set`/`append` without one, `append` to a request
+header outside the list above, a variable that is not in §5c (spelling and case count:
+`%netzilo.Email%` is refused) and a header changed twice in one direction. The
+dashboard's dialog points the same out before saving.
+
+---
+
+## 5c. Variables (`%netzilo.<name>%`)
+
+Management fills these in for each user and device before it delivers a profile: in
+header values (§5b), domain-setting and workspace watermarks, the workspace's **Create
+desktop shortcuts** folder, work app paths and the Disposable Browser folder. A published
+application's watermark takes the subset in the last column (`44-published-applications.md`
+§4.2). Text that only looks like a variable stays as written; a variable without a value
+becomes empty text in a watermark or path and leaves its header rule out (§5b).
+
+| Variable | With the client (Enterprise Browser, extension next to the desktop client, workspace) | Extension without the client | Published app watermark |
+|---|---|---|---|
+| `%netzilo.username%` | the user's name in the identity provider (service users: their name) | same; `Unknown` when there is none | same as without the client |
+| `%netzilo.email%` | the user's email in the identity provider | same | — |
+| `%netzilo.userid%` | the user's Netzilo ID | same | — |
+| `%netzilo.groups%` | the names of the user's groups, `, `-separated | same | — |
+| `%netzilo.tenant%` | the tenant's subdomain on Netzilo Cloud, else the account's domain | same | — |
+| `%netzilo.ip%` | the device's Netzilo address | the public address (as `externalip`: without the client there is no Netzilo address) | the public address |
+| `%netzilo.externalip%` | the address management sees the device connect from: the public address behind NAT, or the egress of a corporate proxy or another VPN on the way; refreshed at every update | the address the extension's own policy request comes from | the public address at sign-in |
+| `%netzilo.country%` | country code of `externalip` by geolocation | same | same |
+| `%netzilo.region%` | city of `externalip` by geolocation | same; `Unknown` when it cannot be located | same |
+| `%netzilo.localip%` | the local address the device reaches management from (the interface it actually uses, not a VM or container bridge; clients before 5.6.640: the first address they report) | — (browsers do not expose local addresses) | — |
+| `%netzilo.localips%` | all local addresses, that one first, `, `-separated (no loopback, link-local or Netzilo address) | — | — |
+| `%netzilo.hostname%` | the device's name | — | — |
+| `%netzilo.fqdn%` | the device's Netzilo DNS name | — | — |
+| `%netzilo.deviceid%` | the device ID the client reports | the extension's device ID (from 5.6.640) | the extension's device ID when it asserts one |
+| `%netzilo.os%`, `%netzilo.osversion%` | operating system and version the client reports | the browser's (the extension's report, else the browser's own headers) | same as without the client |
+| `%netzilo.serial%` | the device's serial number | — | — |
+| `%netzilo.clientversion%` | the Netzilo client's version | the extension's version (from 5.6.640) | same as without the client |
+| `%netzilo.browser%`, `%netzilo.browserversion%` | — (a device has many browsers) | the browser's name and version | same |
+
+"—" means no value: the header rule is left out, the text gets nothing. Choose
+variables by where the rule runs: for the extension without the client use
+`externalip`, `os`, `browser`, `deviceid` and the user's variables; device details
+(`localip`, `hostname`, `serial`) need the client. Management takes the connecting
+address from `X-Real-IP`, then the first `X-Forwarded-For` entry, then the connection
+itself: the reverse proxy in front of management must overwrite or remove both headers on
+what devices send.
+
+---
+
 ## 6. API
 
 Prefer this over dashboard clicking when you hold an API token: read the current
@@ -287,7 +402,7 @@ GET /api/templates/{work_app|saas_domain|redact_regex|block_url}
 ```
 Body: `{"name","description","enabled","os":["Windows"],"groups":["<gid>"],
 "components":{"netzilo_workspace":{"work_apps":[{"path":"…","cmd":"","name":"","hashes":[],"signers":[]}],"restrictions":{…},"checks":["<pc-id>"],"any_check_must_pass":false,"use_fuse":false,"fuse_allowed_apps":[]},
-"browser_extension":[{"name":".example.com","block_urls":[],"restrict_downloads":[],"redact":[{"regex":"…","mask_with":"***","show_last":4}],"checks":[],"any_check_must_pass":false, …}],
+"browser_extension":[{"name":".example.com","block_urls":[],"restrict_downloads":[],"redact":[{"regex":"…","mask_with":"***","show_last":4}],"headers":[{"target":"request","operation":"set","name":"X-Forwarded-For","value":"%netzilo.externalip%"}],"checks":[],"any_check_must_pass":false, …}],
 "extension_bookmarks":[{"name":"HR","url":"https://hr.example.com"}],
 "extension_proxy":{"mode":"auto","upstream":{"type":"none"}},
 "disposable_browser":"Disposable Browsers",
@@ -332,6 +447,10 @@ Read an existing profile with `GET` to see the exact shape before writing.
 | Users lose enclave files | Wipe Data When Closed on, or encryption key changed | expected; document it |
 | Component icon missing in table for Enterprise Browser | display only | ignore |
 | Older dashboards: a delete tooltip about policies is always shown | display only | delete proceeds |
+| A header rule has no effect | the rule names a variable without a value in that mode (§5c: e.g. `%netzilo.localip%` with the extension alone), so it is left out; the domain is named by another domain setting, so a `*` rule does not cover it; an earlier profile changes the same header; the extension is older than 5.6.640; in Chrome/Edge before 128 an `append` to a request header is refused | read the expanded rules with `GET /api/profiles?expand=true` as that user; use a variable the mode has; update the extension or browser. The extension logs a refused rule as `session rules 10000-20000: … refused` |
+| Saving a profile fails with 422 and a header message | §5b validation | fix the named rule |
+| `X-Forwarded-For` shows the address of a proxy, not the device | `externalip` is the address management sees: a corporate proxy or VPN in front of the device, or an ingress that does not set `X-Real-IP`/`X-Forwarded-For` | expected for a proxy; make the reverse proxy in front of management set or strip `X-Real-IP` and `X-Forwarded-For` (§5c) |
+| `%netzilo.localip%` is a container or VM address | a client before 5.6.640 (reports its first address) | update the client; or use `%netzilo.localips%` |
 | Exception ends after minutes although hours were entered | the domain setting was saved by an older dashboard, which stored an hours value as minutes (2 hours → 120 s); minutes were stored correctly | open the domain setting, re-enter **Expires in**, save |
 
 Events: `profile.created/updated/removed`, plus the browser/workspace events in §5 and

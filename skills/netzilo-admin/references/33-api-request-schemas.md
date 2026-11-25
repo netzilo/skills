@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 116913
+chars: 117188
 sections:
 - id: get-api-accounts
   title: '`GET /api/accounts`'
@@ -543,6 +543,9 @@ sections:
 - id: get-api-tenant-logo-info
   title: '`GET /api/tenant/logo/info`'
   chars: 224
+- id: get-api-tenant-logo-public
+  title: '`GET /api/tenant/logo/public`'
+  chars: 275
 - id: post-api-tenant-subscription
   title: '`POST /api/tenant/subscription`'
   chars: 472
@@ -639,7 +642,7 @@ sections:
 ---
 # API request schemas
 
-Generated from Netzilo Server's OpenAPI description on 2026-11-15 by `scripts/gen-api-schemas.py`.
+Generated from Netzilo Server's OpenAPI description on 2026-11-25 by `scripts/gen-api-schemas.py`.
 
 **Read the schema before any write.** Every `POST`/`PUT`/`PATCH`/`DELETE` below lists the
 required fields; a body missing one is rejected with 422. The live, version-exact copy is
@@ -2825,6 +2828,15 @@ Responses: `200` Delete status, `401` Requires authentication, `403` Forbidden, 
 Retrieve company logo metadata
 
 Responses: `200` Logo metadata, `401` Requires authentication, `403` Forbidden, `404` Resource not found, `422` Validation failed, `500` Internal Server Error
+
+## `GET /api/tenant/logo/public`
+
+Retrieve a tenant's logo for the sign-in and sign-out pages
+
+Parameters:
+- `host` (query, required): The hostname the user reaches the dashboard or the server at
+
+Responses: `200` The logo image, `400` Bad Request, `404` Resource not found
 
 ## `POST /api/tenant/subscription`
 

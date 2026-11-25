@@ -7,6 +7,27 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.20.0 — 2026-11-25
+
+Header rules for the browser extension and the Enterprise Browser, and one table of the
+`%netzilo.*%` variables for every path that fills them. Minor version: a new capability.
+
+- `26` §5b (new): **Modify Headers** on a domain setting: set, append or remove request
+  and response headers; the `headers` field; which request headers browsers append to;
+  rules left out when a variable has no value; the `*` setting, profile order, exceptions,
+  domain formats; typical rules (tenant restrictions, `X-Forwarded-For`, cache control);
+  the API's 422 checks.
+- `26` §5c (new): every variable (`username`, `email`, `userid`, `groups`, `tenant`, `ip`,
+  `externalip`, `country`, `region`, `localip`, `localips`, `hostname`, `fqdn`,
+  `deviceid`, `os`, `osversion`, `serial`, `clientversion`, `browser`, `browserversion`)
+  with the client, with the extension alone, and in a published application's watermark;
+  where `externalip` comes from; the local address the device actually uses.
+- `26` §2 watermark, §5 table, §6 body, §8 diagnosis rows for header rules and variables.
+- `26` §5: **Restrict Uploading Source Code** and **Restrict Viewing Source Code** are no
+  longer offered; saving Restrict Content turns them off.
+- `44` §4.2: the variables a published application's watermark takes.
+- `33` regenerated (the public tenant logo).
+
 ## 4.19.0 — 2026-11-18
 
 The AI Gateway without any other Netzilo component: a customer's proxy names its users

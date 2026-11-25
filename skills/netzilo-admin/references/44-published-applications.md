@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 91562
+chars: 91823
 sections:
 - id: '1'
   title: How it works
@@ -25,7 +25,7 @@ sections:
   - human-operator
 - id: '4'
   title: Publishing an application
-  chars: 21945
+  chars: 22206
   requires:
   - api
   executable_on:
@@ -367,7 +367,7 @@ Clipboard, Printing and Gray Border toggle with a click. Saved with the applicat
 | Card | JSON (`restrictions`) | What it does in the page |
 |---|---|---|
 | **Redact Data** | `redact: [{regex, mask_with, show_last}]` | masks displayed text that matches: `\b4[0-9]{15}\b`, `••••`, `4` → `•••• 1111`. Never form fields, `contenteditable`, code editors (Monaco, Ace, CodeMirror, xterm, ProseMirror), SVG or canvas: a value the user edits and saves is never changed. Matches in text nodes longer than 20 000 characters are not masked |
-| **Add Watermark** | `watermark_text`, `watermark_type: sparse \| dense` | text over every page: sparse = five marks, dense = a tiled, rotated pattern. `%netzilo.username%` (the user's name from the identity provider), `%netzilo.ip%` (public address at sign-in), `%netzilo.region%` (city by geolocation) are filled by management per user in the access answer; `%date%`, `%time%`, `%newline%` by the page (local time, refreshed every minute). Drawn as generated content: not selectable, not copied, not found by the browser's search, hidden from screen readers |
+| **Add Watermark** | `watermark_text`, `watermark_type: sparse \| dense` | text over every page: sparse = five marks, dense = a tiled, rotated pattern. `%netzilo.username%` (the user's name from the identity provider), `%netzilo.ip%` and `%netzilo.externalip%` (public address at sign-in), `%netzilo.region%` / `%netzilo.country%` (by geolocation), `%netzilo.os%`, `%netzilo.osversion%`, `%netzilo.browser%`, `%netzilo.browserversion%` and, with the extension, `%netzilo.deviceid%` / `%netzilo.clientversion%` are filled by management per user in the access answer (the full list: `26-profiles-secure-workplace.md` §5c); `%date%`, `%time%`, `%newline%` by the page (local time, refreshed every minute). Drawn as generated content: not selectable, not copied, not found by the browser's search, hidden from screen readers |
 | **Restrict Clipboard** | `restrict_clipboard` | copy, cut and drags that carry data (selected text, images, links) are blocked before the application's own handlers; `navigator.clipboard.write/writeText` resolve without writing. Paste stays allowed; drags of the application's own items (board cards, columns) carry no data and keep working |
 | **Restrict Printing** | `restrict_printing` | print media shows *Printing is restricted by your organization.*; Ctrl/Cmd+P is prevented (the application still sees the key); Ctrl/Cmd+Shift+P (command palettes) untouched |
 | **Restrict Downloads** | `restrict_downloads: ["all"]` or patterns | a *download* is a link with the `download` attribute, a navigation the browser marks as a download, a `blob:`/`data:` address the page builds, the save-file picker, or a link to the application's own origin whose **path** ends in `.pdf .zip .7z .rar .gz .tgz .tar .bz2 .xz .exe .msi .dmg .pkg .deb .rpm .apk .ipa .iso .doc(x/m) .xls(x/m) .ppt(x) .csv .tsv .rtf .odt .ods .odp .psd .parquet`. `all` blocks those; a pattern blocks those whose file name or address matches. Links to pages, same-page (SPA) navigations and links to other sites are never blocked |

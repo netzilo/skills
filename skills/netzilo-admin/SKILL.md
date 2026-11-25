@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure, Red Hat OpenShift), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR) on devices, in the browser through the Netzilo browser extension (ChatGPT, Claude, Gemini and other web AI apps, browser filters, the behaviour graph of browser sessions) and through the Netzilo AI Gateway (providers, model grants, limits, routing rules, MCP servers and bundles, guardrails, gateway filters, Agentic Access, Claude Desktop organization sign-in, AI usage), AI response actions (autonomous containment and the AI Kill Switch), detection-rule authoring, clientless access and published applications, the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server, the Netzilo client, the browser extension or the Netzilo AI Gateway, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance, guardrails, MCP, LLM gateways, AI in the browser or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 4.19.0
-  released: "2026-11-18"
+  version: 4.20.0
+  released: "2026-11-25"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 4.19.0, released 2026-11-18.** Confirm it is current before
+**This copy is version 4.20.0, released 2026-11-25.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -163,7 +163,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **4.19.0** above.
+Compare its `version:` with **4.20.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -446,7 +446,7 @@ is instructions for the admin rather than work you performed.
 | Network → DNS (Servers and Settings tabs) | `references/23-dns-management.md` | API |
 | Endpoint → Peers, Setup Keys | `references/24-peers-and-setup-keys.md` | API |
 | Team → Users/Agents, Settings, Tenant | `references/25-users-groups-and-account-settings.md` | API |
-| Endpoint → Profiles (Workspace, Enterprise Browser, Disposable Browser, Extension); a Workspace that will not launch or has no network | `references/26-profiles-secure-workplace.md` (§9 troubleshooting) | API |
+| Endpoint → Profiles (Workspace, Enterprise Browser, Disposable Browser, Extension); a domain setting's **Modify Headers** (set, append or remove request and response headers: tenant restrictions, `X-Forwarded-For`); the `%netzilo.*%` variables (user, addresses, device, browser) with and without the client; a Workspace that will not launch or has no network | `references/26-profiles-secure-workplace.md` — §5b header rules, §5c variables, §9 troubleshooting | API |
 | Install, run, expose, upgrade or troubleshoot the **AI Gateway** (`netzilo-aigw`): requirements, Linux/macOS/Windows/container install, every flag, plain HTTP vs TLS, tunnel vs public vs published-application exposure, sending users' provider calls through a customer's web proxy (Squid, secure web gateways), a proxy naming users at the public door with no other Netzilo component, authentication and every refusal (401/402/403/405/429), what it pulls from management, usage telemetry, logs, token rotation | `references/27-ai-gateway.md` — §3 install, §5 expose (§5.5 through a web proxy, with Squid; §5.6 a proxy naming users at the public door), §6 refusals, §9.2 logs, §10 troubleshoot | server shell; API for §6–§8 |
 | Edge → Providers and Edge → Governance → Limits: add a provider and its keys (including a self-hosted model server on the customer's private network), the model catalogue, model grants by provider, token/request/spend limits per user, how the gateway applies them | `references/45-ai-gateway-providers-and-limits.md` | API |
 | Edge → Governance → **Routing Rules**: send gateway requests to other providers and models by model, provider, header, query parameter or request type, weighted targets, first token timeout, ordered fallbacks, Chain Rule, priority and evaluation order, the gateway filter's **Routing** tab, the grants a rule needs and every 412/422, **Routed (7 days)** and **Routed by** in sessions, the API with a worked example, and why a rule does not route | `references/54-ai-gateway-routing-rules.md` — §3 dialog, §4 evaluation, §5 grants and refusals, §7 API, §9 troubleshooting | API |
