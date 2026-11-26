@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 30175
+chars: 30602
 sections:
 - id: '0'
   title: Facts you need before touching a device
@@ -28,7 +28,7 @@ sections:
   chars: 283
 - id: '6'
   title: Containers and Kubernetes
-  chars: 5035
+  chars: 5462
 - id: '7'
   title: Upgrading clients
   chars: 1615
@@ -315,9 +315,21 @@ docker run -d --restart=unless-stopped --name netzilo --hostname <peer-name> \
 ```
 
 The dashboard shows this command with the account's values under **Endpoint > Peers > Add
-Peer > Docker**. The kernel image takes the same variables plus `--cap-add=NET_ADMIN
---device /dev/net/tun` (and `--sysctl net.ipv4.ip_forward=1` when it routes) and the
-volume at `/etc/netzilo`.
+Peer > Docker**. The kernel image (root, needs host admin rights) takes the same variables
+plus the TUN device and `NET_ADMIN`, `ip_forward` when it routes, and its state at
+`/etc/netzilo`:
+
+```bash
+docker run -d --restart=unless-stopped --name netzilo --hostname <peer-name> \
+  --cap-add=NET_ADMIN --device /dev/net/tun \
+  --sysctl net.ipv4.ip_forward=1 \
+  -e NZ_SETUP_KEY=<KEY> -e NZ_MANAGEMENT_URL=https://<management> \
+  -v netzilo-client-root:/etc/netzilo \
+  ghcr.io/netzilo/net-client:latest
+```
+
+Do not point it at a volume a rootless container already uses: the two images keep their
+state at different paths.
 
 - **Variables.** Every client flag is `NZ_<FLAG>` (`06` §1): `NZ_SETUP_KEY`,
   `NZ_MANAGEMENT_URL` (on Netzilo Cloud `https://srv.netzilo.com`), `NZ_LOG_LEVEL`, and so on.
