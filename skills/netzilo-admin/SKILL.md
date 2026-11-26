@@ -3,14 +3,14 @@ name: netzilo-admin
 description: "Operate Netzilo end to end so customers need no vendor support. Covers server install (on-prem, AWS, Azure, Red Hat OpenShift), day-2 ops, identity and SSO, client deployment on every OS, network policy, AI security (AIDR) on devices, in the browser through the Netzilo browser extension (ChatGPT, Claude, Gemini and other web AI apps, browser filters, the behaviour graph of browser sessions) and through the Netzilo AI Gateway (providers, model grants, limits, routing rules, MCP servers and bundles, guardrails, gateway filters, Agentic Access, Claude Desktop organization sign-in, AI usage), AI response actions (autonomous containment and the AI Kill Switch), detection-rule authoring, clientless access and published applications, the REST API, log interpretation and connectivity diagnosis. Use when the user asks to install, configure, upgrade, troubleshoot or diagnose Netzilo Server, the Netzilo client, the browser extension or the Netzilo AI Gateway, or asks about Netzilo policies, routes, DNS, posture checks, peers, users, SSO, AI governance, guardrails, MCP, LLM gateways, AI in the browser or API automation."
 license: "Proprietary — see https://www.netzilo.com/terms-of-service"
 metadata:
-  version: 4.20.0
-  released: "2026-11-25"
+  version: 4.21.0
+  released: "2026-11-26"
   source: https://github.com/netzilo/skills
 ---
 
 # Netzilo Administration
 
-**This copy is version 4.20.0, released 2026-11-25.** Confirm it is current before
+**This copy is version 4.21.0, released 2026-11-26.** Confirm it is current before
 relying on it — see "Check you are current" below.
 
 You are the Netzilo operator for this customer: install, configure, run, and
@@ -163,7 +163,7 @@ is `https://github.com/netzilo/skills`.
 https://raw.githubusercontent.com/netzilo/skills/main/skills/netzilo-admin/VERSION
 ```
 
-Compare its `version:` with **4.20.0** above.
+Compare its `version:` with **4.21.0** above.
 
 - **Same** — say so once and continue.
 - **Newer** — fetch
@@ -420,7 +420,7 @@ is instructions for the admin rather than work you performed.
 | Database encryption on a self-hosted server: what it protects, setting up the key store (HashiCorp Vault, AWS KMS, Azure Key Vault, local key), turning it on for the on-prem one-liner, the AWS and Azure images and Kubernetes, keeping it on through updates, checking it, backups and restore, key rotation, moving the key (`rewrap`), turning it off (`decrypt`), and every start-up error | `references/52-database-encryption.md` — §5 key store, §6 turn on (§6.2 after an update), §9 troubleshooting | server shell |
 | Server down, cert warning, container restarting, can't log in, slow | `references/03-server-troubleshooting.md` | server shell |
 | Users, invites, SSO (Entra/Okta/Google/SAML), MFA, lockout, SMTP, roles | `references/04-identity-and-sso.md` | IdP console, server shell |
-| Install/enrol/deploy the client on any OS, containers, Kubernetes, fleets | `references/05-client-install-and-deploy.md` | device |
+| Install/enrol/deploy the client on any OS, fleets; the client as a container (`ghcr.io/netzilo/net-client`, rootless or kernel), a routing peer or exit node in Docker, Kubernetes or OpenShift without admin rights, `NZ_` variables | `references/05-client-install-and-deploy.md` — §6 containers | device |
 | Installer command lines: every switch, MSI property and exit code of the Windows client (MSI, offline EXE, pack, online EXE) and the Enterprise Browser (MSI, EXE), tenant-named installers, `CONFIGFILE` pre-enrolment, Intune/SCCM/GPO/Jamf detection and return codes, upgrade and uninstall, macOS `.pkg` and Linux; why a switch was ignored | `references/48-installer-command-lines.md` — §1 to pick the file, §4 quick reference, §18 diagnosis | device
 | Any CLI flag, env var, config path, log field; the desktop app's tray menu and where the removed tray items went | `references/06-client-cli-reference.md` | device |
 | Device won't connect, relayed, DNS, routes, SSH, daemon unreachable | `references/07-client-troubleshooting.md` | device |

@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 33734
+chars: 33918
 sections:
 - id: '1'
   title: Rules of engagement
@@ -17,7 +17,7 @@ sections:
   chars: 3979
 - id: '3'
   title: 'Triage: route the request'
-  chars: 8565
+  chars: 8749
 - id: '4'
   title: Intake checklist (in this order)
   chars: 7042
@@ -159,6 +159,7 @@ first; go to the device to see what the account cannot.
 | "Dashboard down / cert warning / container restarting / can't log in / clients can't connect to server / slow" | `03-server-troubleshooting.md` |
 | "Add users / invite mail not arriving / reset password / MFA / lockout / SSO with Entra/Okta/Google / SMTP / roles / service users" | `04-identity-and-sso.md` |
 | "Install the client on Windows/macOS/Linux/mobile/Docker/Kubernetes, roll out to a fleet, setup keys vs SSO, headless agents, upgrade/uninstall clients" | `05-client-install-and-deploy.md` |
+| "Run a routing peer or exit node in Docker, Kubernetes or OpenShift / without admin rights / `ghcr.io/netzilo/net-client` / `NZ_` variables" | `05-client-install-and-deploy.md` §6 |
 | "What does flag X do / where is the config / log / how do I read `netzilo status`" | `06-client-cli-reference.md` |
 | "Device won't connect / relayed / DNS broken / route missing / SSH / TLS errors from AI apps / daemon not reachable" | `07-client-troubleshooting.md` |
 | "Device A cannot reach host X" (peer, LAN/VPC host behind a routing peer, or Internet via exit node) | `11-connectivity-diagnosis.md` — the end-to-end procedure across A, the routing peer, policies, routes, firewalls and DNS |

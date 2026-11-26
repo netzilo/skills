@@ -7,6 +7,29 @@ corrections, clarifications, and command fixes.
 An agent reading this to decide whether an update matters: scan the entries newer than
 your installed version and look for the area you are working in.
 
+## 4.21.0 — 2026-11-26
+
+The client as a published container image: rootless routing peers and exit nodes in
+Docker, Kubernetes and OpenShift, the `NZ_` variable prefix, and the Linux posture values
+that change with it. Minor version: new procedures.
+
+- `05` §6 (rewritten): `ghcr.io/netzilo/net-client`, `rootless-latest` (netstack, no
+  capabilities, any UID in group `0`, `/var/lib/netzilo`) and `latest` (kernel, `NET_ADMIN`,
+  `/dev/net/tun`, `/etc/netzilo`); the default `docker run`; identity across restarts
+  (`NZ_KEEP_IDENTITY_ON_STOP`); how a rootless routing peer or exit node relays TCP, UDP and
+  ping; what a container peer reports; a restricted Kubernetes/OpenShift Deployment;
+  diagnosis. The "no published image" statement and the hardened-Kubernetes exemption note
+  are corrected.
+- `06` §1: the variable prefix is `NZ_` (clients from 2026-11-26); `NB_` and `WT_` are still
+  read and `NZ_` wins. `NZ_USE_NETSTACK_MODE`.
+- `21`: the Netzilo Extension item is true only for Windows and macOS clients (and the
+  Enterprise Browser); Linux reports false. Device Integrity on Linux fails only with a
+  debugger attached; Linux clients before 2026-11-26 always failed it.
+- `22` §4.1, §4.5, §5: routing peers and exit nodes as rootless containers, and what such a
+  routing peer does instead of `wt0`, routing tables and firewall chains.
+- `53` §4: routing peers inside an OpenShift cluster use the client image.
+- `00`: a routing row for containers, routing peers and exit nodes.
+
 ## 4.20.0 — 2026-11-25
 
 Header rules for the browser extension and the Enterprise Browser, and one table of the

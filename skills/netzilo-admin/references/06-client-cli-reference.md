@@ -6,17 +6,17 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 22998
+chars: 23143
 sections:
 - id: '1'
   title: Global flags (all commands)
-  chars: 1473
+  chars: 1580
 - id: '2'
   title: Commands
   chars: 10984
 - id: '3'
   title: Environment variables beyond flags
-  chars: 3167
+  chars: 3205
 - id: '4'
   title: Files and state
   chars: 2642
@@ -57,23 +57,24 @@ over Netzilo ends with it. To re-sync prefer `netzilo refresh` (device tool
 
 ## 1. Global flags (all commands)
 
-Every flag maps to an environment variable `NB_<FLAG>` (uppercase, `-` → `_`). The
-legacy `WT_` prefix is also read; `NB_` wins.
+Every flag maps to an environment variable `NZ_<FLAG>` (uppercase, `-` → `_`). The earlier
+prefixes `NB_` and `WT_` are still read; `NZ_` wins. `NZ_` needs a client built on
+2026-11-26 or later; older clients read only `NB_` and `WT_`.
 
 | Flag | Short | Default | Env | Meaning |
 |---|---|---|---|---|
-| `--config` | `-c` | `/etc/netzilo/config.json` (Win `%PROGRAMDATA%\Netzilo\config.json`) | `NB_CONFIG` | config file |
-| `--daemon-addr` | | `unix:///var/run/netzilo.sock` (Win `tcp://127.0.0.1:40836`) | `NB_DAEMON_ADDR` | how the CLI reaches the daemon |
-| `--management-url` | `-m` | `https://srv.netzilo.com:443` | `NB_MANAGEMENT_URL` (also `NETZILOSRV`) | management server |
-| `--admin-url` | | derived (`srv.`→`go.`; else same host) | `NB_ADMIN_URL` | dashboard URL used for SSO session flow |
-| `--setup-key` | `-k` | | `NB_SETUP_KEY` | setup key for registration |
-| `--setup-key-file` | | | `NB_SETUP_KEY_FILE` | file containing the key (exclusive with `--setup-key`) |
-| `--preshared-key` | | | `NB_PRESHARED_KEY` | WireGuard PSK; peers must share it to communicate |
-| `--hostname` | `-n` | OS hostname | `NB_HOSTNAME` | peer name |
-| `--log-level` | `-l` | `info` | `NB_LOG_LEVEL` | `panic fatal error warn info debug trace` |
-| `--log-file` | | `/var/log/netzilo/client.log` (Win `%PROGRAMDATA%\Netzilo\client.log`) | `NB_LOG_FILE` | `console` = stdout, `syslog` = syslog |
-| `--service` | `-s` | `Netzilo` | `NB_SERVICE` | OS service name |
-| `--anonymize` | `-A` | false | `NB_ANONYMIZE` | scrub IPs/domains in output |
+| `--config` | `-c` | `/etc/netzilo/config.json` (Win `%PROGRAMDATA%\Netzilo\config.json`) | `NZ_CONFIG` | config file |
+| `--daemon-addr` | | `unix:///var/run/netzilo.sock` (Win `tcp://127.0.0.1:40836`) | `NZ_DAEMON_ADDR` | how the CLI reaches the daemon |
+| `--management-url` | `-m` | `https://srv.netzilo.com:443` | `NZ_MANAGEMENT_URL` (also `NETZILOSRV`) | management server |
+| `--admin-url` | | derived (`srv.`→`go.`; else same host) | `NZ_ADMIN_URL` | dashboard URL used for SSO session flow |
+| `--setup-key` | `-k` | | `NZ_SETUP_KEY` | setup key for registration |
+| `--setup-key-file` | | | `NZ_SETUP_KEY_FILE` | file containing the key (exclusive with `--setup-key`) |
+| `--preshared-key` | | | `NZ_PRESHARED_KEY` | WireGuard PSK; peers must share it to communicate |
+| `--hostname` | `-n` | OS hostname | `NZ_HOSTNAME` | peer name |
+| `--log-level` | `-l` | `info` | `NZ_LOG_LEVEL` | `panic fatal error warn info debug trace` |
+| `--log-file` | | `/var/log/netzilo/client.log` (Win `%PROGRAMDATA%\Netzilo\client.log`) | `NZ_LOG_FILE` | `console` = stdout, `syslog` = syslog |
+| `--service` | `-s` | `Netzilo` | `NZ_SERVICE` | OS service name |
+| `--anonymize` | `-A` | false | `NZ_ANONYMIZE` | scrub IPs/domains in output |
 
 ---
 
@@ -87,7 +88,7 @@ legacy `WT_` prefix is also read; `NB_` wins.
 | `--userspace-mode`, `-U` | false | userspace TCP/IP stack (netstack); no TUN device, reachable only through the local SOCKS5 proxy (`11-connectivity-diagnosis.md` §8) |
 | `--interface-name` | `wt0` (macOS `utun100`) | WireGuard interface; macOS must be `utunN` |
 | `--wireguard-port` | `51820` | local WireGuard UDP port |
-| `--pat` | | personal access token login (`NB_PAT`; also `NETZILOPAT` env or stored `pat.dat`) |
+| `--pat` | | personal access token login (`NZ_PAT`; also `NETZILOPAT` env or stored `pat.dat`) |
 | `--device-code` | false | "Sign in with a code entered on any device, for when the browser is not on this machine": prints a page and a code instead of opening a browser here |
 | `--allow-server-ssh` | false | allow this peer to run the embedded SSH server (dashboard must also enable it) |
 | `--disable-auto-connect` | false | don't connect when the service starts |
@@ -243,7 +244,7 @@ Flags: `--fullname`, `--email`, `--groups a,b`, `--password`, `--tokenname`,
 | `NETZILOPAT` | PAT used for login when no setup key is given |
 | `NB_FORCE_WS=1` | gRPC over WebSocket to management/signal (when HTTP/2 is blocked by a proxy) |
 | `NB_WG_KERNEL_DISABLED=true` | force userspace WireGuard on Linux |
-| `NB_USE_NETSTACK_MODE=true` | netstack mode (no TUN); `NB_SOCKS5_LISTENER_PORT` sets the SOCKS5 port |
+| `NZ_USE_NETSTACK_MODE=true` | netstack mode (no TUN; `NB_USE_NETSTACK_MODE` is still read); `NB_SOCKS5_LISTENER_PORT` sets the SOCKS5 port |
 | `NB_USE_LEGACY_ROUTING=true` | Linux legacy routing (suggested when `rp_filter` sysctl fails on exit-node setups) |
 | `NB_DISABLE_CUSTOM_ROUTING=true` | do not install routes; the client then logs `doesn't support default routes … skipping this prefix` for any `/7`-or-wider prefix and exit nodes stop working (`07-client-troubleshooting.md` §7) |
 | `NB_DISABLE_ROUTE_CACHE=true` | Windows route cache off |

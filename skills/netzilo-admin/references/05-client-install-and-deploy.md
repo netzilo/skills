@@ -6,11 +6,11 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 26623
+chars: 30175
 sections:
 - id: '0'
   title: Facts you need before touching a device
-  chars: 3817
+  chars: 3815
 - id: '1'
   title: Enrollment methods (decide first)
   chars: 1842
@@ -22,13 +22,13 @@ sections:
   chars: 2032
 - id: '4'
   title: Linux
-  chars: 2327
+  chars: 2365
 - id: '5'
   title: Mobile
   chars: 283
 - id: '6'
   title: Containers and Kubernetes
-  chars: 1554
+  chars: 5035
 - id: '7'
   title: Upgrading clients
   chars: 1615
@@ -43,7 +43,7 @@ sections:
   chars: 1238
 - id: '11'
   title: Platform details that cause first-install tickets
-  chars: 2921
+  chars: 2956
 - id: '12'
   title: What Cloud customers must allow outbound
   chars: 718
@@ -103,10 +103,10 @@ server's `GET /api/getclient?os=…` redirect points at different filenames
 (`windows/x64/netzilo_installer_amd64.exe`, `macos/*/netzilo_installer_*.pkg`) which
 currently return **404** — do not hand out that endpoint; use the dashboard links.
 
-Not available: an apt/yum repository, a Homebrew tap, a winget/choco package, or an
-official Docker Hub image for the `netzilo` binary. Older documentation that mentions a
-`netzilo/netzilo` Docker image or apt repository steps is out of date; do not promise
-them. For containers see §6.
+Not available: an apt/yum repository, a Homebrew tap or a winget/choco package. The
+container image is `ghcr.io/netzilo/net-client` (§6); there is no `netzilo/netzilo`
+Docker Hub image. Older documentation that mentions one or apt repository steps is out of
+date; do not promise them.
 
 ---
 
@@ -275,8 +275,8 @@ netstack mode.
 on another device: `06` §2). Prefer setup keys for servers.
 
 **Persistent flags for the service:** `sudo netzilo service install --log-level debug`
-bakes flags into the unit; or set `NB_*` env vars in the unit's environment
-(`systemctl edit Netzilo`).
+bakes flags into the unit; or set `NZ_*` env vars in the unit's environment
+(`systemctl edit Netzilo`; `NB_*` names are still read, `06` §1).
 
 **Uninstall:** `sudo netzilo down; sudo netzilo service uninstall; sudo rm -f /usr/bin/netzilo; sudo rm -rf /opt/netzilo /etc/netzilo /var/log/netzilo`.
 The CA anchor `netzilo-mitm-ca.crt` stays under `/usr/local/share/ca-certificates/` (or
@@ -296,39 +296,86 @@ email. Self-hosted: change the server in the app's settings before connecting (t
 
 ## 6. Containers and Kubernetes
 
-There is no official published Netzilo container image. Build one from the Linux binary:
+The client is published as a container image for `linux/amd64` and `linux/arm64`:
 
-```dockerfile
-FROM alpine:3.19
-RUN apk add --no-cache ca-certificates iptables ip6tables wget \
- && wget -O /usr/local/bin/netzilo https://pkg.netzilo.com/download/linux/netzilo \
- && chmod +x /usr/local/bin/netzilo
-ENV NB_FOREGROUND_MODE=true
-ENTRYPOINT ["/usr/local/bin/netzilo","up"]
-```
+| Image | Mode | Needs | State volume |
+|---|---|---|---|
+| `ghcr.io/netzilo/net-client:rootless-latest` (`<version>-rootless`) | netstack, userspace WireGuard; runs as UID 1000, works with any UID in group `0` | nothing: no capabilities, no TUN device, no sysctl; a read-only root filesystem is fine | `/var/lib/netzilo` |
+| `ghcr.io/netzilo/net-client:latest` (`<version>`) | kernel interface, nftables/iptables NAT | `NET_ADMIN`, `/dev/net/tun`; as a routing peer or exit node also `net.ipv4.ip_forward=1` | `/etc/netzilo` |
 
-Run:
+`latest` and `rootless-latest` follow each release; `<version>` tags pin one. Default to
+the rootless image: it runs where the operator has no admin rights on the host, on
+OpenShift (`restricted-v2`) and under Kubernetes restricted pod security.
 
 ```bash
-docker run -d --name netzilo-peer --hostname <peer-name> \
-  --cap-add=NET_ADMIN --cap-add=SYS_ADMIN --cap-add=SYS_RESOURCE \
-  -e NB_SETUP_KEY=<KEY> -e NB_MANAGEMENT_URL=https://<domain> \
-  -v netzilo-client:/etc/netzilo <image>
+docker run -d --restart=unless-stopped --name netzilo --hostname <peer-name> \
+  -e NZ_SETUP_KEY=<KEY> -e NZ_MANAGEMENT_URL=https://<management> \
+  -v netzilo-client:/var/lib/netzilo \
+  ghcr.io/netzilo/net-client:rootless-latest
 ```
 
-- `NB_FOREGROUND_MODE=true` runs the engine in-process (no daemon).
-- Add `-e NB_WG_KERNEL_DISABLED=true` if the host lacks the WireGuard module.
-- Fully unprivileged: `-e NB_USERSPACE_MODE=true` (or `NB_USE_NETSTACK_MODE=true`) — no TUN,
-  reachability only through the SOCKS5 proxy on 41339 / `NB_SOCKS5_LISTENER_PORT`; DNS
-  names are not resolvable in netstack mode.
-- Persist `/etc/netzilo` so the peer keeps its identity across restarts (otherwise every
-  start creates a new peer; use an ephemeral setup key if you want auto-cleanup).
+The dashboard shows this command with the account's values under **Endpoint > Peers > Add
+Peer > Docker**. The kernel image takes the same variables plus `--cap-add=NET_ADMIN
+--device /dev/net/tun` (and `--sysctl net.ipv4.ip_forward=1` when it routes) and the
+volume at `/etc/netzilo`.
 
-Kubernetes routing peers: reusable **ephemeral** setup key with auto-group (e.g.
-`kubernetes-routers`), a Deployment with the env above and
-`securityContext.capabilities.add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]`, then a route
-whose routing group is `kubernetes-routers` (routing peers must be Linux). `replicas: 3`
-gives HA automatically.
+- **Variables.** Every client flag is `NZ_<FLAG>` (`06` §1): `NZ_SETUP_KEY`,
+  `NZ_MANAGEMENT_URL` (on Netzilo Cloud `https://srv.netzilo.com`), `NZ_LOG_LEVEL`, and so on.
+  `NZ_` needs an image built on 2026-11-26 or later; an older image reads only `NB_`, which
+  every version still accepts: an older image given only `NZ_SETUP_KEY` never enrolls.
+- **Identity.** The volume holds `config.json`, whose WireGuard key is the peer. The images
+  set `NZ_KEEP_IDENTITY_ON_STOP=true`: stopping or restarting the container neither logs the
+  peer out nor resets its configuration, so a restarted, recreated or upgraded container
+  with the same volume is the same peer and the setup key is not used again. Without the
+  volume every new container enrolls as a new peer; for short-lived containers use an
+  **ephemeral** setup key (peers removed 10 minutes after going offline).
+- **Rootless routing peer or exit node.** The client's userspace forwarder accepts the
+  routed TCP, UDP and ICMP echo and opens ordinary connections from the container, so the
+  routed network or the internet sees the container's (pod's) address: masquerade is
+  implicit, and no `ip_forward`, firewall rule or sysctl is touched. Without `NET_RAW`,
+  ping is relayed with the image's `ping` binary (Docker and CRI-O allow unprivileged ping
+  by default). Throughput is lower than the kernel image's.
+- **Rootless as a plain peer.** It has no TUN device: the container's own processes reach
+  other peers only through the client's local SOCKS5 proxy. A container that must use
+  Netzilo routes itself needs the kernel image.
+- **What a container peer reports.** OS is the image's (Red Hat Enterprise Linux 9 for the
+  rootless image, Alpine for the kernel one), kernel and Virtual Device are the host's
+  (Docker Desktop reads as a VM). Firewall, antivirus, disk encryption and screen lock read
+  false; the Netzilo Extension item is false on Linux (`21-posture-checks.md`). Keep
+  endpoint posture checks off policies whose source groups contain container peers.
+
+**Kubernetes and OpenShift routing peers.** Reusable **ephemeral** setup key with an
+auto-group (e.g. `kubernetes-routers`) stored in a secret, then a Deployment of the rootless
+image; no exemption or extra SCC is needed:
+
+```yaml
+      containers:
+        - name: netzilo
+          image: ghcr.io/netzilo/net-client:rootless-latest
+          env:
+            - name: NZ_SETUP_KEY
+              valueFrom: {secretKeyRef: {name: netzilo-setup-key, key: key}}
+            - name: NZ_MANAGEMENT_URL
+              value: https://<management>
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts: [{name: state, mountPath: /var/lib/netzilo}]
+      volumes: [{name: state, emptyDir: {}}]
+```
+
+Then a route whose routing peer group is `kubernetes-routers` (routing peers must be
+Linux) and a policy from the route's users to that group. `replicas: 3` gives high
+availability. An `emptyDir` gives each pod a new peer (cleaned up by the ephemeral key); a
+persistent volume per pod keeps identities. Air-gapped clusters mirror
+`ghcr.io/netzilo/net-client` to their registry.
+
+**Diagnosis.** `docker logs netzilo` / `kubectl logs`: a refused setup key or a wrong
+management address shows there. Every restart creates a new peer → no volume at the
+state path, or an image from before 2026-11-26. Peers cannot reach the routed network →
+the policy to the routing group, the route enabled, masquerade on for the kernel image.
 
 ---
 
@@ -467,10 +514,10 @@ icon is a desktop environment issue, not a client fault.
 address cannot be pre-seeded through mobile device management; users set it in the app.
 Do not promise a zero-touch mobile rollout.
 
-**On hardened Kubernetes, routing peers need an exemption.** A routing peer needs
-elevated network capabilities, which clusters enforcing restricted pod security or a
-default security context constraint will refuse outright. The pod is rejected rather than
-misbehaving. Arrange the exemption before deploying.
+**On hardened Kubernetes, use the rootless image for routing peers.** It needs no
+capabilities and passes restricted pod security and OpenShift `restricted-v2` (§6). The
+kernel image needs `NET_ADMIN` and a TUN device, which those clusters refuse: the pod is
+rejected rather than misbehaving, so it needs an exemption arranged before deploying.
 
 **Security tooling on Linux can block the client silently.** Where mandatory access
 control is enforcing, denials appear in the host's audit log rather than in the client's

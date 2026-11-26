@@ -6,7 +6,7 @@ requires:
 executable_on:
 - netzilo-harness
 - human-operator
-chars: 50147
+chars: 50417
 sections:
 - id: '1'
   title: What gets deployed
@@ -19,7 +19,7 @@ sections:
   chars: 506
 - id: '4'
   title: Images
-  chars: 1956
+  chars: 2226
 - id: '5'
   title: Cluster prerequisites
   chars: 4769
@@ -187,6 +187,10 @@ The Netzilo images on `ghcr.io/netzilo` are public (anonymous pulls). They are b
 `skopeo copy docker://<src> docker://<dst>`. A registry that needs credentials: create a
 `kubernetes.io/dockerconfigjson` Secret named `netzilo-pull` in each namespace (§6.2) and
 add `imagePullSecrets: [{name: netzilo-pull}]` to every values file in §6.
+
+Routing peers and exit nodes inside the cluster are not part of this install: they run the
+client image `ghcr.io/netzilo/net-client:rootless-latest` (`linux/amd64` and `linux/arm64`),
+which fits `restricted-v2` with no extra SCC (`05-client-install-and-deploy.md` §6).
 
 ## 5. Cluster prerequisites
 

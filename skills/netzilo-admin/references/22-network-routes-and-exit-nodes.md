@@ -7,7 +7,7 @@ executable_on:
 - dashboard-assistant
 - netzilo-harness
 - human-operator
-chars: 15015
+chars: 15795
 sections:
 - id: '1'
   title: Model
@@ -20,10 +20,10 @@ sections:
   chars: 835
 - id: '4'
   title: Procedures
-  chars: 2824
+  chars: 3157
 - id: '5'
   title: What the routing peer does (for verification)
-  chars: 899
+  chars: 1346
 - id: '6'
   title: Diagnosis
   chars: 5006
@@ -140,6 +140,8 @@ Exit node: `"network":"0.0.0.0/0"`. Exactly one of `peer` / `peer_groups`, one o
 1. Deploy a Linux routing peer inside the network (`05-client-install-and-deploy.md`
    §8.6) with a setup key whose auto-group is e.g. `dc-routers`. Size: 2 vCPU / 4 GB is
    fine for small sites; the documentation recommends 4 vCPU / 8 GB / 50 GB for busy ones.
+   Without admin rights on the host, or on Kubernetes/OpenShift, run the rootless container
+   image instead (`05` §6); the setup key and its auto-group work the same.
 2. Routes → Add Route: range `10.20.0.0/16`, routing peer (or peer group `dc-routers`),
    distribution group `employees`, identifier `dc-1`, masquerade on, metric 100.
 3. Policy: `employees → dc-routers`, protocol/ports the users need (or ALL to start).
@@ -169,6 +171,8 @@ egress IP that the SaaS allow-lists. Clients re-resolve every minute
 Peers → Linux peer → ⋮ → **Add Exit Node** → distribution group `travellers`. Then
 Network → DNS → Servers tab → add a resolver **without match domains** for `travellers` so DNS
 also leaves through the exit node. Policy `travellers → <exit-node group>` ALL.
+A container exit node: the rootless image (`05` §6) with a setup key whose auto-group is
+the exit-node group, then a route `0.0.0.0/0` with that routing peer group.
 IPv6 is dropped by design on exit-node clients. While no exit node in the network is
 connected to a client, that client uses its local internet connection (§1); give the
 network two exit nodes (§4.2) where that matters.
@@ -199,6 +203,12 @@ rebuilt on every network-map update.
 Host firewalls with a default `FORWARD DROP` (ufw, firewalld) must allow forwarding
 between `wt0` and the LAN interface: `sudo ufw route allow in on wt0 out on <lan>` (and
 back), or firewalld zone forwarding/masquerade.
+
+A **rootless container** routing peer (`05` §6) does none of the above: no `wt0`, no
+routing table, no firewall chains, no `ip_forward`. Its userspace forwarder relays each
+routed TCP, UDP or ICMP echo flow over an ordinary connection of the container, so targets
+see the container's address whether masquerade is on or off. Verify it from a client
+(`netzilo routes list`, then reach a host), and read problems in `docker logs` / `kubectl logs`.
 
 ---
 
